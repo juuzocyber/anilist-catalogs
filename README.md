@@ -20,11 +20,7 @@ A self-hosted [Stremio](https://www.stremio.com/) add-on that brings your AniLis
 
 ## Screenshots
 
-| Configure page | Catalog in Stremio |
-|---|---|
-| ![Configure page](docs/screenshots/configure.png) | ![Stremio catalog](docs/screenshots/stremio.png) |
-
-> Screenshots coming soon.
+![Configure Page](docs/images/configure-page.png)
 
 ---
 
@@ -158,6 +154,12 @@ Changing `SECRET_KEY` invalidates all existing encrypted tokens — manifest URL
 
 **`ANILIST_CLIENT_SECRET` is a server-side secret.**
 It is never sent to the browser and is only used in the server-to-server token exchange at `/oauth/callback`.
+
+---
+
+## Disclaimer
+
+This project is not affiliated with, endorsed by, or connected to AniList. All anime data is provided by the [AniList API](https://anilist.gitbook.io/anilist-apiv2-docs/).
 
 ---
 

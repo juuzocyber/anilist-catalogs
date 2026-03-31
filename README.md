@@ -81,6 +81,7 @@ Docker will build the image on first run. Once it's up, open [http://localhost:7
 ### 4. Install in Stremio
 
 Configure your catalogs in the UI, then either:
+
 - Click **Add to Stremio** to deep-link directly into the app
 - Copy the manifest URL and paste it into Stremio manually
 - Scan the QR code on your phone
@@ -130,14 +131,14 @@ The container restarts automatically unless you explicitly stop it (`restart: un
 
 All configuration is read from `.env` at startup. See `.env.example` for the full template — **never commit `.env` to version control**.
 
-| Variable | Description | Required | Example |
-|---|---|---|---|
-| `HOST` | Host address the server binds to | Optional | `0.0.0.0` |
-| `PORT` | Port the server listens on | Optional | `7000` |
-| `SECRET_KEY` | Derives the encryption key for AniList tokens. Generate with `secrets.token_hex(32)` | **Required** | `a3f8c2d91e4b...` |
-| `ANILIST_CLIENT_ID` | Client ID from your AniList developer application | Required for OAuth | `12345` |
-| `ANILIST_CLIENT_SECRET` | Client Secret from your AniList developer application | Required for OAuth | `abc123xyz...` |
-| `ANILIST_REDIRECT_URI` | OAuth callback URL — must exactly match what is registered in AniList developer settings | Required for OAuth | `http://localhost:7000/oauth/callback` |
+| Variable                | Description                                                                              | Required           | Example                                |
+| ----------------------- | ---------------------------------------------------------------------------------------- | ------------------ | -------------------------------------- |
+| `HOST`                  | Host address the server binds to                                                         | Optional           | `0.0.0.0`                              |
+| `PORT`                  | Port the server listens on                                                               | Optional           | `7000`                                 |
+| `SECRET_KEY`            | Derives the encryption key for AniList tokens. Generate with `secrets.token_hex(32)`     | **Required**       | `a3f8c2d91e4b...`                      |
+| `ANILIST_CLIENT_ID`     | Client ID from your AniList developer application                                        | Required for OAuth | `12345`                                |
+| `ANILIST_CLIENT_SECRET` | Client Secret from your AniList developer application                                    | Required for OAuth | `abc123xyz...`                         |
+| `ANILIST_REDIRECT_URI`  | OAuth callback URL — must exactly match what is registered in AniList developer settings | Required for OAuth | `http://localhost:7000/oauth/callback` |
 
 ---
 

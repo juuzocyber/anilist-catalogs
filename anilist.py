@@ -4,7 +4,7 @@ AniList GraphQL client.
 
 import httpx
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 logger = logging.getLogger(__name__)
@@ -42,9 +42,8 @@ def _season_now():
 
 def _week_bounds_unix():
     now = datetime.now(timezone.utc)
-    monday = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    monday = monday.replace(day=now.day - now.weekday())
-    sunday = monday.replace(day=monday.day + 6, hour=23, minute=59, second=59)
+    monday = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+    sunday = (monday + timedelta(days=6)).replace(hour=23, minute=59, second=59)
     return int(monday.timestamp()), int(sunday.timestamp())
 
 def _media_to_meta(media: dict) -> dict:
@@ -240,14 +239,18 @@ async def get_viewer(token: str) -> dict:
     }
 
 
-async def get_watching_list(token: str, user_id: int) -> list[dict]:
-    """Return the authenticated user's currently-watching anime as Stremio meta dicts.
+async def get_watching_list(token: str, user_id: int, list_status: str = "CURRENT", *, raw: bool = False) -> list[dict]:
+    """Return an authenticated user's anime list filtered by status.
 
     *token* is the raw (decrypted) AniList Bearer token — never log it.
+    *list_status* matches AniList MediaListStatus: CURRENT, PLANNING, COMPLETED,
+    PAUSED, DROPPED, or REPEATING.
+    When *raw* is True, returns the unprocessed AniList media dicts instead of
+    Stremio meta dicts (used by the configure UI preview).
     """
     query = f"""
-    query ($userId: Int) {{
-        MediaListCollection(userId: $userId, type: ANIME, status: CURRENT) {{
+    query ($userId: Int, $status: MediaListStatus) {{
+        MediaListCollection(userId: $userId, type: ANIME, status: $status) {{
             lists {{
                 entries {{
                     media {{
@@ -258,14 +261,45 @@ async def get_watching_list(token: str, user_id: int) -> list[dict]:
         }}
     }}
     """
-    data = await _gql(query, {"userId": user_id}, token=token)
-    metas: list[dict] = []
+    data = await _gql(query, {"userId": user_id, "status": list_status}, token=token)
+    media_list: list[dict] = []
     for lst in (data.get("MediaListCollection") or {}).get("lists") or []:
         for entry in lst.get("entries") or []:
             media = entry.get("media")
             if media:
-                metas.append(_media_to_meta(media))
-    return metas
+                media_list.append(media)
+    return media_list if raw else [_media_to_meta(m) for m in media_list]
+
+
+async def get_favourites(token: str, user_id: int, *, raw: bool = False) -> list[dict]:
+    """Return the authenticated user's favourite anime.
+
+    Favourites live under User.favourites.anime.nodes, not MediaListCollection.
+    *token* is the raw (decrypted) AniList Bearer token — never log it.
+    When *raw* is True, returns the unprocessed AniList media dicts instead of
+    Stremio meta dicts (used by the configure UI preview).
+    """
+    query = f"""
+    query ($userId: Int) {{
+        User(id: $userId) {{
+            favourites {{
+                anime {{
+                    nodes {{
+                        {MEDIA_FIELDS}
+                    }}
+                }}
+            }}
+        }}
+    }}
+    """
+    data = await _gql(query, {"userId": user_id}, token=token)
+    nodes = (
+        (data.get("User") or {})
+        .get("favourites", {})
+        .get("anime", {})
+        .get("nodes") or []
+    )
+    return nodes if raw else [_media_to_meta(m) for m in nodes]
 
 
 async def get_meta(anilist_id: int) -> Optional[dict]:

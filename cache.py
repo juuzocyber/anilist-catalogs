@@ -42,6 +42,9 @@ class TTLCache:
 # Singleton used across the app
 cache = TTLCache()
 
+# Session TTL: losing this just means re-authentication is required — no data lost.
+SESSION_TTL = 24 * 60 * 60  # 24 hours
+
 # TTLs per catalog (seconds)
 TTL = {
     "anilist-popular-season": 15 * 60,   # 15 minutes

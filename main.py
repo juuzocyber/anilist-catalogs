@@ -5,6 +5,7 @@ AniList Catalogs — FastAPI entry point.
 import logging
 import random
 import secrets
+import time
 from contextlib import asynccontextmanager
 
 import httpx
@@ -15,7 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
 
 import anilist
-from cache import cache, TTL
+from cache import cache, TTL, SESSION_TTL
 from config import decode_config, DEFAULT_CONFIG, DEFAULT_CONFIG_TOKEN, CURRENT_YEARS
 from configure import CONFIGURE_HTML
 from crypto import encrypt, decrypt
@@ -35,6 +36,19 @@ PRESET_HANDLERS = {
 }
 
 def _skip_to_page(skip): return max(1, skip // PER_PAGE + 1)
+
+def _parse_config_segment(segment: str) -> tuple[str, str | None]:
+    """Split a URL path segment into (config_token, session_key | None).
+
+    The segment format is "{config_token}~{session_key}" when authenticated,
+    or just "{config_token}" for unauthenticated / public manifests.
+    '~' is used as the separator because it is unreserved in RFC 3986
+    and never appears in base64url output.
+    """
+    if "~" in segment:
+        config_token, session_key = segment.split("~", 1)
+        return config_token, session_key
+    return segment, None
 
 def _build_manifest(config):
     catalogs = []
@@ -64,8 +78,11 @@ async def _fetch_catalog(catalog_id, catalog_config, page, encrypted_token: str 
         except InvalidToken:
             raise HTTPException(status_code=401, detail="Invalid or expired token.")
         viewer = await anilist.get_viewer(raw_token)
-        # Do not cache watching lists — they are user-specific and change frequently.
-        return await anilist.get_watching_list(raw_token, viewer["id"])
+        # Do not cache user-specific lists — they change frequently.
+        list_status = catalog_config.get("listStatus")
+        if list_status == "FAVOURITES":
+            return await anilist.get_favourites(raw_token, viewer["id"])
+        return await anilist.get_watching_list(raw_token, viewer["id"], list_status or "CURRENT")
     else:
         raise HTTPException(status_code=404, detail=f"Unknown catalog: {catalog_id}")
     cache.set(cache_key, metas, ttl)
@@ -207,9 +224,15 @@ async def oauth_callback(
         return response
 
     encrypted = encrypt(access_token)
+    # Store the encrypted token server-side and hand the client a short session key.
+    # This keeps the full encrypted token out of the manifest URL entirely.
+    # Losing the session (server restart, TTL expiry) only requires re-authentication —
+    # no user data is lost.
+    session_key = secrets.token_urlsafe(16)  # 22 URL-safe characters, 128 bits of entropy
+    cache.set(f"session:{session_key}", encrypted, SESSION_TTL)
     # Do not log the raw access_token — only the encrypted form is safe to emit.
-    logger.info("OAuth login successful; token encrypted and forwarded to /configure")
-    response = RedirectResponse(url=f"/configure?token={encrypted}")
+    logger.info("OAuth login successful; session key stored, redirecting to /configure")
+    response = RedirectResponse(url=f"/configure?s={session_key}")
     response.delete_cookie("oauth_state")
     return response
 
@@ -220,22 +243,80 @@ async def oauth_logout():
 
 # ── Authenticated user API ────────────────────────────────────────────────────
 
-class _TokenBody(pydantic.BaseModel):
-    token: str
+# Simple fixed-window per-IP rate limiter for session-keyed endpoints.
+# Keeps one (window_start, count) entry per IP; resets when the window expires.
+_session_rate: dict[str, tuple[float, int]] = {}
+_SESSION_RATE_WINDOW = 60   # seconds per window
+_SESSION_RATE_MAX    = 20   # max requests per IP per window
+
+def _check_session_rate_limit(ip: str) -> bool:
+    now = time.monotonic()
+    entry = _session_rate.get(ip)
+    if entry is None or now - entry[0] >= _SESSION_RATE_WINDOW:
+        _session_rate[ip] = (now, 1)
+        return True
+    if entry[1] >= _SESSION_RATE_MAX:
+        return False
+    _session_rate[ip] = (entry[0], entry[1] + 1)
+    return True
+
+_AUTH_401 = {"detail": "Session not found or expired."}
+
+def _resolve_session(session_key: str) -> str:
+    """Look up and decrypt a session token. Raises 401 with a uniform message on any failure."""
+    encrypted = cache.get(f"session:{session_key}")
+    if not encrypted:
+        raise HTTPException(status_code=401, detail=_AUTH_401["detail"])
+    try:
+        return decrypt(encrypted)
+    except InvalidToken:
+        raise HTTPException(status_code=401, detail=_AUTH_401["detail"])
+
+class _SessionBody(pydantic.BaseModel):
+    session: str
+
+_VALID_LIST_STATUSES = {"CURRENT", "PLANNING", "COMPLETED", "PAUSED", "DROPPED", "REPEATING", "FAVOURITES"}
+
+class _PreviewWatchingBody(pydantic.BaseModel):
+    session: str
+    list_status: str
+
+@app.post("/api/preview-watching")
+async def api_preview_watching(request: Request, body: _PreviewWatchingBody):
+    """Return the authenticated user's watching list or favourites for the configure UI preview.
+
+    Uses a short-lived session key (never the raw AniList token). Rate-limited
+    per IP to prevent session key enumeration.
+    """
+    ip = request.client.host if request.client else "unknown"
+    if not _check_session_rate_limit(ip):
+        raise HTTPException(status_code=429, detail="Too many requests.")
+    if body.list_status not in _VALID_LIST_STATUSES:
+        raise HTTPException(status_code=400, detail="Invalid list_status.")
+    raw_token = _resolve_session(body.session)
+    try:
+        viewer = await anilist.get_viewer(raw_token)
+        if body.list_status == "FAVOURITES":
+            media = await anilist.get_favourites(raw_token, viewer["id"], raw=True)
+        else:
+            media = await anilist.get_watching_list(raw_token, viewer["id"], body.list_status, raw=True)
+    except Exception as exc:
+        logger.error("preview_watching failed: %s", exc)
+        raise HTTPException(status_code=502, detail="Could not fetch list from AniList.")
+    return {"media": media}
 
 @app.post("/api/me")
-async def api_me(body: _TokenBody):
+async def api_me(request: Request, body: _SessionBody):
     """Return the authenticated user's display name and avatar URL.
 
-    Accepts the encrypted token in the POST body — never as a URL parameter —
-    so it does not appear in server access logs or browser history.
-    The decrypted bearer token is used only for the AniList request and is
-    never included in the response or logs.
+    Accepts a short session key in the POST body. The key is looked up in the
+    server-side session cache to retrieve the encrypted AniList token — the
+    token itself never travels to the client after the initial OAuth exchange.
     """
-    try:
-        raw_token = decrypt(body.token)
-    except InvalidToken:
-        raise HTTPException(status_code=401, detail="Invalid or expired token.")
+    ip = request.client.host if request.client else "unknown"
+    if not _check_session_rate_limit(ip):
+        raise HTTPException(status_code=429, detail="Too many requests.")
+    raw_token = _resolve_session(body.session)
     try:
         viewer = await anilist.get_viewer(raw_token)
     except Exception as exc:
@@ -246,22 +327,30 @@ async def api_me(body: _TokenBody):
 @app.get("/manifest.json")
 async def manifest_default(): return JSONResponse(_build_manifest(DEFAULT_CONFIG))
 
-@app.get("/{config_token}/manifest.json")
-async def manifest_configured(config_token: str):
+@app.get("/{config_segment}/manifest.json")
+async def manifest_configured(config_segment: str):
+    config_token, _ = _parse_config_segment(config_segment)
     return JSONResponse(_build_manifest(decode_config(config_token)))
 
-@app.get("/{config_token}/catalog/{content_type}/{catalog_id}.json")
-@app.get("/{config_token}/catalog/{content_type}/{catalog_id}/skip={skip}.json")
-async def catalog_configured(config_token: str, content_type: str, catalog_id: str, skip: int = 0):
+@app.get("/{config_segment}/catalog/{content_type}/{catalog_id}.json")
+@app.get("/{config_segment}/catalog/{content_type}/{catalog_id}/skip={skip}.json")
+async def catalog_configured(config_segment: str, content_type: str, catalog_id: str, skip: int = 0):
     if content_type != "series":
         raise HTTPException(status_code=404, detail="Unsupported content type")
+    config_token, session_key = _parse_config_segment(config_segment)
     config = decode_config(config_token)
     catalog_config = next((c for c in config.get("catalogs", []) if c["id"] == catalog_id), None)
     if catalog_config is None:
         raise HTTPException(status_code=404, detail=f"Catalog not in config: {catalog_id}")
     page = _skip_to_page(skip)
+    # Resolve encrypted token: prefer session key (new), fall back to legacy embedded token.
+    encrypted_token: str | None = None
+    if session_key:
+        encrypted_token = cache.get(f"session:{session_key}")
+    if not encrypted_token:
+        encrypted_token = config.get("token")  # backward compat with old URLs
     try:
-        metas = await _fetch_catalog(catalog_id, catalog_config, page, config.get("token"))
+        metas = await _fetch_catalog(catalog_id, catalog_config, page, encrypted_token)
     except HTTPException:
         raise
     except Exception as exc:
@@ -271,8 +360,9 @@ async def catalog_configured(config_token: str, content_type: str, catalog_id: s
         metas = random.sample(metas, len(metas))
     return JSONResponse({"metas": metas})
 
-@app.get("/{config_token}/meta/{content_type}/{item_id}.json")
-async def meta_configured(config_token: str, content_type: str, item_id: str):
+@app.get("/{config_segment}/meta/{content_type}/{item_id}.json")
+async def meta_configured(config_segment: str, content_type: str, item_id: str):
+    config_token, _ = _parse_config_segment(config_segment)
     if content_type != "series":
         raise HTTPException(status_code=404, detail="Unsupported content type")
     if not item_id.startswith("anilist:"):

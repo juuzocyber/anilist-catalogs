@@ -35,17 +35,24 @@ Config shape:
             "type": "watching"
         }
     ],
-    "token": "<fernet-encrypted AniList access token>"  # optional
+    # Note: no "token" field — auth is handled via a short server-side session key
+    # appended to the manifest URL path as "{config_token}~{session_key}".
 }
 
-Compact wire format (base64-encoded):
-    {"c": [{...catalog entries...}], "t": "<encrypted token>"}
+Compact wire format (gzip-compressed, then base64url-encoded):
+    {"c": [{...catalog entries...}]}
 
-The "t" / "token" fields are fully optional. Configs without them decode
-without error and simply have no authenticated context.
+The AniList token is NOT stored in this payload. It lives server-side in a
+TTL cache, keyed by a randomly-generated 12-character session key that is
+appended to the URL path segment with a "~" separator:
+    http://host:7000/{config_token}~{session_key}/manifest.json
+
+Losing the session key (server restart, 24-hour TTL expiry) only requires
+re-authentication — no catalog configuration is lost.
 """
 
 import base64
+import gzip
 import json
 import hashlib
 from typing import Any
@@ -68,11 +75,14 @@ DEFAULT_CONFIG = {
 
 
 def encode_config(config: dict) -> str:
-    """Encode a config dict to a compact URL-safe base64 string.
+    """Encode a config dict to a compact gzip+base64url string.
 
     Compact format: {"c": [{i, n?, r?}, ...]}
     Preset catalogs: only {i} (name omitted if default, randomize omitted if false).
     Custom catalogs: {i, n, f} plus optional r.
+
+    The AniList token is NOT embedded here — it is handled via a short server-side
+    session key appended to the URL segment as "{config_token}~{session_key}".
     """
     compact = []
     for cat in config.get("catalogs", []):
@@ -86,29 +96,36 @@ def encode_config(config: dict) -> str:
                 entry["r"] = True
         elif cat.get("type") == "watching":
             entry = {"i": cat_id, "n": cat.get("name", cat_id), "w": True}
+            if cat.get("listStatus"):
+                entry["s"] = cat["listStatus"]
         else:
             entry = {"i": cat_id, "n": cat.get("name", cat_id), "f": cat.get("filters", {})}
             if cat.get("randomize"):
                 entry["r"] = True
         compact.append(entry)
     payload: dict[str, Any] = {"c": compact}
-    if config.get("token"):
-        payload["t"] = config["token"]
     json_bytes = json.dumps(payload, separators=(",", ":")).encode("utf-8")
-    return base64.urlsafe_b64encode(json_bytes).decode("utf-8").rstrip("=")
+    compressed = gzip.compress(json_bytes, compresslevel=9, mtime=0)
+    return base64.urlsafe_b64encode(compressed).decode("utf-8").rstrip("=")
 
 
 def decode_config(token: str) -> dict:
-    """Decode a base64 config token back to a dict. Returns default config on failure.
+    """Decode a config token back to a dict. Returns default config on failure.
 
-    Handles both the legacy verbose format {"catalogs": [...]} and the compact
-    format {"c": [{i, n?, f?, r?}, ...]}.
+    Handles:
+    - Gzip-compressed payloads (magic bytes 0x1f 0x8b) — new format
+    - Uncompressed base64url payloads — legacy format
+    - Both compact {"c": [...]} and verbose {"catalogs": [...]} JSON shapes
     """
     try:
         padding = 4 - len(token) % 4
         if padding != 4:
             token += "=" * padding
-        json_bytes = base64.urlsafe_b64decode(token)
+        raw = base64.urlsafe_b64decode(token)
+        if raw[:2] == b"\x1f\x8b":
+            json_bytes = gzip.decompress(raw)
+        else:
+            json_bytes = raw
         payload = json.loads(json_bytes.decode("utf-8"))
         if not isinstance(payload, dict):
             return DEFAULT_CONFIG
@@ -129,6 +146,8 @@ def decode_config(token: str) -> dict:
                         "name": entry.get("n", cat_id),
                         "type": "watching",
                     }
+                    if entry.get("s"):
+                        cat["listStatus"] = entry["s"]
                 else:
                     cat = {
                         "id": cat_id,

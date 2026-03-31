@@ -59,7 +59,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
 
   main {
     display: grid;
-    grid-template-columns: 296px 1fr;
+    grid-template-columns: 332px 1fr;
     gap: 0;
     flex: 1;
     min-height: 0;
@@ -737,12 +737,13 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   }
   .catalog-rename-input:focus { border-color: rgba(235,235,245,0.6); }
   .catalog-type-badge {
-    font-size: 10px; font-weight: 500;
+    font-size: 10px; font-weight: 600;
     padding: 2px 8px;
     border-radius: var(--pill);
     flex-shrink: 0;
-    background: var(--fill);
-    color: var(--text2);
+    background: rgba(235,235,245,0.07); color: var(--text3);
+    letter-spacing: 0.01em;
+    border: 0.5px solid var(--sep);
   }
   .catalog-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
   .remove-btn, .shuffle-btn, .edit-btn {
@@ -808,8 +809,13 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
     font-size: 11px; color: var(--text2);
     word-break: break-all; line-height: 1.65;
-    flex: 1; min-width: 0; margin-bottom: 10px;
+    max-height: 72px; overflow-y: auto;
+    margin-bottom: 10px; cursor: text; user-select: all;
+    scrollbar-width: thin; scrollbar-color: var(--sep) transparent;
   }
+  .url-text::-webkit-scrollbar { width: 4px; }
+  .url-text::-webkit-scrollbar-track { background: transparent; }
+  .url-text::-webkit-scrollbar-thumb { background: var(--sep); border-radius: 2px; }
   .copy-icon-btn {
     flex-shrink: 0; background: var(--fill2); border: none; cursor: pointer;
     color: var(--text2); padding: 5px 10px; border-radius: 7px;
@@ -876,11 +882,20 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     background: rgba(220,38,38,0.12); border-bottom: 0.5px solid rgba(220,38,38,0.35);
     font-size: 12px; color: #f87171; font-weight: 500;
   }
-  .token-warning {
-    display: none; padding: 9px 12px; margin-top: 8px;
-    border: 0.5px solid rgba(234,179,8,0.4); border-radius: var(--radius);
-    background: rgba(234,179,8,0.07); font-size: 11px; color: #fbbf24; line-height: 1.55;
+  .url-warn-icon {
+    display: none; position: relative; cursor: help;
+    color: #fbbf24; padding: 4px 2px; flex-shrink: 0;
+    align-items: center; font-size: 13px; line-height: 1;
   }
+  .url-warn-icon.show { display: flex; }
+  .url-warn-tooltip {
+    display: none; position: absolute; bottom: calc(100% + 8px); right: 0;
+    width: 210px; background: #1c1c1e; color: #fbbf24;
+    font-size: 11px; padding: 8px 10px; border-radius: 8px;
+    border: 0.5px solid rgba(234,179,8,0.4);
+    pointer-events: none; z-index: 100; line-height: 1.5;
+  }
+  .url-warn-icon:hover .url-warn-tooltip { display: block; }
 
   /* ── Account preset pills ────────────────────────── */
   .preset-card.account-locked { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
@@ -893,7 +908,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   }
 
   @media (max-width: 1024px) {
-    main { grid-template-columns: 264px 1fr; }
+    main { grid-template-columns: 296px 1fr; }
   }
   @media (max-width: 768px) {
     main { grid-template-columns: 1fr; }
@@ -929,7 +944,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
               <div class="preset-name">Popular This Season</div>
               <div class="preset-desc">Top anime airing right now</div>
             </div>
-            <div class="preset-badge">Added</div>
+            <span class="account-badge">Preset</span><div class="preset-badge">Added</div>
             <span class="preset-chevron">&#8250;</span>
           </div>
           <div class="preset-card" id="preset-anilist-airing-week" onclick="addPreset('anilist-airing-week','Airing This Week')">
@@ -937,7 +952,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
               <div class="preset-name">Airing This Week</div>
               <div class="preset-desc">New episodes this week</div>
             </div>
-            <div class="preset-badge">Added</div>
+            <span class="account-badge">Preset</span><div class="preset-badge">Added</div>
             <span class="preset-chevron">&#8250;</span>
           </div>
           <div class="preset-card" id="preset-anilist-trending" onclick="addPreset('anilist-trending','Trending Now')">
@@ -945,7 +960,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
               <div class="preset-name">Trending Now</div>
               <div class="preset-desc">What everyone's watching</div>
             </div>
-            <div class="preset-badge">Added</div>
+            <span class="account-badge">Preset</span><div class="preset-badge">Added</div>
             <span class="preset-chevron">&#8250;</span>
           </div>
           <div class="preset-card" id="preset-anilist-top-rated" onclick="addPreset('anilist-top-rated','Top Rated All Time')">
@@ -953,7 +968,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
               <div class="preset-name">Top Rated All Time</div>
               <div class="preset-desc">Highest scored anime ever</div>
             </div>
-            <div class="preset-badge">Added</div>
+            <span class="account-badge">Preset</span><div class="preset-badge">Added</div>
             <span class="preset-chevron">&#8250;</span>
           </div>
         </div>
@@ -1180,12 +1195,12 @@ CONFIGURE_HTML = """<!DOCTYPE html>
             <div class="url-text" id="url-display">—</div>
             <div class="copy-row">
               <button class="btn btn-ghost btn-sm btn-full" onclick="copyUrl()">Copy URL</button>
+              <div class="url-warn-icon" id="token-warning">
+                &#9888;
+                <div class="url-warn-tooltip">This URL contains a session key for your AniList account. Keep it private and do not share it. If it expires, just reconnect AniList.</div>
+              </div>
               <div class="copy-feedback" id="copy-feedback">&#10003; Copied</div>
             </div>
-          </div>
-
-          <div class="token-warning" id="token-warning">
-            &#9888; This URL contains your AniList login — keep it private and do not share it.
           </div>
 
           <div style="text-align:center;font-size:11px;color:var(--text3);margin:10px 0">OR</div>
@@ -1259,7 +1274,17 @@ let currentView = 'grid';
 
 // ── Auth state ────────────────────────────────────
 const _urlParams = new URLSearchParams(window.location.search);
-let _authToken = _urlParams.get('token') || null;
+// Session key: a short 12-char token handed back by the OAuth callback.
+// The actual encrypted AniList token lives server-side; only this key travels
+// in the manifest URL (as "{config_token}~{session_key}").
+let _sessionKey = _urlParams.get('s') || null;
+// Clean the ?s= handoff param from the configure page URL immediately — it
+// doesn't belong in the browser history and the key is now held in memory.
+if (_sessionKey) {
+  const _cleanUrl = new URL(window.location.href);
+  _cleanUrl.searchParams.delete('s');
+  window.history.replaceState({}, '', _cleanUrl.toString());
+}
 
 let catalogs = [];
 let selectedGenres = [];
@@ -1284,18 +1309,16 @@ function escHtml(s) {
 
 // ── Auth helpers ──────────────────────────────────
 async function fetchMe() {
-  if (!_authToken) { renderAuthUI(null); return; }
+  if (!_sessionKey) { renderAuthUI(null); return; }
   try {
-    // POST the token in the request body — never as a URL param — so it
-    // stays out of server access logs and browser history.
     const res = await fetch('/api/me', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: _authToken }),
+      body: JSON.stringify({ session: _sessionKey }),
     });
-    if (!res.ok) { _authToken = null; renderAuthUI(null); return; }
+    if (!res.ok) { _sessionKey = null; renderAuthUI(null); return; }
     renderAuthUI(await res.json());
-  } catch(e) { _authToken = null; renderAuthUI(null); }
+  } catch(e) { _sessionKey = null; renderAuthUI(null); }
 }
 
 function renderAuthUI(user) {
@@ -1319,7 +1342,7 @@ function renderAuthUI(user) {
 }
 
 function updateAccountPills() {
-  const locked = !_authToken;
+  const locked = !_sessionKey;
   ACCOUNT_PRESET_IDS.forEach(id => {
     const card = document.getElementById('preset-' + id);
     if (card) {
@@ -1330,20 +1353,19 @@ function updateAccountPills() {
 }
 
 function disconnect() {
-  _authToken = null;
-  // Remove token from URL without reloading
-  const url = new URL(window.location.href);
-  url.searchParams.delete('token');
-  window.history.replaceState({}, '', url.toString());
+  _sessionKey = null;
+  catalogs = catalogs.filter(c => c.type !== 'watching');
   renderAuthUI(null);
+  render();
 }
 
 function addAccountPreset(id, name, listStatus) {
-  if (!_authToken) return;
+  if (!_sessionKey) return;
   if (!catalogs.find(c => c.id === id)) {
     catalogs.push({ id, name, type: 'watching', listStatus });
     render();
   }
+  setPaneTab('catalogs');
 }
 
 // ── Filter bar helpers ────────────────────────────
@@ -1686,7 +1708,7 @@ function renderGridView(media) {
     const scoreCol = m.averageScore ? scoreColor(m.averageScore) : 'var(--text3)';
     const genres = (m.genres || []).slice(0, 3).map(g => {
       const c = GENRE_COLORS[g] || '#888';
-      return `<span class="genre-badge" style="background:${c}bb;color:#fff;border:0.5px solid ${c}dd">${escHtml(g)}</span>`;
+      return `<span class="genre-badge" style="background:${c}bb;color:#fff;border:0.5px solid ${c}dd;cursor:pointer" onclick="event.preventDefault();event.stopPropagation();applyGenreFilter('${escHtml(g)}')">${escHtml(g)}</span>`;
     }).join('');
     const fmt    = FORMAT_LABELS[m.format] || m.format || '';
     const eps    = m.episodes ? m.episodes + ' ep' + (m.episodes !== 1 ? 's' : '') : '';
@@ -1733,7 +1755,7 @@ function renderListView(media) {
     const statusL = escHtml(STATUS_LABELS[m.status] || m.status || '');
     const genres  = (m.genres || []).slice(0, 3).map(g => {
       const c = GENRE_COLORS[g] || '#888';
-      return `<span class="genre-badge" style="background:${c}28;color:${c};border:0.5px solid ${c}55">${escHtml(g)}</span>`;
+      return `<span class="genre-badge" style="background:${c}28;color:${c};border:0.5px solid ${c}55;cursor:pointer" onclick="event.preventDefault();event.stopPropagation();applyGenreFilter('${escHtml(g)}')">${escHtml(g)}</span>`;
     }).join('');
     return `<a class="list-item" href="https://anilist.co/anime/${m.id}" target="_blank" rel="noopener">
       <div class="list-thumb"><img src="${escHtml(m.coverImage.large)}" alt="${title}" loading="lazy"></div>
@@ -1793,7 +1815,7 @@ function renderDetailView(media) {
     const genres  = (m.genres || []).slice(0, 3).map(g => {
       const c = themeColor || GENRE_COLORS[g] || '#888';
       const lighter = themeColor ? (GENRE_COLORS[g] || c) : c;
-      return `<span class="genre-badge" style="background:${lighter}22;color:${lighter}cc;border:0.5px solid ${lighter}44">${escHtml(g)}</span>`;
+      return `<span class="genre-badge" style="background:${lighter}22;color:${lighter}cc;border:0.5px solid ${lighter}44;cursor:pointer" onclick="event.stopPropagation();applyGenreFilter('${escHtml(g)}')">${escHtml(g)}</span>`;
     }).join('');
     const sc = scoreColor(score);
     const scoreBadge = score ? `<div class="detail-score-badge" style="background:${sc}"><img class="detail-score-icon" src="https://anilist.co/img/icons/android-chrome-512x512.png" alt="AL">${score}%</div>` : '';
@@ -1823,6 +1845,12 @@ function renderDetailView(media) {
       </div>
     </div>`;
   }).join('') + '</div>';
+}
+
+// ── Genre pill click-to-filter ────────────────────
+function applyGenreFilter(g) {
+  if (!selectedGenres.includes(g)) selectedGenres.push(g);
+  scheduleAutoPreview();
 }
 
 // ── Sort dropdown ─────────────────────────────────
@@ -2037,6 +2065,7 @@ async function addPreset(id, name) {
     catalogs.push({ id, name, type: 'preset' });
     render();
   }
+  setPaneTab('preview');
   // Populate form with this preset's baseline
   loadFiltersIntoForm(PRESET_FORM_DEFAULTS[id]);
   // Always show preview for this preset
@@ -2158,6 +2187,34 @@ async function previewCatalog(id) {
   } else {
     loadFiltersIntoForm(cat.filters);
   }
+  if (cat.type === 'watching') {
+    if (!_sessionKey) {
+      document.getElementById('preview-sub').textContent = cat.name;
+      document.getElementById('preview-area').innerHTML =
+        `<div class="preview-prompt"><div class="preview-prompt-icon">&#128274;</div><div>Account catalog<br><span style="font-size:11px;color:var(--text3)">Connect your AniList account to preview this list</span></div></div>`;
+      return;
+    }
+    setPreviewLoading(cat.name);
+    try {
+      const res = await fetch('/api/preview-watching', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session: _sessionKey, list_status: cat.listStatus }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.detail || `HTTP ${res.status}`);
+      }
+      const json = await res.json();
+      renderPreview(json.media, `${cat.name} \u2014 ${json.media.length} titles`);
+    } catch(e) {
+      console.error('[preview] watching error:', e);
+      document.getElementById('preview-sub').textContent = 'Failed to load preview';
+      document.getElementById('preview-area').innerHTML =
+        `<div class="preview-prompt"><div>Could not load account catalog</div><div style="font-size:11px;color:var(--text3);margin-top:6px">${escHtml(e instanceof Error ? e.message : String(e))}</div></div>`;
+    }
+    return;
+  }
   setPreviewLoading(cat.name);
   try {
     const media = cat.type === 'preset'
@@ -2230,7 +2287,7 @@ function render() {
                  onkeydown="if(event.key==='Enter'){this.blur();}if(event.key==='Escape'){cancelRename();}">`
             : `<div class="catalog-item-name">${escHtml(c.name)}</div>`
           }
-          <div class="catalog-item-type">${c.type === 'custom' ? filterSummary(c.filters) : c.type === 'watching' ? 'Account catalog' : 'Preset catalog'}</div>
+          <div class="catalog-item-type"><span class="catalog-type-badge">${c.type === 'watching' ? 'Account' : c.type === 'custom' ? 'Custom' : 'Preset'}</span></div>
         </div>
         <div class="catalog-actions" onclick="event.stopPropagation()">
           <button class="edit-btn" onclick="startRenaming('${c.id}')">&#9998; Rename</button>
@@ -2317,23 +2374,44 @@ document.addEventListener('dragend', () => {
 });
 
 // ── Import config from manifest URL ──────────────
-function importConfig() {
+async function importConfig() {
   const raw = document.getElementById('import-url').value.trim();
   const fb  = document.getElementById('import-feedback');
   fb.style.display = 'none';
 
   try {
-    // Pull the token out of any URL shaped like /{token}/manifest.json
-    const match = raw.match(/\\/([A-Za-z0-9+/=_-]+)\\/manifest\\.json/i);
+    // Pull the path segment from any URL shaped like /{segment}/manifest.json.
+    // The segment may be "{config_token}" or "{config_token}~{session_key}".
+    const match = raw.match(/\\/([A-Za-z0-9+/=_~-]+)\\/manifest\\.json/i);
     if (!match) throw new Error('No config token found — paste a full manifest URL');
 
-    // Restore standard base64 from URL-safe base64
-    let token = match[1].replace(/-/g, '+').replace(/_/g, '/');
-    const pad = (4 - token.length % 4) % 4;
-    token += '='.repeat(pad);
+    const [configPart, sessionPart] = match[1].split('~');
 
-    // Decode as UTF-8 bytes via TextDecoder
-    const bytes = Uint8Array.from(atob(token), c => c.charCodeAt(0));
+    // Restore standard base64 from URL-safe base64
+    let b64 = configPart.replace(/-/g, '+').replace(/_/g, '/');
+    const pad = (4 - b64.length % 4) % 4;
+    b64 += '='.repeat(pad);
+
+    // Decode bytes, then decompress if gzip magic bytes are present.
+    let bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    if (bytes[0] === 0x1f && bytes[1] === 0x8b && typeof DecompressionStream !== 'undefined') {
+      const stream = new DecompressionStream('gzip');
+      const writer = stream.writable.getWriter();
+      writer.write(bytes);
+      writer.close();
+      const chunks = [];
+      const reader = stream.readable.getReader();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+      }
+      const totalLen = chunks.reduce((n, c) => n + c.length, 0);
+      const decompressed = new Uint8Array(totalLen);
+      let off = 0;
+      for (const chunk of chunks) { decompressed.set(chunk, off); off += chunk.length; }
+      bytes = decompressed;
+    }
     const parsed = JSON.parse(new TextDecoder().decode(bytes));
 
     let config;
@@ -2364,11 +2442,11 @@ function importConfig() {
     if (!config.catalogs.length) throw new Error('No catalogs found in this config');
 
     catalogs = config.catalogs;
-    // Restore auth token if present in the imported config
-    const importedToken = parsed.t || null;
-    if (importedToken && importedToken !== _authToken) {
-      _authToken = importedToken;
-      fetchMe(); // validate and render auth UI
+    // Restore session key from the imported URL if present.
+    // Session keys expire after 24 hours — if stale the user will need to reconnect.
+    if (sessionPart && sessionPart !== _sessionKey) {
+      _sessionKey = sessionPart;
+      fetchMe(); // validate against /api/me and render auth UI
     }
     document.getElementById('import-url').value = '';
     render();
@@ -2389,7 +2467,7 @@ function importConfig() {
 let _currentManifestUrl = '';
 let _qrInstance = null;
 
-function updateUrl() {
+async function updateUrl() {
   const compact = catalogs.map(cat => {
     if (PRESET_IDS.has(cat.id)) {
       const entry = { i: cat.id };
@@ -2407,18 +2485,46 @@ function updateUrl() {
       return entry;
     }
   });
+  // Session key is NOT embedded in the payload — it travels as a path suffix.
   const payload = { c: compact };
-  if (_authToken) payload.t = _authToken;
   const json = JSON.stringify(payload);
-  // Encode as UTF-8 bytes then base64 — avoids the deprecated unescape() hack.
-  let binary = '';
-  new TextEncoder().encode(json).forEach(b => { binary += String.fromCharCode(b); });
-  const token = btoa(binary).replace(/=/g,'').replace(/\\+/g,'-').replace(/\\//g,'_');
-  const url = `${BASE_URL}/${token}/manifest.json`;
+
+  let configToken;
+  if (typeof CompressionStream !== 'undefined') {
+    // Gzip-compress the JSON before base64url-encoding for shorter URLs.
+    const stream = new CompressionStream('gzip');
+    const writer = stream.writable.getWriter();
+    writer.write(new TextEncoder().encode(json));
+    writer.close();
+    const chunks = [];
+    const reader = stream.readable.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+    }
+    const totalLen = chunks.reduce((n, c) => n + c.length, 0);
+    const bytes = new Uint8Array(totalLen);
+    let off = 0;
+    for (const chunk of chunks) { bytes.set(chunk, off); off += chunk.length; }
+    let binary = '';
+    bytes.forEach(b => { binary += String.fromCharCode(b); });
+    configToken = btoa(binary).replace(/=/g,'').replace(/\\+/g,'-').replace(/\\//g,'_');
+  } else {
+    // Fallback for browsers without CompressionStream (rare).
+    let binary = '';
+    new TextEncoder().encode(json).forEach(b => { binary += String.fromCharCode(b); });
+    configToken = btoa(binary).replace(/=/g,'').replace(/\\+/g,'-').replace(/\\//g,'_');
+  }
+
+  // Append session key with '~' separator when authenticated.
+  // '~' is unreserved in RFC 3986 and never appears in base64url output.
+  const segment = _sessionKey ? `${configToken}~${_sessionKey}` : configToken;
+  const url = `${BASE_URL}/${segment}/manifest.json`;
   _currentManifestUrl = url;
   document.getElementById('url-display').textContent = url;
   const tw = document.getElementById('token-warning');
-  if (tw) tw.style.display = _authToken ? 'block' : 'none';
+  if (tw) tw.classList.toggle('show', !!_sessionKey);
   updateQrCode(url);
 }
 

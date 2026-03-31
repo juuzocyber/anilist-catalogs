@@ -22,13 +22,17 @@ A self-hosted [Stremio](https://www.stremio.com/) add-on that brings your AniLis
 
 ![Configure Page](docs/images/configure-page.png)
 
+![Preview Pane](docs/images/preview-pane.png)
+
 ---
 
 ## How it works
 
-AniList Catalogs uses a **config-in-URL** approach — there is no database and no server-side user state.
+AniList Catalogs is built around two modes with different state models.
 
-When you configure your catalogs in the web UI, the page encodes your preferences (catalog list, filters, optional encrypted AniList token) as a compact base64 JSON string. That string becomes part of the manifest URL you install in Stremio:
+### Without an AniList account (fully stateless)
+
+There is no database and no server-side state of any kind. When you configure your catalogs in the web UI, the page encodes your preferences (catalog list, filters) as a compact gzip-compressed base64 JSON string. That string becomes the entire manifest URL you install in Stremio:
 
 ```
 https://your-server.com/eyJjIjpbeyJpIjoiYW5pbGlzdC10cmVuZGluZyJ9XX0/manifest.json
@@ -36,7 +40,16 @@ https://your-server.com/eyJjIjpbeyJpIjoiYW5pbGlzdC10cmVuZGluZyJ9XX0/manifest.jso
 
 Stremio stores this URL. Every time it needs catalog data it calls that URL, the server decodes the config, and serves the right results. No login, no session, no database — the config travels with the link.
 
-If you log in with AniList, your encrypted access token is appended to the config in the URL. **Keep that URL private — treat it like a password.**
+### With an AniList account
+
+When you connect your AniList account, the server stores your encrypted access token in its in-memory session cache with a 24-hour TTL. This session is used for the duration of your browsing session on the configure page — it is what powers the live list preview, the user avatar, and the account UI.
+
+The manifest URL you install in Stremio is still stateless: it contains your encrypted AniList token directly, not a pointer to any server-side session. This means:
+
+- **Server restarts log you out of the configure page preview.** The in-memory session is gone, so the preview and account UI will ask you to reconnect.
+- **Your installed manifest URLs continue to work unaffected.** The encrypted token is self-contained in the URL and does not depend on any server-side state.
+
+**Keep your manifest URL private if it contains an AniList token — treat it like a password.**
 
 ---
 
@@ -145,7 +158,7 @@ All configuration is read from `.env` at startup. See `.env.example` for the ful
 ## Security Notes
 
 **Keep your manifest URL private if it contains an AniList token.**
-When you connect your AniList account, your encrypted access token is embedded in the manifest URL. Anyone with that URL can install your personal list catalogs. Treat it like a password and do not share it.
+Anyone with that URL can install your personal list catalogs. Do not share it.
 
 **Never commit `.env` to version control.**
 `.env` is listed in `.gitignore` and the pre-commit hook will block commits that contain secret-like values. If you accidentally commit a secret, rotate it immediately and consider the old value compromised.

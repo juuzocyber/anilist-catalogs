@@ -1,0 +1,15 @@
+services:
+  anilist-catalogs:
+    build: .
+    container_name: anilist-catalogs
+    env_file: .env
+    ports:
+      - "${PORT:-7000}:${PORT:-7000}"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:${PORT:-7000}/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

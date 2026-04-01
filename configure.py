@@ -59,7 +59,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
 
   main {
     display: grid;
-    grid-template-columns: 332px 1fr;
+    grid-template-columns: 365px 1fr;
     gap: 0;
     flex: 1;
     min-height: 0;
@@ -907,8 +907,104 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     border: 0.5px solid var(--sep);
   }
 
+  /* ── AI Recommendations pill ─────────────────────── */
+  .preset-card.ai-no-key { border: 0.5px solid rgba(220,38,38,0.45) !important; }
+  .preset-card.ai-no-key:hover { border-color: rgba(220,38,38,0.7) !important; }
+  .ai-gear-btn {
+    display: none; align-items: center; justify-content: center;
+    width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+    border: none; background: var(--fill); color: var(--text3);
+    cursor: pointer; font-size: 12px; line-height: 1;
+    transition: background 0.15s, color 0.15s;
+  }
+  .preset-card:not(.account-locked):hover .ai-gear-btn { display: flex; }
+  .ai-gear-btn:hover { background: var(--card2); color: var(--text); }
+  .ai-connected-tag {
+    font-size: 10px; font-weight: 600; padding: 2px 7px;
+    border-radius: var(--pill); flex-shrink: 0;
+    background: rgba(34,197,94,0.10); color: #22c55e;
+    letter-spacing: 0.01em; border: 0.5px solid rgba(34,197,94,0.3);
+  }
+
+  /* ── AI Settings Modal ───────────────────────────── */
+  .ai-modal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 1000;
+    background: rgba(0,0,0,0.72); backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    align-items: center; justify-content: center;
+  }
+  .ai-modal-overlay.open { display: flex; }
+  .ai-modal {
+    background: var(--card); border-radius: var(--radius-lg);
+    border: 0.5px solid var(--sep);
+    box-shadow: 0 24px 64px rgba(0,0,0,0.75);
+    width: 420px; max-width: calc(100vw - 32px);
+  }
+  .ai-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 20px 14px; border-bottom: 0.5px solid var(--sep);
+  }
+  .ai-modal-title { font-size: 14px; font-weight: 600; }
+  .ai-modal-close {
+    background: none; border: none; color: var(--text3); cursor: pointer;
+    font-size: 16px; padding: 2px 6px; border-radius: 6px; font-family: inherit;
+    transition: color 0.15s, background 0.15s;
+  }
+  .ai-modal-close:hover { color: var(--text); background: var(--fill); }
+  .ai-modal-body { padding: 18px 20px; display: flex; flex-direction: column; gap: 16px; }
+  .ai-modal-section { display: flex; flex-direction: column; gap: 6px; }
+  .ai-modal-label {
+    font-size: 10px; font-weight: 600; color: var(--text3);
+    letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .ai-modal-select, .ai-modal-input {
+    height: 34px; border-radius: 8px; padding: 0 12px;
+    font-size: 12px; background: var(--card2);
+    border: 0.5px solid var(--sep); color: var(--text);
+    font-family: inherit; width: 100%;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .ai-modal-select { cursor: pointer; padding: 0 10px; }
+  .ai-modal-input::placeholder { color: var(--text3); }
+  .ai-modal-input:focus, .ai-modal-select:focus {
+    outline: none; border-color: rgba(255,255,255,0.25); background: #2c2c2e;
+  }
+  .ai-key-row { display: flex; gap: 8px; align-items: flex-start; }
+  .ai-key-row .ai-modal-input { flex: 1; }
+  .ai-test-btn {
+    height: 34px; padding: 0 14px; border-radius: 8px; flex-shrink: 0;
+    font-size: 12px; font-family: inherit; font-weight: 500; cursor: pointer;
+    background: var(--fill); border: 0.5px solid var(--sep); color: var(--text2);
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .ai-test-btn:hover { background: var(--card2); border-color: rgba(255,255,255,0.18); color: var(--text); }
+  .ai-test-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .ai-key-feedback { font-size: 11px; min-height: 14px; margin-top: 2px; }
+  .ai-key-feedback.ok  { color: #22c55e; }
+  .ai-key-feedback.err { color: #f87171; }
+  .ai-key-hint { font-size: 10px; color: var(--text3); }
+  .ai-modal-footer {
+    display: flex; justify-content: flex-end; gap: 8px;
+    padding: 14px 20px; border-top: 0.5px solid var(--sep);
+  }
+  .ai-modal-cancel {
+    height: 32px; padding: 0 16px; border-radius: 20px; font-size: 12px;
+    font-family: inherit; cursor: pointer;
+    background: none; border: 0.5px solid var(--sep); color: var(--text2);
+    transition: background 0.15s, color 0.15s;
+  }
+  .ai-modal-cancel:hover { background: var(--fill); color: var(--text); }
+  .ai-modal-save {
+    height: 32px; padding: 0 18px; border-radius: 20px; font-size: 12px;
+    font-family: inherit; font-weight: 500; cursor: pointer;
+    background: #ffffff; border: none; color: #000000;
+    transition: opacity 0.15s;
+  }
+  .ai-modal-save:hover { opacity: 0.85; }
+  .ai-modal-save:disabled { opacity: 0.4; cursor: not-allowed; }
+
   @media (max-width: 1024px) {
-    main { grid-template-columns: 296px 1fr; }
+    main { grid-template-columns: 326px 1fr; }
   }
   @media (max-width: 768px) {
     main { grid-template-columns: 1fr; }
@@ -971,6 +1067,17 @@ CONFIGURE_HTML = """<!DOCTYPE html>
             <span class="account-badge">Preset</span><div class="preset-badge">Added</div>
             <span class="preset-chevron">&#8250;</span>
           </div>
+          <div class="preset-card account-locked" id="preset-anilist-ai-recommendations" onclick="addAiCatalog()">
+            <div class="preset-info">
+              <div class="preset-name">AI Recommendations</div>
+              <div class="preset-desc">Personalised picks powered by AI</div>
+            </div>
+            <span class="account-badge" style="background:rgba(139,92,246,0.12);color:#a78bfa;border-color:rgba(139,92,246,0.3)">AI</span>
+            <div class="preset-badge">Added</div>
+            <button class="ai-gear-btn" id="ai-gear-btn" onclick="event.stopPropagation();openAiModal()" title="Configure AI settings">&#9881;</button>
+            <span class="ai-connected-tag" id="ai-connected-tag" style="display:none">Connected</span>
+            <span class="preset-chevron">&#8250;</span>
+          </div>
         </div>
       </section>
 
@@ -1019,7 +1126,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4z"/></svg>
           </a>
         </div>
-        <div class="pane-footer-text">Version: v1.0.1 &mdash; Developed by juuzo</div>
+        <div class="pane-footer-text">Version: v1.1.0 &mdash; Developed by juuzo</div>
       </div>
     </div>
 
@@ -1278,6 +1385,9 @@ const _urlParams = new URLSearchParams(window.location.search);
 // The actual encrypted AniList token lives server-side; only this key travels
 // in the manifest URL (as "{config_token}~{session_key}").
 let _sessionKey = _urlParams.get('s') || null;
+// OpenRouter state — populated from /api/me response on load.
+let _hasOrKey = false;
+let _orModel  = 'meta-llama/llama-3.3-70b-instruct';
 // Clean the ?s= handoff param from the configure page URL immediately — it
 // doesn't belong in the browser history and the key is now held in memory.
 if (_sessionKey) {
@@ -1317,7 +1427,10 @@ async function fetchMe() {
       body: JSON.stringify({ session: _sessionKey }),
     });
     if (!res.ok) { _sessionKey = null; renderAuthUI(null); return; }
-    renderAuthUI(await res.json());
+    const data = await res.json();
+    _hasOrKey = data.has_or_key || false;
+    _orModel  = data.or_model  || 'meta-llama/llama-3.3-70b-instruct';
+    renderAuthUI(data);
   } catch(e) { _sessionKey = null; renderAuthUI(null); }
 }
 
@@ -1350,11 +1463,26 @@ function updateAccountPills() {
       card.style.pointerEvents = locked ? 'none' : '';
     }
   });
+  // AI pill: locked when not authenticated, red outline when authenticated but no OR key
+  const aiCard = document.getElementById('preset-anilist-ai-recommendations');
+  if (aiCard) {
+    aiCard.classList.toggle('account-locked', locked);
+    aiCard.style.pointerEvents = locked ? 'none' : '';
+    aiCard.classList.toggle('ai-no-key', !locked && !_hasOrKey);
+    const connTag = document.getElementById('ai-connected-tag');
+    if (connTag) connTag.style.display = (!locked && _hasOrKey) ? '' : 'none';
+  }
 }
 
 function disconnect() {
+  // Tell the server to clear session + OR key caches, best-effort.
+  if (_sessionKey) {
+    fetch('/oauth/logout?s=' + encodeURIComponent(_sessionKey)).catch(() => {});
+  }
   _sessionKey = null;
-  catalogs = catalogs.filter(c => c.type !== 'watching');
+  _hasOrKey   = false;
+  _orModel    = 'meta-llama/llama-3.3-70b-instruct';
+  catalogs = catalogs.filter(c => c.type !== 'watching' && c.type !== 'ai');
   renderAuthUI(null);
   render();
 }
@@ -1366,6 +1494,132 @@ function addAccountPreset(id, name, listStatus) {
     render();
   }
   setPaneTab('catalogs');
+}
+
+function addAiCatalog() {
+  if (!_sessionKey) return;
+  if (!_hasOrKey) { openAiModal(); return; }
+  if (!catalogs.find(c => c.id === 'anilist-ai-recommendations')) {
+    catalogs.push({ id: 'anilist-ai-recommendations', name: 'AI Recommendations', type: 'ai', model: _orModel });
+    render();
+  }
+  setPaneTab('catalogs');
+}
+
+// ── AI Settings Modal ─────────────────────────────
+function openAiModal() {
+  if (!_sessionKey) return;
+  const overlay = document.getElementById('ai-modal-overlay');
+  if (!overlay) return;
+  // Populate model selector
+  const select = document.getElementById('ai-model-select');
+  const customInput = document.getElementById('ai-model-custom');
+  if (select && customInput) {
+    const knownVals = Array.from(select.options).map(o => o.value).filter(v => v !== 'custom');
+    if (knownVals.includes(_orModel)) {
+      select.value = _orModel;
+      customInput.style.display = 'none';
+    } else {
+      select.value = 'custom';
+      customInput.style.display = 'block';
+      customInput.value = _orModel;
+    }
+  }
+  // Never pre-fill the key input
+  const keyInput = document.getElementById('ai-key-input');
+  if (keyInput) keyInput.value = '';
+  const fb = document.getElementById('ai-key-feedback');
+  if (fb) { fb.textContent = _hasOrKey ? '(Key already saved — enter a new one to replace it)' : ''; fb.className = 'ai-key-feedback'; }
+  overlay.classList.add('open');
+}
+
+function closeAiModal() {
+  const overlay = document.getElementById('ai-modal-overlay');
+  if (overlay) overlay.classList.remove('open');
+}
+
+function handleAiModelChange() {
+  const select = document.getElementById('ai-model-select');
+  const customInput = document.getElementById('ai-model-custom');
+  if (!select || !customInput) return;
+  if (select.value === 'custom') {
+    customInput.style.display = 'block';
+    customInput.focus();
+  } else {
+    customInput.style.display = 'none';
+  }
+}
+
+async function testOrKey() {
+  const keyInput = document.getElementById('ai-key-input');
+  const fb       = document.getElementById('ai-key-feedback');
+  const btn      = document.getElementById('ai-test-btn');
+  if (!keyInput || !keyInput.value.trim()) {
+    if (fb) { fb.textContent = 'Enter an API key first.'; fb.className = 'ai-key-feedback err'; }
+    return;
+  }
+  if (btn) { btn.disabled = true; btn.textContent = 'Testing\u2026'; }
+  if (fb) { fb.textContent = ''; fb.className = 'ai-key-feedback'; }
+  try {
+    const res = await fetch('/api/test-openrouter-key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: keyInput.value.trim() }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.valid) {
+      if (fb) { fb.textContent = '\u2713 Key is valid.'; fb.className = 'ai-key-feedback ok'; }
+    } else {
+      if (fb) { fb.textContent = '\u2717 ' + (data.detail || 'Invalid key.'); fb.className = 'ai-key-feedback err'; }
+    }
+  } catch(e) {
+    if (fb) { fb.textContent = '\u2717 Network error.'; fb.className = 'ai-key-feedback err'; }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Test'; }
+  }
+}
+
+async function saveOrKeyFromModal() {
+  if (!_sessionKey) return;
+  const keyInput  = document.getElementById('ai-key-input');
+  const select    = document.getElementById('ai-model-select');
+  const customInp = document.getElementById('ai-model-custom');
+  const saveBtn   = document.getElementById('ai-modal-save-btn');
+  const fb        = document.getElementById('ai-key-feedback');
+
+  const key   = keyInput?.value.trim() || '';
+  const model = select?.value === 'custom'
+    ? (customInp?.value.trim() || 'meta-llama/llama-3.3-70b-instruct')
+    : (select?.value || 'meta-llama/llama-3.3-70b-instruct');
+
+  if (!key && !_hasOrKey) {
+    if (fb) { fb.textContent = 'Enter an API key.'; fb.className = 'ai-key-feedback err'; }
+    return;
+  }
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving\u2026'; }
+  try {
+    const res = await fetch('/api/save-openrouter-key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session: _sessionKey, key: key || null, model }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) {
+      _hasOrKey = true;
+      _orModel  = model;
+      // Update any existing AI catalog entries with the new model
+      catalogs.forEach(c => { if (c.type === 'ai') c.model = model; });
+      updateAccountPills();
+      render();
+      closeAiModal();
+    } else {
+      if (fb) { fb.textContent = '\u2717 ' + (data.detail || 'Failed to save.'); fb.className = 'ai-key-feedback err'; }
+    }
+  } catch(e) {
+    if (fb) { fb.textContent = '\u2717 Network error.'; fb.className = 'ai-key-feedback err'; }
+  } finally {
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
+  }
 }
 
 // ── Filter bar helpers ────────────────────────────
@@ -2215,6 +2469,40 @@ async function previewCatalog(id) {
     }
     return;
   }
+  if (cat.type === 'ai') {
+    if (!_sessionKey) {
+      document.getElementById('preview-sub').textContent = cat.name;
+      document.getElementById('preview-area').innerHTML =
+        `<div class="preview-prompt"><div class="preview-prompt-icon">&#128274;</div><div>Account catalog<br><span style="font-size:11px;color:var(--text3)">Connect your AniList account to use AI recommendations</span></div></div>`;
+      return;
+    }
+    if (!_hasOrKey) {
+      document.getElementById('preview-sub').textContent = cat.name;
+      document.getElementById('preview-area').innerHTML =
+        `<div class="preview-prompt"><div class="preview-prompt-icon">&#9881;</div><div>OpenRouter key required<br><span style="font-size:11px;color:var(--text3)">Click the gear icon on the AI pill to add your key</span></div></div>`;
+      return;
+    }
+    setPreviewLoading('AI is thinking\u2026 (this may take a moment)');
+    try {
+      const res = await fetch('/api/preview-ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session: _sessionKey }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.detail || `HTTP ${res.status}`);
+      }
+      const json = await res.json();
+      renderPreview(json.media, `${cat.name} \u2014 ${json.media.length} titles`);
+    } catch(e) {
+      console.error('[preview] ai error:', e);
+      document.getElementById('preview-sub').textContent = 'Failed to load AI recommendations';
+      document.getElementById('preview-area').innerHTML =
+        `<div class="preview-prompt"><div>Could not load AI recommendations</div><div style="font-size:11px;color:var(--text3);margin-top:6px">${escHtml(e instanceof Error ? e.message : String(e))}</div></div>`;
+    }
+    return;
+  }
   setPreviewLoading(cat.name);
   try {
     const media = cat.type === 'preset'
@@ -2262,6 +2550,8 @@ function render() {
     const card = document.getElementById('preset-' + id);
     if (card) card.classList.toggle('added', catalogs.some(c => c.id === id));
   });
+  const aiCard = document.getElementById('preset-anilist-ai-recommendations');
+  if (aiCard) aiCard.classList.toggle('added', catalogs.some(c => c.id === 'anilist-ai-recommendations'));
 
   const list = document.getElementById('catalog-list');
   const countBadge = document.getElementById('catalog-count-badge');
@@ -2287,7 +2577,7 @@ function render() {
                  onkeydown="if(event.key==='Enter'){this.blur();}if(event.key==='Escape'){cancelRename();}">`
             : `<div class="catalog-item-name">${escHtml(c.name)}</div>`
           }
-          <div class="catalog-item-type"><span class="catalog-type-badge">${c.type === 'watching' ? 'Account' : c.type === 'custom' ? 'Custom' : 'Preset'}</span></div>
+          <div class="catalog-item-type"><span class="catalog-type-badge">${c.type === 'watching' ? 'Account' : c.type === 'ai' ? 'AI' : c.type === 'custom' ? 'Custom' : 'Preset'}</span></div>
         </div>
         <div class="catalog-actions" onclick="event.stopPropagation()">
           <button class="edit-btn" onclick="startRenaming('${c.id}')">&#9998; Rename</button>
@@ -2428,6 +2718,11 @@ async function importConfig() {
           if (entry.s) cat.listStatus = entry.s;
           if (entry.r) cat.randomize = true;
           return cat;
+        } else if (entry.a) {
+          const cat = { id, name: entry.n || 'AI Recommendations', type: 'ai',
+                        model: entry.m || 'meta-llama/llama-3.3-70b-instruct' };
+          if (entry.r) cat.randomize = true;
+          return cat;
         } else {
           const cat = { id, name: entry.n || id, type: 'custom', filters: entry.f || {} };
           if (entry.r) cat.randomize = true;
@@ -2477,6 +2772,12 @@ async function updateUrl() {
     } else if (cat.type === 'watching') {
       const entry = { i: cat.id, n: cat.name, w: true };
       if (cat.listStatus) entry.s = cat.listStatus;
+      if (cat.randomize) entry.r = true;
+      return entry;
+    } else if (cat.type === 'ai') {
+      const entry = { i: cat.id, n: cat.name, a: true };
+      const defaultModel = 'meta-llama/llama-3.3-70b-instruct';
+      if (cat.model && cat.model !== defaultModel) entry.m = cat.model;
       if (cat.randomize) entry.r = true;
       return entry;
     } else {
@@ -2595,5 +2896,41 @@ render();
 setActiveFilter('genres');
 renderFilterTags();
 </script>
+
+<!-- AI Settings Modal -->
+<div class="ai-modal-overlay" id="ai-modal-overlay" onclick="if(event.target===this)closeAiModal()">
+  <div class="ai-modal">
+    <div class="ai-modal-header">
+      <div class="ai-modal-title">AI Recommendations Settings</div>
+      <button class="ai-modal-close" onclick="closeAiModal()">&#10005;</button>
+    </div>
+    <div class="ai-modal-body">
+      <div class="ai-modal-section">
+        <label class="ai-modal-label">Model</label>
+        <select id="ai-model-select" class="ai-modal-select" onchange="handleAiModelChange()">
+          <option value="meta-llama/llama-3.3-70b-instruct">Llama 3.3 70B Instruct (Default &mdash; fast &amp; cheap)</option>
+          <option value="google/gemini-flash-1.5">Gemini Flash 1.5 (Fast)</option>
+          <option value="openai/gpt-4o-mini">GPT-4o Mini (Accurate)</option>
+          <option value="anthropic/claude-haiku-4-5-20251001">Claude Haiku 4.5 (Fast)</option>
+          <option value="custom">Custom model&hellip;</option>
+        </select>
+        <input type="text" id="ai-model-custom" class="ai-modal-input" placeholder="e.g. mistralai/mixtral-8x7b-instruct" style="display:none;margin-top:6px">
+      </div>
+      <div class="ai-modal-section">
+        <label class="ai-modal-label">OpenRouter API Key</label>
+        <div class="ai-key-row">
+          <input type="password" id="ai-key-input" class="ai-modal-input" placeholder="sk-or-v1-\u2026" autocomplete="off">
+          <button class="ai-test-btn" id="ai-test-btn" onclick="testOrKey()">Test</button>
+        </div>
+        <div class="ai-key-feedback" id="ai-key-feedback"></div>
+        <div class="ai-key-hint">Get a free key at openrouter.ai/keys &mdash; key is encrypted and stored server-side only</div>
+      </div>
+    </div>
+    <div class="ai-modal-footer">
+      <button class="ai-modal-cancel" onclick="closeAiModal()">Cancel</button>
+      <button class="ai-modal-save" id="ai-modal-save-btn" onclick="saveOrKeyFromModal()">Save</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>"""

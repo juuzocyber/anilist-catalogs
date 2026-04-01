@@ -194,6 +194,9 @@ async def get_custom(filters: dict, page: int = 1, per_page: int = 30) -> list[d
         args.append("startDate_lesser: $sdLt")
 
     sort = filters.get("sort", "POPULARITY_DESC")
+    _VALID_SORTS = {"POPULARITY_DESC", "TRENDING_DESC", "SCORE_DESC", "START_DATE_DESC", "FAVOURITES_DESC"}
+    if sort not in _VALID_SORTS:
+        sort = "POPULARITY_DESC"
     args.append(f"sort: {sort}")
 
     var_decls = "$page: Int, $perPage: Int"
@@ -300,6 +303,136 @@ async def get_favourites(token: str, user_id: int, *, raw: bool = False) -> list
         .get("nodes") or []
     )
     return nodes if raw else [_media_to_meta(m) for m in nodes]
+
+
+async def get_ai_recommendations(
+    anilist_token: str,
+    user_id: int,
+    openrouter_key: str,
+    model: str = "meta-llama/llama-3.3-70b-instruct",
+) -> list[dict]:
+    """Return AI-recommended anime based on the user's watch history.
+
+    Fetches up to 50 completed + currently-watching titles, sends them to
+    OpenRouter, parses the returned JSON array of AniList IDs, batch-validates
+    them against AniList (dropping hallucinated IDs), and returns raw AniList
+    media dicts (same shape as MEDIA_FIELDS — apply _media_to_meta in the caller).
+
+    Never logs the openrouter_key.
+    """
+    import json as _json
+    import re as _re
+
+    # 1. Fetch completed + currently-watching history (up to 50 entries each)
+    try:
+        completed = await get_watching_list(anilist_token, user_id, "COMPLETED", raw=True)
+        watching  = await get_watching_list(anilist_token, user_id, "CURRENT",   raw=True)
+    except Exception as exc:
+        logger.error("AI recs: failed to fetch watch history: %s", exc)
+        return []
+
+    all_entries = (completed + watching)[:50]
+    if not all_entries:
+        logger.warning("AI recs: no watch history found, returning empty list")
+        return []
+
+    # 2. Format as compact text the model can reason about
+    parts = []
+    for m in all_entries:
+        title = (
+            (m.get("title") or {}).get("english")
+            or (m.get("title") or {}).get("romaji")
+            or "Unknown"
+        )
+        score = m.get("averageScore") or m.get("meanScore")
+        score_str = f"{score // 10}/10" if score else "?"
+        parts.append(f"{title} ({score_str})")
+    history_text = ", ".join(parts)
+
+    seen_ids: set[int] = {m["id"] for m in all_entries if m.get("id")}
+
+    # 3. POST to OpenRouter
+    system_prompt = (
+        "You are an anime recommendation engine. "
+        "Return only a valid JSON array of AniList media IDs as integers. "
+        "No explanation, no titles, only the JSON array."
+    )
+    user_prompt = (
+        "Based on this watch history, recommend 20 anime the user hasn't seen. "
+        "Return only a JSON array of AniList integer IDs.\n\n"
+        f"Watch history: {history_text}"
+    )
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {openrouter_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": model,
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user",   "content": user_prompt},
+                    ],
+                    "temperature": 0.7,
+                    "max_tokens": 256,
+                },
+            )
+        if resp.status_code != 200:
+            logger.error("AI recs: OpenRouter returned HTTP %d", resp.status_code)
+            return []
+        payload = resp.json()
+    except Exception as exc:
+        logger.error("AI recs: OpenRouter request failed: %s", exc)
+        return []
+
+    # 4. Parse JSON array from the model's response
+    try:
+        content = (payload.get("choices") or [{}])[0].get("message", {}).get("content", "").strip()
+        match = _re.search(r"\[[\s\S]*?\]", content)
+        if not match:
+            logger.error("AI recs: no JSON array in model response (first 200 chars): %s", content[:200])
+            return []
+        raw_ids = _json.loads(match.group(0))
+        if not isinstance(raw_ids, list):
+            logger.error("AI recs: parsed value is not a list")
+            return []
+        candidate_ids: list[int] = []
+        seen_in_resp: set[int] = set()
+        for item in raw_ids:
+            try:
+                item = int(item)
+            except (TypeError, ValueError):
+                continue
+            if item > 0 and item not in seen_in_resp and item not in seen_ids:
+                candidate_ids.append(item)
+                seen_in_resp.add(item)
+    except Exception as exc:
+        logger.error("AI recs: failed to parse OpenRouter response: %s", exc)
+        return []
+
+    if not candidate_ids:
+        logger.warning("AI recs: no valid candidate IDs extracted")
+        return []
+
+    # 5. Batch-validate against AniList (one query, drops hallucinated IDs)
+    validate_query = f"""
+    query ($ids: [Int]) {{
+        Page(page: 1, perPage: 25) {{
+            media(id_in: $ids, type: ANIME, isAdult: false) {{
+                {MEDIA_FIELDS}
+            }}
+        }}
+    }}
+    """
+    try:
+        data = await _gql(validate_query, {"ids": candidate_ids[:25]})
+        return data.get("Page", {}).get("media") or []
+    except Exception as exc:
+        logger.error("AI recs: AniList batch validation failed: %s", exc)
+        return []
 
 
 async def get_meta(anilist_id: int) -> Optional[dict]:

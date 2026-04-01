@@ -25,3 +25,8 @@ SECRET_KEY: str = os.getenv("SECRET_KEY", "")
 ANILIST_CLIENT_ID: str = os.getenv("ANILIST_CLIENT_ID", "")
 ANILIST_CLIENT_SECRET: str = os.getenv("ANILIST_CLIENT_SECRET", "")
 ANILIST_REDIRECT_URI: str = os.getenv("ANILIST_REDIRECT_URI", "")
+
+# ── OpenRouter (optional — enables AI Recommendations catalog) ────────────────
+# Not required; users supply their own key via the configure UI.
+# If set here it acts as a server-side fallback (future feature).
+OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY", "")

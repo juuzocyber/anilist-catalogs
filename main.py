@@ -4,6 +4,7 @@ AniList Catalogs — FastAPI entry point.
 
 import logging
 import random
+import re
 import secrets
 import time
 from contextlib import asynccontextmanager
@@ -59,7 +60,13 @@ def _build_manifest(config):
     m["behaviorHints"] = {**m.get("behaviorHints", {}), "configurable": True, "configurationRequired": False}
     return m
 
-async def _fetch_catalog(catalog_id, catalog_config, page, encrypted_token: str | None = None):
+async def _fetch_catalog(
+    catalog_id,
+    catalog_config,
+    page,
+    encrypted_token: str | None = None,
+    session_key: str | None = None,
+):
     cache_key = f"catalog:{catalog_id}:page:{page}"
     cached = cache.get(cache_key)
     if cached is not None:
@@ -83,6 +90,30 @@ async def _fetch_catalog(catalog_id, catalog_config, page, encrypted_token: str 
         if list_status == "FAVOURITES":
             return await anilist.get_favourites(raw_token, viewer["id"])
         return await anilist.get_watching_list(raw_token, viewer["id"], list_status or "CURRENT")
+    elif catalog_config.get("type") == "ai":
+        if not encrypted_token or not session_key:
+            raise HTTPException(status_code=401, detail="Authentication required for AI recommendations.")
+        # Per-user cache keyed on session (not catalog page — AI recs are not paginated).
+        ai_cache_key = f"ai_recs:{session_key}"
+        ai_cached = cache.get(ai_cache_key)
+        if ai_cached is not None:
+            return [anilist._media_to_meta(m) for m in ai_cached]
+        try:
+            raw_token = decrypt(encrypted_token)
+        except InvalidToken:
+            raise HTTPException(status_code=401, detail="Invalid or expired token.")
+        or_data = cache.get(f"session_or:{session_key}")
+        if not or_data:
+            raise HTTPException(status_code=400, detail="OpenRouter API key not configured for this session.")
+        try:
+            or_key = decrypt(or_data["encrypted_key"])
+        except Exception:
+            raise HTTPException(status_code=401, detail="Invalid or expired OpenRouter session.")
+        model = or_data.get("model", "meta-llama/llama-3.3-70b-instruct")
+        viewer = await anilist.get_viewer(raw_token)
+        raw_media = await anilist.get_ai_recommendations(raw_token, viewer["id"], or_key, model)
+        cache.set(ai_cache_key, raw_media, 60 * 60)  # 1 hour — AI calls are slow and expensive
+        return [anilist._media_to_meta(m) for m in raw_media]
     else:
         raise HTTPException(status_code=404, detail=f"Unknown catalog: {catalog_id}")
     cache.set(cache_key, metas, ttl)
@@ -238,7 +269,12 @@ async def oauth_callback(
 
 
 @app.get("/oauth/logout", include_in_schema=False)
-async def oauth_logout():
+async def oauth_logout(s: str | None = None):
+    # Clear both session keys when the user explicitly disconnects.
+    if s:
+        cache.delete(f"session:{s}")
+        cache.delete(f"session_or:{s}")
+        cache.delete(f"ai_recs:{s}")
     return RedirectResponse(url="/configure")
 
 # ── Authenticated user API ────────────────────────────────────────────────────
@@ -281,6 +317,23 @@ class _PreviewWatchingBody(pydantic.BaseModel):
     session: str
     list_status: str
 
+_ALLOWED_MODELS = {
+    "meta-llama/llama-3.3-70b-instruct",
+    "google/gemini-flash-1.5",
+    "openai/gpt-4o-mini",
+    "anthropic/claude-haiku-4-5-20251001",
+}
+# Custom models must match org/model-name format (alphanumeric, hyphens, dots, underscores).
+_MODEL_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+/[a-zA-Z0-9._-]+$")
+
+class _SaveOrKeyBody(pydantic.BaseModel):
+    session: str
+    key: str | None = None   # None means "keep existing key, just update model"
+    model: str = "meta-llama/llama-3.3-70b-instruct"
+
+class _TestOrKeyBody(pydantic.BaseModel):
+    key: str
+
 @app.post("/api/preview-watching")
 async def api_preview_watching(request: Request, body: _PreviewWatchingBody):
     """Return the authenticated user's watching list or favourites for the configure UI preview.
@@ -305,6 +358,119 @@ async def api_preview_watching(request: Request, body: _PreviewWatchingBody):
         raise HTTPException(status_code=502, detail="Could not fetch list from AniList.")
     return {"media": media}
 
+@app.post("/api/save-openrouter-key")
+async def api_save_openrouter_key(request: Request, body: _SaveOrKeyBody):
+    """Store (or update) the user's OpenRouter API key in their session.
+
+    The key is Fernet-encrypted before being written to the session cache —
+    it is never returned in any response or written to any log.
+    When *key* is None, only the model preference is updated (key unchanged).
+    """
+    ip = request.client.host if request.client else "unknown"
+    if not _check_session_rate_limit(ip):
+        raise HTTPException(status_code=429, detail="Too many requests.")
+
+    session_key = body.session
+    encrypted_anilist = cache.get(f"session:{session_key}")
+    if not encrypted_anilist:
+        raise HTTPException(status_code=401, detail=_AUTH_401["detail"])
+
+    model = body.model.strip() if body.model else "meta-llama/llama-3.3-70b-instruct"
+    if model not in _ALLOWED_MODELS and not _MODEL_PATTERN.match(model):
+        raise HTTPException(status_code=400, detail="Invalid model identifier.")
+    if len(model) > 128:
+        raise HTTPException(status_code=400, detail="Model identifier too long.")
+
+    if body.key is not None:
+        # New key supplied — encrypt and store.
+        raw_key = body.key.strip()
+        if not raw_key:
+            raise HTTPException(status_code=400, detail="API key must not be empty.")
+        encrypted_or = encrypt(raw_key)
+        or_data = {"encrypted_key": encrypted_or, "model": model}
+    else:
+        # No new key — preserve existing, update model only.
+        existing = cache.get(f"session_or:{session_key}")
+        if not existing:
+            raise HTTPException(status_code=400, detail="No OpenRouter key stored for this session. Provide a key.")
+        or_data = {**existing, "model": model}
+
+    cache.set(f"session_or:{session_key}", or_data, SESSION_TTL)
+    return {"ok": True}
+
+
+@app.post("/api/test-openrouter-key")
+async def api_test_openrouter_key(request: Request, body: _TestOrKeyBody):
+    """Make a minimal OpenRouter API call to verify the supplied key.
+
+    Returns {"valid": true} on success. The key is used only for the test
+    request and is never stored or logged.
+    """
+    ip = request.client.host if request.client else "unknown"
+    if not _check_session_rate_limit(ip):
+        raise HTTPException(status_code=429, detail="Too many requests.")
+
+    raw_key = body.key.strip()
+    if not raw_key:
+        raise HTTPException(status_code=400, detail="Key must not be empty.")
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(
+                "https://openrouter.ai/api/v1/models",
+                headers={"Authorization": f"Bearer {raw_key}"},
+            )
+        if resp.status_code == 200:
+            return {"valid": True}
+        # 401/403 → invalid key; other errors → surface as invalid too
+        return JSONResponse(status_code=400, content={"valid": False, "detail": "Key rejected by OpenRouter."})
+    except Exception as exc:
+        logger.error("OpenRouter key test failed: %s", exc)
+        raise HTTPException(status_code=502, detail="Could not reach OpenRouter to verify the key.")
+
+
+@app.post("/api/preview-ai")
+async def api_preview_ai(request: Request, body: _SessionBody):
+    """Return AI-recommended anime as raw AniList media dicts for the configure UI.
+
+    Uses the same 1-hour per-session cache as the Stremio catalog route to avoid
+    redundant (slow, expensive) AI calls.
+    """
+    ip = request.client.host if request.client else "unknown"
+    if not _check_session_rate_limit(ip):
+        raise HTTPException(status_code=429, detail="Too many requests.")
+
+    session_key = body.session
+    raw_token = _resolve_session(session_key)
+
+    or_data = cache.get(f"session_or:{session_key}")
+    if not or_data:
+        raise HTTPException(status_code=400, detail="OpenRouter API key not configured. Add it via the AI settings.")
+
+    try:
+        or_key = decrypt(or_data["encrypted_key"])
+    except Exception:
+        raise HTTPException(status_code=401, detail=_AUTH_401["detail"])
+
+    model = or_data.get("model", "meta-llama/llama-3.3-70b-instruct")
+
+    # Check cache first — reuse result already fetched by the catalog route.
+    ai_cache_key = f"ai_recs:{session_key}"
+    cached = cache.get(ai_cache_key)
+    if cached is not None:
+        return {"media": cached}
+
+    try:
+        viewer = await anilist.get_viewer(raw_token)
+        raw_media = await anilist.get_ai_recommendations(raw_token, viewer["id"], or_key, model)
+    except Exception as exc:
+        logger.error("preview_ai failed: %s", exc)
+        raise HTTPException(status_code=502, detail="AI recommendation request failed.")
+
+    cache.set(ai_cache_key, raw_media, 60 * 60)
+    return {"media": raw_media}
+
+
 @app.post("/api/me")
 async def api_me(request: Request, body: _SessionBody):
     """Return the authenticated user's display name and avatar URL.
@@ -322,7 +488,13 @@ async def api_me(request: Request, body: _SessionBody):
     except Exception as exc:
         logger.error("get_viewer failed: %s", exc)
         raise HTTPException(status_code=502, detail="Could not fetch user from AniList.")
-    return {"name": viewer["name"], "avatar": viewer["avatar"]}
+    or_data = cache.get(f"session_or:{body.session}")
+    return {
+        "name": viewer["name"],
+        "avatar": viewer["avatar"],
+        "has_or_key": or_data is not None,
+        "or_model": or_data.get("model") if or_data else None,
+    }
 
 @app.get("/manifest.json")
 async def manifest_default(): return JSONResponse(_build_manifest(DEFAULT_CONFIG))
@@ -350,7 +522,7 @@ async def catalog_configured(config_segment: str, content_type: str, catalog_id:
     if not encrypted_token:
         encrypted_token = config.get("token")  # backward compat with old URLs
     try:
-        metas = await _fetch_catalog(catalog_id, catalog_config, page, encrypted_token)
+        metas = await _fetch_catalog(catalog_id, catalog_config, page, encrypted_token, session_key=session_key)
     except HTTPException:
         raise
     except Exception as exc:

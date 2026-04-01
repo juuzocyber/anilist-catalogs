@@ -98,6 +98,8 @@ def encode_config(config: dict) -> str:
             entry = {"i": cat_id, "n": cat.get("name", cat_id), "w": True}
             if cat.get("listStatus"):
                 entry["s"] = cat["listStatus"]
+            if cat.get("clientFilters"):
+                entry["cf"] = cat["clientFilters"]
         elif cat.get("type") == "ai":
             entry = {"i": cat_id, "n": cat.get("name", cat_id), "a": True}
             default_model = "meta-llama/llama-3.3-70b-instruct"
@@ -153,6 +155,8 @@ def decode_config(token: str) -> dict:
                     }
                     if entry.get("s"):
                         cat["listStatus"] = entry["s"]
+                    if entry.get("cf"):
+                        cat["clientFilters"] = entry["cf"]
                 elif entry.get("a"):
                     cat = {
                         "id": cat_id,

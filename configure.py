@@ -1126,7 +1126,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4z"/></svg>
           </a>
         </div>
-        <div class="pane-footer-text">Version: v1.1.0 &mdash; Developed by juuzo</div>
+        <div class="pane-footer-text">Version: v1.1.1 &mdash; Developed by juuzo</div>
       </div>
     </div>
 
@@ -1213,11 +1213,11 @@ CONFIGURE_HTML = """<!DOCTYPE html>
           Adult
         </label>
         <div class="fb-sep"></div>
-        <div class="fb-name-wrap">
+        <div class="fb-name-wrap" id="catalog-name-wrap">
           <input class="fb-name-input" type="text" id="catalog-name" placeholder="Catalog name" oninput="clearNameError()">
           <div id="catalog-name-error">Name required</div>
         </div>
-        <button class="fb-add-btn" onclick="addCustom()">Add</button>
+        <button class="fb-add-btn" id="catalog-add-btn" onclick="addCustom()">Add</button>
       </div>
 
       <!-- Always-visible options panel -->
@@ -1396,7 +1396,32 @@ if (_sessionKey) {
   window.history.replaceState({}, '', _cleanUrl.toString());
 }
 
-let catalogs = [];
+// ── Pre-login catalog preservation ───────────────
+// When the user clicks "Connect AniList", the page navigates away and back.
+// We save the current catalogs to localStorage before leaving so they can be
+// restored on return (identified by the presence of the ?s= session key).
+const _PENDING_CATALOGS_KEY = 'anilist_catalogs_pending';
+let _pendingCatalogs = null;
+if (_sessionKey) {
+  try {
+    const saved = localStorage.getItem(_PENDING_CATALOGS_KEY);
+    if (saved) {
+      _pendingCatalogs = JSON.parse(saved);
+      localStorage.removeItem(_PENDING_CATALOGS_KEY);
+    }
+  } catch(e) { /* ignore storage errors */ }
+}
+
+let catalogs = _pendingCatalogs || [];
+
+// ── Source tag state ──────────────────────────────
+// activeSource: { id, name, listStatus?, type:'watching'|'ai' } | null
+// Clicking an account/AI pill sets this, shows a tag in the filter bar, and
+// fetches the source content. Additional filters apply client-side on top.
+let activeSource = null;
+let _sourceMedia = null;       // raw media array fetched for the active source
+let _lastSuggestedName = '';   // tracks the last auto-generated catalog name suggestion
+
 let selectedGenres = [];
 let selectedFormats  = [];
 let selectedStatuses = [];
@@ -1446,7 +1471,7 @@ function renderAuthUI(user) {
       '</div>';
   } else {
     el.innerHTML =
-      '<a class="btn-connect" href="/oauth/login">' +
+      '<a class="btn-connect" href="/oauth/login" onclick="saveConfigBeforeLogin()">' +
       '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="opacity:0.7"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>' +
       'Connect AniList</a>';
   }
@@ -1474,6 +1499,12 @@ function updateAccountPills() {
   }
 }
 
+function saveConfigBeforeLogin() {
+  // Preserve the current catalog list across the OAuth redirect so the user's
+  // custom catalogs and ordering survive the full-page navigation.
+  try { localStorage.setItem(_PENDING_CATALOGS_KEY, JSON.stringify(catalogs)); } catch(e) {}
+}
+
 function disconnect() {
   // Tell the server to clear session + OR key caches, best-effort.
   if (_sessionKey) {
@@ -1482,28 +1513,270 @@ function disconnect() {
   _sessionKey = null;
   _hasOrKey   = false;
   _orModel    = 'meta-llama/llama-3.3-70b-instruct';
+  // Clear source tag state if it was an account/AI source
+  if (activeSource) {
+    activeSource = null;
+    _sourceMedia = null;
+    _lastSuggestedName = '';
+    renderFilterTags();
+    updateNameInput();
+  }
   catalogs = catalogs.filter(c => c.type !== 'watching' && c.type !== 'ai');
   renderAuthUI(null);
   render();
 }
 
+// ── Source filtering helpers ──────────────────────
+
+// Returns true if any additional filter (genre/format/status/year/season/score)
+// is active on top of the current source tag.
+function hasActiveAdditionalFilters() {
+  const score = parseInt(document.getElementById('f-score').value);
+  return selectedGenres.length > 0 || selectedFormats.length > 0 ||
+         selectedStatuses.length > 0 || selectedYears.length > 0 ||
+         selectedSeasons.length > 0 || score > 0;
+}
+
+// Clear additional filter state (genre/format/status/year/season/score/sort/daterange)
+// without touching activeSource.
+function _clearAdditionalFilters() {
+  document.getElementById('f-sort').value = 'POPULARITY_DESC';
+  document.getElementById('f-daterange').value = '';
+  document.getElementById('f-score').value = 0;
+  document.getElementById('score-val').textContent = 'Any';
+  includeAdult = false;
+  document.getElementById('f-adult').checked = false;
+  document.getElementById('adult-toggle').classList.remove('active');
+  selectedGenres = []; selectedFormats = []; selectedStatuses = [];
+  selectedYears  = []; selectedSeasons = [];
+  syncFilterBtnLabels();
+  if (activeFbFilter) renderFilterOpts(activeFbFilter);
+}
+
+// Build a human-readable name suggestion from active source + filter tags.
+function _buildSuggestedName() {
+  const parts = [activeSource.name];
+  selectedGenres.forEach(g  => parts.push(g));
+  selectedFormats.forEach(f  => parts.push(FORMAT_LABELS[f] || f));
+  selectedYears.forEach(y    => parts.push(y));
+  selectedSeasons.forEach(s  => parts.push(s === 'CURRENT' ? 'Current Season' : (SEASON_LABELS[s] || s)));
+  selectedStatuses.forEach(s => parts.push(STATUS_LABELS[s] || s));
+  const score = parseInt(document.getElementById('f-score').value);
+  if (score > 0) parts.push(score + '+ Score');
+  return parts.join(' \u00b7 ');
+}
+
+// Build a clientFilters object from the current DOM filter state.
+function _buildClientFilters() {
+  const f = {};
+  const sort  = document.getElementById('f-sort').value;
+  const score = parseInt(document.getElementById('f-score').value);
+  if (sort && sort !== 'POPULARITY_DESC') f.sort = sort;
+  if (selectedGenres.length)   f.genres   = [...selectedGenres];
+  if (selectedFormats.length)  f.formats  = [...selectedFormats];
+  if (selectedStatuses.length) f.statuses = [...selectedStatuses];
+  if (selectedYears.length)    f.years    = [...selectedYears];
+  if (selectedSeasons.length)  f.seasons  = [...selectedSeasons];
+  if (score > 0)               f.minScore = score;
+  return f;
+}
+
+// Update the name-input + Add-button visibility based on source/filter state.
+// Shows when: no source (standard custom flow), OR source + additional filters.
+// Hides when: source only, no additional filters (catalog added directly).
+function updateNameInput() {
+  const wrap   = document.getElementById('catalog-name-wrap');
+  const addBtn = document.getElementById('catalog-add-btn');
+  if (!wrap || !addBtn) return;
+
+  const hasFilters = hasActiveAdditionalFilters();
+  const hideForSource = activeSource && !hasFilters;
+  wrap.style.display   = hideForSource ? 'none' : '';
+  addBtn.style.display = hideForSource ? 'none' : '';
+
+  if (activeSource && hasFilters) {
+    const inp       = document.getElementById('catalog-name');
+    const suggested = _buildSuggestedName();
+    if (!inp.value.trim() || inp.value === _lastSuggestedName) {
+      inp.value = suggested;
+      _lastSuggestedName = suggested;
+    }
+  } else if (!activeSource) {
+    _lastSuggestedName = '';
+  }
+}
+
+// Apply current DOM filter state client-side to a media array.
+// Pass an explicit cf object (stored clientFilters) to replay a saved catalog.
+function _filterSourceMedia(media, cf) {
+  const genres   = cf ? (cf.genres   || []) : selectedGenres;
+  const formats  = cf ? (cf.formats  || []) : selectedFormats;
+  const statuses = cf ? (cf.statuses || []) : selectedStatuses;
+  const years    = cf ? (cf.years    || []) : selectedYears;
+  const seasons  = cf ? (cf.seasons  || []) : selectedSeasons;
+  const score    = cf ? (cf.minScore || 0)  : parseInt(document.getElementById('f-score').value);
+  const sort     = cf ? (cf.sort || 'POPULARITY_DESC') : document.getElementById('f-sort').value;
+
+  let result = media;
+  if (genres.length)   result = result.filter(m => genres.every(g => (m.genres || []).includes(g)));
+  if (formats.length)  result = result.filter(m => formats.includes(m.format));
+  if (statuses.length) result = result.filter(m => statuses.includes(m.status));
+  if (years.length)    result = result.filter(m => years.includes(String(m.seasonYear)));
+  if (seasons.length) {
+    const resolved = seasons.map(s => s === 'CURRENT' ? getCurrentSeason() : s);
+    result = result.filter(m => resolved.includes(m.season));
+  }
+  if (score > 0) result = result.filter(m => (m.averageScore || 0) >= score);
+
+  result = [...result];
+  result.sort((a, b) => {
+    switch (sort) {
+      case 'SCORE_DESC':
+        return (b.averageScore || 0) - (a.averageScore || 0);
+      case 'START_DATE_DESC': {
+        const da = (a.seasonYear || 0) * 100 + (a.startDate && a.startDate.month ? a.startDate.month : 0);
+        const db = (b.seasonYear || 0) * 100 + (b.startDate && b.startDate.month ? b.startDate.month : 0);
+        return db - da;
+      }
+      default:
+        return (b.popularity || 0) - (a.popularity || 0);
+    }
+  });
+  return result;
+}
+
+// Re-render preview using _sourceMedia + current filter state.
+function _applySourcePreview() {
+  if (!activeSource || !_sourceMedia) return;
+  const filtered = _filterSourceMedia(_sourceMedia);
+  const count = filtered.length;
+  const total = _sourceMedia.length;
+  const subtitle = count < total
+    ? `${activeSource.name} \u2014 ${count} of ${total} titles`
+    : `${activeSource.name} \u2014 ${count} titles`;
+  renderPreview(filtered, subtitle);
+}
+
+// Fetch source content from the server and then apply client-side filters.
+async function fetchAndShowSource() {
+  if (!activeSource) return;
+  const captured = activeSource;
+
+  if (activeSource.type === 'watching') {
+    if (!_sessionKey) {
+      document.getElementById('preview-sub').textContent = activeSource.name;
+      document.getElementById('preview-area').innerHTML =
+        '<div class="preview-prompt"><div class="preview-prompt-icon">&#128274;</div><div>Account catalog<br><span style="font-size:11px;color:var(--text3)">Connect your AniList account to preview this list</span></div></div>';
+      return;
+    }
+    setPreviewLoading(activeSource.name);
+    try {
+      const res = await fetch('/api/preview-watching', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session: _sessionKey, list_status: activeSource.listStatus }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.detail || `HTTP ${res.status}`);
+      }
+      const json = await res.json();
+      if (activeSource !== captured) return; // source changed during async fetch
+      _sourceMedia = json.media;
+      _applySourcePreview();
+    } catch(e) {
+      console.error('[source] watching fetch error:', e);
+      document.getElementById('preview-sub').textContent = 'Failed to load list';
+      document.getElementById('preview-area').innerHTML =
+        `<div class="preview-prompt"><div>Could not load account catalog</div><div style="font-size:11px;color:var(--text3);margin-top:6px">${escHtml(e instanceof Error ? e.message : String(e))}</div></div>`;
+    }
+    return;
+  }
+
+  if (activeSource.type === 'ai') {
+    if (!_sessionKey) {
+      document.getElementById('preview-sub').textContent = activeSource.name;
+      document.getElementById('preview-area').innerHTML =
+        '<div class="preview-prompt"><div class="preview-prompt-icon">&#128274;</div><div>Account catalog<br><span style="font-size:11px;color:var(--text3)">Connect your AniList account to use AI recommendations</span></div></div>';
+      return;
+    }
+    if (!_hasOrKey) {
+      document.getElementById('preview-sub').textContent = activeSource.name;
+      document.getElementById('preview-area').innerHTML =
+        '<div class="preview-prompt"><div class="preview-prompt-icon">&#9881;</div><div>OpenRouter key required<br><span style="font-size:11px;color:var(--text3)">Click the gear icon on the AI pill to add your key</span></div></div>';
+      return;
+    }
+    setPreviewLoading('AI is thinking\u2026 (this may take a moment)');
+    try {
+      const res = await fetch('/api/preview-ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session: _sessionKey }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.detail || `HTTP ${res.status}`);
+      }
+      const json = await res.json();
+      if (activeSource !== captured) return;
+      _sourceMedia = json.media;
+      _applySourcePreview();
+    } catch(e) {
+      console.error('[source] ai fetch error:', e);
+      document.getElementById('preview-sub').textContent = 'Failed to load AI recommendations';
+      document.getElementById('preview-area').innerHTML =
+        `<div class="preview-prompt"><div>Could not load AI recommendations</div><div style="font-size:11px;color:var(--text3);margin-top:6px">${escHtml(e instanceof Error ? e.message : String(e))}</div></div>`;
+    }
+  }
+}
+
 function addAccountPreset(id, name, listStatus) {
   if (!_sessionKey) return;
-  if (!catalogs.find(c => c.id === id)) {
+  const alreadyAdded = !!catalogs.find(c => c.id === id);
+  // Set this as the active source (shows tag in filter bar + enables filtering on top)
+  activeSource = { id, name, listStatus, type: 'watching' };
+  _sourceMedia = null;
+  _lastSuggestedName = '';
+  // Clear any previously active filters — new source starts fresh
+  _clearAdditionalFilters();
+  if (!alreadyAdded) {
     catalogs.push({ id, name, type: 'watching', listStatus });
     render();
+    renderFilterTags();
+    updateNameInput();
+    setPaneTab('catalogs');
+    fetchAndShowSource();
+  } else {
+    renderFilterTags();
+    updateNameInput();
+    setPaneTab('preview');
+    render();
+    fetchAndShowSource();
   }
-  setPaneTab('catalogs');
 }
 
 function addAiCatalog() {
   if (!_sessionKey) return;
   if (!_hasOrKey) { openAiModal(); return; }
-  if (!catalogs.find(c => c.id === 'anilist-ai-recommendations')) {
+  const alreadyAdded = !!catalogs.find(c => c.id === 'anilist-ai-recommendations');
+  activeSource = { id: 'anilist-ai-recommendations', name: 'AI Recommendations', type: 'ai' };
+  _sourceMedia = null;
+  _lastSuggestedName = '';
+  _clearAdditionalFilters();
+  if (!alreadyAdded) {
     catalogs.push({ id: 'anilist-ai-recommendations', name: 'AI Recommendations', type: 'ai', model: _orModel });
     render();
+    renderFilterTags();
+    updateNameInput();
+    setPaneTab('catalogs');
+    fetchAndShowSource();
+  } else {
+    renderFilterTags();
+    updateNameInput();
+    setPaneTab('preview');
+    render();
+    fetchAndShowSource();
   }
-  setPaneTab('catalogs');
 }
 
 // ── AI Settings Modal ─────────────────────────────
@@ -2159,6 +2432,8 @@ function renderFilterTags() {
   syncFilterBtnLabels();
 
   const tags = [];
+  // Source tag always appears first when an account/AI source is active
+  if (activeSource) tags.push({ key: 'source', label: activeSource.name.toLowerCase() });
   selectedFormats.forEach(f  => tags.push({ key: 'format:'  + f, label: FORMAT_LABELS[f]  || f }));
   selectedSeasons.forEach(s  => tags.push({ key: 'season:'  + s, label: s === 'CURRENT' ? 'Current Season' : (SEASON_LABELS[s] || s) }));
   selectedYears.forEach(y    => tags.push({ key: 'year:'    + y, label: y }));
@@ -2174,6 +2449,16 @@ function renderFilterTags() {
 }
 
 function removeFilter(key) {
+  if (key === 'source') {
+    // Removing the source tag clears the source and returns to normal filter preview
+    activeSource = null;
+    _sourceMedia = null;
+    _lastSuggestedName = '';
+    renderFilterTags();
+    updateNameInput();
+    scheduleAutoPreview();
+    return;
+  }
   if      (key === 'score')            { document.getElementById('f-score').value = 0; document.getElementById('score-val').textContent = 'Any'; }
   else if (key === 'adult')            { includeAdult = false; document.getElementById('f-adult').checked = false; document.getElementById('adult-toggle').classList.remove('active'); }
   else if (key.startsWith('genre:'))   { toggleMultiVal(selectedGenres,  key.slice(6)); }
@@ -2185,6 +2470,7 @@ function removeFilter(key) {
   syncFilterBtnLabels();
   if (activeFbFilter) renderFilterOpts(activeFbFilter);
   renderFilterTags();
+  updateNameInput();
   scheduleAutoPreview();
 }
 
@@ -2192,10 +2478,14 @@ function onAdultChange() {
   includeAdult = document.getElementById('f-adult').checked;
   document.getElementById('adult-toggle').classList.toggle('active', includeAdult);
   renderFilterTags();
+  updateNameInput();
   scheduleAutoPreview();
 }
 
 function clearAllFilters() {
+  activeSource = null;
+  _sourceMedia = null;
+  _lastSuggestedName = '';
   document.getElementById('f-sort').value = 'POPULARITY_DESC';
   document.getElementById('f-daterange').value = '';
   document.getElementById('f-score').value   = 0;
@@ -2206,6 +2496,7 @@ function clearAllFilters() {
   syncFilterBtnLabels();
   if (activeFbFilter) renderFilterOpts(activeFbFilter);
   renderFilterTags();
+  updateNameInput();
   scheduleAutoPreview();
 }
 
@@ -2315,25 +2606,18 @@ function onDateRangeChange(el) {
 
 // ── Preset add / preview ──────────────────────────
 async function addPreset(id, name) {
-  if (!catalogs.find(c => c.id === id)) {
+  // Clicking a preset pill clears any active source tag
+  activeSource = null;
+  _sourceMedia = null;
+  _lastSuggestedName = '';
+  updateNameInput();
+  const alreadyAdded = !!catalogs.find(c => c.id === id);
+  if (!alreadyAdded) {
     catalogs.push({ id, name, type: 'preset' });
     render();
-  }
-  setPaneTab('preview');
-  // Populate form with this preset's baseline
-  loadFiltersIntoForm(PRESET_FORM_DEFAULTS[id]);
-  // Always show preview for this preset
-  setPreviewLoading(name);
-  try {
-    const media = id === 'anilist-airing-week'
-      ? await fetchAiringWeekPreview()
-      : await fetchPreview(PRESET_VARS[id]());
-    renderPreview(media, `${name} \u2014 ${media.length} titles`);
-  } catch(e) {
-    console.error('[preview] Error:', e);
-    document.getElementById('preview-sub').textContent = 'Failed to load preview';
-    document.getElementById('preview-area').innerHTML =
-      `<div class="preview-prompt"><div>Could not reach AniList API</div><div style="font-size:11px;color:var(--text3);margin-top:6px">${escHtml(e instanceof Error ? e.message : String(e))}</div></div>`;
+    setPaneTab('catalogs');
+  } else {
+    previewCatalog(id);
   }
 }
 
@@ -2387,6 +2671,30 @@ function addCustom() {
     return;
   }
 
+  if (activeSource && hasActiveAdditionalFilters()) {
+    // Save a filtered watching/AI catalog — the source type and listStatus are stored,
+    // plus client-side filters so the configure UI preview re-applies them.
+    const clientFilters = _buildClientFilters();
+    const id = 'watch-' + Math.random().toString(36).slice(2, 10);
+    const cat = { id, name, type: 'watching' };
+    if (activeSource.listStatus) cat.listStatus = activeSource.listStatus;
+    if (Object.keys(clientFilters).length) cat.clientFilters = clientFilters;
+    catalogs.push(cat);
+
+    document.getElementById('catalog-name').value = '';
+    clearNameError();
+    activeSource = null;
+    _sourceMedia = null;
+    _lastSuggestedName = '';
+    _clearAdditionalFilters();
+    renderFilterTags();
+    updateNameInput();
+    render();
+    setPaneTab('catalogs');
+    return;
+  }
+
+  // Standard custom catalog from AniList filter query
   const filters = {};
   const sort  = document.getElementById('f-sort').value;
   const score = parseInt(document.getElementById('f-score').value);
@@ -2433,75 +2741,39 @@ async function previewCatalog(id) {
   const cat = catalogs.find(c => c.id === id);
   if (!cat) return;
   previewingId = id;
+
+  if (cat.type === 'watching' || cat.type === 'ai') {
+    // Set as active source so the tag bar shows the source tag and filters work on top
+    activeSource = {
+      id:          cat.id,
+      name:        cat.name,
+      listStatus:  cat.listStatus,
+      type:        cat.type,
+    };
+    _sourceMedia = null;
+    _lastSuggestedName = '';
+    _clearAdditionalFilters();
+    renderFilterTags();
+    updateNameInput();
+    setPaneTab('preview');
+    render();
+    fetchAndShowSource();
+    return;
+  }
+
+  // Preset or custom — clear source tag and show plain preview
+  activeSource = null;
+  _sourceMedia = null;
+  _lastSuggestedName = '';
+  _clearAdditionalFilters();
+  renderFilterTags();
+  updateNameInput();
   setPaneTab('preview');
   render();
-  // Populate form with this catalog's filters
   if (cat.type === 'preset') {
     loadFiltersIntoForm(PRESET_FORM_DEFAULTS[id]);
   } else {
     loadFiltersIntoForm(cat.filters);
-  }
-  if (cat.type === 'watching') {
-    if (!_sessionKey) {
-      document.getElementById('preview-sub').textContent = cat.name;
-      document.getElementById('preview-area').innerHTML =
-        `<div class="preview-prompt"><div class="preview-prompt-icon">&#128274;</div><div>Account catalog<br><span style="font-size:11px;color:var(--text3)">Connect your AniList account to preview this list</span></div></div>`;
-      return;
-    }
-    setPreviewLoading(cat.name);
-    try {
-      const res = await fetch('/api/preview-watching', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session: _sessionKey, list_status: cat.listStatus }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => null);
-        throw new Error(err?.detail || `HTTP ${res.status}`);
-      }
-      const json = await res.json();
-      renderPreview(json.media, `${cat.name} \u2014 ${json.media.length} titles`);
-    } catch(e) {
-      console.error('[preview] watching error:', e);
-      document.getElementById('preview-sub').textContent = 'Failed to load preview';
-      document.getElementById('preview-area').innerHTML =
-        `<div class="preview-prompt"><div>Could not load account catalog</div><div style="font-size:11px;color:var(--text3);margin-top:6px">${escHtml(e instanceof Error ? e.message : String(e))}</div></div>`;
-    }
-    return;
-  }
-  if (cat.type === 'ai') {
-    if (!_sessionKey) {
-      document.getElementById('preview-sub').textContent = cat.name;
-      document.getElementById('preview-area').innerHTML =
-        `<div class="preview-prompt"><div class="preview-prompt-icon">&#128274;</div><div>Account catalog<br><span style="font-size:11px;color:var(--text3)">Connect your AniList account to use AI recommendations</span></div></div>`;
-      return;
-    }
-    if (!_hasOrKey) {
-      document.getElementById('preview-sub').textContent = cat.name;
-      document.getElementById('preview-area').innerHTML =
-        `<div class="preview-prompt"><div class="preview-prompt-icon">&#9881;</div><div>OpenRouter key required<br><span style="font-size:11px;color:var(--text3)">Click the gear icon on the AI pill to add your key</span></div></div>`;
-      return;
-    }
-    setPreviewLoading('AI is thinking\u2026 (this may take a moment)');
-    try {
-      const res = await fetch('/api/preview-ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session: _sessionKey }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => null);
-        throw new Error(err?.detail || `HTTP ${res.status}`);
-      }
-      const json = await res.json();
-      renderPreview(json.media, `${cat.name} \u2014 ${json.media.length} titles`);
-    } catch(e) {
-      console.error('[preview] ai error:', e);
-      document.getElementById('preview-sub').textContent = 'Failed to load AI recommendations';
-      document.getElementById('preview-area').innerHTML =
-        `<div class="preview-prompt"><div>Could not load AI recommendations</div><div style="font-size:11px;color:var(--text3);margin-top:6px">${escHtml(e instanceof Error ? e.message : String(e))}</div></div>`;
-    }
-    return;
   }
   setPreviewLoading(cat.name);
   try {
@@ -2528,8 +2800,17 @@ function scheduleAutoPreview() {
   if (currentPane === 'catalogs') setPaneTab('preview');
   setPendingPreview();
   renderFilterTags();
+  updateNameInput();
   clearTimeout(autoPreviewTimer);
-  autoPreviewTimer = setTimeout(previewCustom, 1000);
+  if (activeSource) {
+    if (_sourceMedia !== null) {
+      // Source is loaded — apply filters client-side, no server fetch needed
+      autoPreviewTimer = setTimeout(_applySourcePreview, 200);
+    }
+    // If _sourceMedia is null the in-flight fetchAndShowSource will call _applySourcePreview when done
+  } else {
+    autoPreviewTimer = setTimeout(previewCustom, 1000);
+  }
 }
 
 // ── Randomize toggle ──────────────────────────────
@@ -2717,6 +2998,7 @@ async function importConfig() {
           const cat = { id, name: entry.n || id, type: 'watching' };
           if (entry.s) cat.listStatus = entry.s;
           if (entry.r) cat.randomize = true;
+          if (entry.cf && Object.keys(entry.cf).length) cat.clientFilters = entry.cf;
           return cat;
         } else if (entry.a) {
           const cat = { id, name: entry.n || 'AI Recommendations', type: 'ai',
@@ -2773,6 +3055,7 @@ async function updateUrl() {
       const entry = { i: cat.id, n: cat.name, w: true };
       if (cat.listStatus) entry.s = cat.listStatus;
       if (cat.randomize) entry.r = true;
+      if (cat.clientFilters && Object.keys(cat.clientFilters).length) entry.cf = cat.clientFilters;
       return entry;
     } else if (cat.type === 'ai') {
       const entry = { i: cat.id, n: cat.name, a: true };

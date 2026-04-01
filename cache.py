@@ -32,6 +32,12 @@ class TTLCache:
     def delete(self, key: str) -> None:
         self._store.pop(key, None)
 
+    def delete_prefix(self, prefix: str) -> None:
+        """Delete all entries whose key starts with *prefix*."""
+        keys = [k for k in self._store if k.startswith(prefix)]
+        for k in keys:
+            del self._store[k]
+
     def clear(self) -> None:
         self._store.clear()
 

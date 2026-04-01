@@ -1126,7 +1126,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4z"/></svg>
           </a>
         </div>
-        <div class="pane-footer-text">Version: v1.1.1 &mdash; Developed by juuzo</div>
+        <div class="pane-footer-text">Version: v1.1.2 &mdash; Developed by juuzo</div>
       </div>
     </div>
 
@@ -1878,6 +1878,7 @@ async function saveOrKeyFromModal() {
     });
     const data = await res.json().catch(() => ({}));
     if (res.ok) {
+      const modelChanged = _orModel !== model;
       _hasOrKey = true;
       _orModel  = model;
       // Update any existing AI catalog entries with the new model
@@ -1885,6 +1886,15 @@ async function saveOrKeyFromModal() {
       updateAccountPills();
       render();
       closeAiModal();
+      // If model changed and AI catalog is already added, trigger a fresh fetch
+      if (modelChanged && catalogs.find(c => c.id === 'anilist-ai-recommendations')) {
+        _sourceMedia = null;
+        activeSource = { id: 'anilist-ai-recommendations', name: 'AI Recommendations', type: 'ai' };
+        renderFilterTags();
+        updateNameInput();
+        setPaneTab('preview');
+        fetchAndShowSource();
+      }
     } else {
       if (fb) { fb.textContent = '\u2717 ' + (data.detail || 'Failed to save.'); fb.className = 'ai-key-feedback err'; }
     }

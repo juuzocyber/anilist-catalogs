@@ -93,11 +93,6 @@ async def _fetch_catalog(
     elif catalog_config.get("type") == "ai":
         if not encrypted_token or not session_key:
             raise HTTPException(status_code=401, detail="Authentication required for AI recommendations.")
-        # Per-user cache keyed on session (not catalog page — AI recs are not paginated).
-        ai_cache_key = f"ai_recs:{session_key}"
-        ai_cached = cache.get(ai_cache_key)
-        if ai_cached is not None:
-            return [anilist._media_to_meta(m) for m in ai_cached]
         try:
             raw_token = decrypt(encrypted_token)
         except InvalidToken:
@@ -110,6 +105,11 @@ async def _fetch_catalog(
         except Exception:
             raise HTTPException(status_code=401, detail="Invalid or expired OpenRouter session.")
         model = or_data.get("model", "meta-llama/llama-3.3-70b-instruct")
+        # Per-user cache keyed on session + model — changing models gets fresh recs.
+        ai_cache_key = f"ai_recs:{session_key}:{model}"
+        ai_cached = cache.get(ai_cache_key)
+        if ai_cached is not None:
+            return [anilist._media_to_meta(m) for m in ai_cached]
         viewer = await anilist.get_viewer(raw_token)
         raw_media = await anilist.get_ai_recommendations(raw_token, viewer["id"], or_key, model)
         cache.set(ai_cache_key, raw_media, 60 * 60)  # 1 hour — AI calls are slow and expensive
@@ -274,7 +274,7 @@ async def oauth_logout(s: str | None = None):
     if s:
         cache.delete(f"session:{s}")
         cache.delete(f"session_or:{s}")
-        cache.delete(f"ai_recs:{s}")
+        cache.delete_prefix(f"ai_recs:{s}:")
     return RedirectResponse(url="/configure")
 
 # ── Authenticated user API ────────────────────────────────────────────────────
@@ -454,8 +454,8 @@ async def api_preview_ai(request: Request, body: _SessionBody):
 
     model = or_data.get("model", "meta-llama/llama-3.3-70b-instruct")
 
-    # Check cache first — reuse result already fetched by the catalog route.
-    ai_cache_key = f"ai_recs:{session_key}"
+    # Check cache first — keyed on session + model so switching models triggers fresh recs.
+    ai_cache_key = f"ai_recs:{session_key}:{model}"
     cached = cache.get(ai_cache_key)
     if cached is not None:
         return {"media": cached}

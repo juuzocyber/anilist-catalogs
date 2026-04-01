@@ -305,6 +305,41 @@ async def get_favourites(token: str, user_id: int, *, raw: bool = False) -> list
     return nodes if raw else [_media_to_meta(m) for m in nodes]
 
 
+async def _fetch_history_with_scores(
+    token: str, user_id: int, status: str,
+) -> list[dict]:
+    """Fetch user's anime list with personal scores for AI recommendation context.
+
+    Returns dicts with ``media`` (raw AniList media dict) and ``user_score``
+    (the user's own score, 0 if unset).  Never log *token*.
+    """
+    query = f"""
+    query ($userId: Int, $status: MediaListStatus) {{
+        MediaListCollection(userId: $userId, type: ANIME, status: $status) {{
+            lists {{
+                entries {{
+                    score(format: POINT_10)
+                    media {{
+                        {MEDIA_FIELDS}
+                    }}
+                }}
+            }}
+        }}
+    }}
+    """
+    data = await _gql(query, {"userId": user_id, "status": status}, token=token)
+    results: list[dict] = []
+    for lst in (data.get("MediaListCollection") or {}).get("lists") or []:
+        for entry in lst.get("entries") or []:
+            media = entry.get("media")
+            if media:
+                results.append({
+                    "media": media,
+                    "user_score": entry.get("score") or 0,
+                })
+    return results
+
+
 async def get_ai_recommendations(
     anilist_token: str,
     user_id: int,
@@ -313,20 +348,21 @@ async def get_ai_recommendations(
 ) -> list[dict]:
     """Return AI-recommended anime based on the user's watch history.
 
-    Fetches up to 50 completed + currently-watching titles, sends them to
-    OpenRouter, parses the returned JSON array of AniList IDs, batch-validates
-    them against AniList (dropping hallucinated IDs), and returns raw AniList
-    media dicts (same shape as MEDIA_FIELDS — apply _media_to_meta in the caller).
+    Fetches completed + currently-watching titles with personal scores, asks the
+    LLM to recommend anime by **title** (not ID — LLMs don't know AniList IDs),
+    then batch-searches AniList to resolve titles into media dicts.
 
-    Never logs the openrouter_key.
+    Returns raw AniList media dicts (same shape as MEDIA_FIELDS — apply
+    _media_to_meta in the caller).  Never logs the openrouter_key.
     """
+    import asyncio as _asyncio
     import json as _json
     import re as _re
 
-    # 1. Fetch completed + currently-watching history (up to 50 entries each)
+    # 1. Fetch completed + currently-watching history with user scores
     try:
-        completed = await get_watching_list(anilist_token, user_id, "COMPLETED", raw=True)
-        watching  = await get_watching_list(anilist_token, user_id, "CURRENT",   raw=True)
+        completed = await _fetch_history_with_scores(anilist_token, user_id, "COMPLETED")
+        watching  = await _fetch_history_with_scores(anilist_token, user_id, "CURRENT")
     except Exception as exc:
         logger.error("AI recs: failed to fetch watch history: %s", exc)
         return []
@@ -336,30 +372,44 @@ async def get_ai_recommendations(
         logger.warning("AI recs: no watch history found, returning empty list")
         return []
 
-    # 2. Format as compact text the model can reason about
+    # 2. Format as compact text — prefer user score, fall back to community average
     parts = []
-    for m in all_entries:
+    seen_titles: set[str] = set()
+    seen_ids: set[int] = set()
+    for entry in all_entries:
+        m = entry["media"]
         title = (
             (m.get("title") or {}).get("english")
             or (m.get("title") or {}).get("romaji")
             or "Unknown"
         )
-        score = m.get("averageScore") or m.get("meanScore")
-        score_str = f"{score // 10}/10" if score else "?"
+        user_score = entry["user_score"]
+        if user_score:
+            score_str = f"{user_score}/10"
+        else:
+            avg = m.get("averageScore") or m.get("meanScore")
+            score_str = f"~{avg // 10}/10" if avg else "?"
         parts.append(f"{title} ({score_str})")
+        # Track ALL title variants for dedup — the LLM may recommend by any name
+        for key in ("english", "romaji", "native"):
+            t = (m.get("title") or {}).get(key)
+            if t:
+                seen_titles.add(t.lower().strip())
+        if m.get("id"):
+            seen_ids.add(m["id"])
     history_text = ", ".join(parts)
 
-    seen_ids: set[int] = {m["id"] for m in all_entries if m.get("id")}
-
-    # 3. POST to OpenRouter
+    # 3. POST to OpenRouter — ask for titles, not IDs
     system_prompt = (
         "You are an anime recommendation engine. "
-        "Return only a valid JSON array of AniList media IDs as integers. "
-        "No explanation, no titles, only the JSON array."
+        "Return only a valid JSON array of anime title strings. "
+        "Use official English or Romaji titles. "
+        "No explanation, no IDs, only the JSON array of strings."
     )
     user_prompt = (
-        "Based on this watch history, recommend 20 anime the user hasn't seen. "
-        "Return only a JSON array of AniList integer IDs.\n\n"
+        "Based on this watch history, recommend 50 anime the user hasn't seen. "
+        "Focus on titles similar in genre, tone, and quality to their highest-rated entries. "
+        "Return only a JSON array of anime title strings.\n\n"
         f"Watch history: {history_text}"
     )
     try:
@@ -377,7 +427,7 @@ async def get_ai_recommendations(
                         {"role": "user",   "content": user_prompt},
                     ],
                     "temperature": 0.7,
-                    "max_tokens": 256,
+                    "max_tokens": 2048,
                 },
             )
         if resp.status_code != 200:
@@ -388,51 +438,83 @@ async def get_ai_recommendations(
         logger.error("AI recs: OpenRouter request failed: %s", exc)
         return []
 
-    # 4. Parse JSON array from the model's response
+    # 4. Parse JSON array of title strings from the model's response
     try:
         content = (payload.get("choices") or [{}])[0].get("message", {}).get("content", "").strip()
-        match = _re.search(r"\[[\s\S]*?\]", content)
+        match = _re.search(r"\[[\s\S]*\]", content)
         if not match:
             logger.error("AI recs: no JSON array in model response (first 200 chars): %s", content[:200])
             return []
-        raw_ids = _json.loads(match.group(0))
-        if not isinstance(raw_ids, list):
+        raw_titles = _json.loads(match.group(0))
+        if not isinstance(raw_titles, list):
             logger.error("AI recs: parsed value is not a list")
             return []
-        candidate_ids: list[int] = []
-        seen_in_resp: set[int] = set()
-        for item in raw_ids:
-            try:
-                item = int(item)
-            except (TypeError, ValueError):
+        candidate_titles: list[str] = []
+        seen_in_resp: set[str] = set()
+        for item in raw_titles:
+            if not isinstance(item, str) or not item.strip():
                 continue
-            if item > 0 and item not in seen_in_resp and item not in seen_ids:
-                candidate_ids.append(item)
-                seen_in_resp.add(item)
+            normalized = item.strip()
+            key = normalized.lower()
+            if key not in seen_in_resp and key not in seen_titles:
+                candidate_titles.append(normalized)
+                seen_in_resp.add(key)
+        if len(candidate_titles) > 50:
+            candidate_titles = candidate_titles[:50]
     except Exception as exc:
         logger.error("AI recs: failed to parse OpenRouter response: %s", exc)
         return []
 
-    if not candidate_ids:
-        logger.warning("AI recs: no valid candidate IDs extracted")
+    if not candidate_titles:
+        logger.warning("AI recs: no valid candidate titles extracted")
         return []
 
-    # 5. Batch-validate against AniList (one query, drops hallucinated IDs)
-    validate_query = f"""
-    query ($ids: [Int]) {{
-        Page(page: 1, perPage: 25) {{
-            media(id_in: $ids, type: ANIME, isAdult: false) {{
-                {MEDIA_FIELDS}
-            }}
-        }}
-    }}
-    """
-    try:
-        data = await _gql(validate_query, {"ids": candidate_ids[:25]})
-        return data.get("Page", {}).get("media") or []
-    except Exception as exc:
-        logger.error("AI recs: AniList batch validation failed: %s", exc)
+    # 5. Batch-search AniList for titles using aliased queries (10 per batch)
+    async def _search_batch(titles: list[str]) -> list[dict]:
+        """Search multiple anime titles in a single AniList query using aliases."""
+        alias_parts = []
+        for i, title in enumerate(titles):
+            safe_title = title.replace("\\", "\\\\").replace('"', '\\"')
+            alias_parts.append(
+                f'a{i}: Media(search: "{safe_title}", type: ANIME, isAdult: false) '
+                f"{{ {MEDIA_FIELDS} }}"
+            )
+        query = "query {\n" + "\n".join(alias_parts) + "\n}"
+        data = await _gql(query, {})
+        results = []
+        for i in range(len(titles)):
+            media = data.get(f"a{i}")
+            if media and isinstance(media, dict) and media.get("id"):
+                results.append(media)
+        return results
+
+    batch_size = 10
+    batches = [
+        candidate_titles[i : i + batch_size]
+        for i in range(0, len(candidate_titles), batch_size)
+    ]
+
+    all_media: list[dict] = []
+    found_ids: set[int] = set()
+    for batch in batches:
+        try:
+            results = await _search_batch(batch)
+            for media in results:
+                mid = media["id"]
+                if mid not in seen_ids and mid not in found_ids:
+                    all_media.append(media)
+                    found_ids.add(mid)
+        except Exception as exc:
+            logger.warning("AI recs: AniList search batch failed: %s", exc)
+            continue
+        if len(all_media) >= 50:
+            break
+
+    if not all_media:
+        logger.warning("AI recs: no valid media found from title search")
         return []
+
+    return all_media[:50]
 
 
 async def get_meta(anilist_id: int) -> Optional[dict]:

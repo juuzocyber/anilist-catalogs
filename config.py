@@ -176,11 +176,13 @@ def decode_config(token: str) -> dict:
                 catalogs.append(cat)
             result: dict[str, Any] = {"catalogs": catalogs}
             if payload.get("t"):
-                result["token"] = payload["t"]
+                result["legacy_auth_manifest"] = True
             return result
         # Legacy verbose format
         if "catalogs" not in payload:
             return DEFAULT_CONFIG
+        if payload.get("token"):
+            payload = {**payload, "legacy_auth_manifest": True}
         return payload
     except Exception:
         return DEFAULT_CONFIG

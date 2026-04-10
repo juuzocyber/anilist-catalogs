@@ -2,6 +2,7 @@
 AniList GraphQL client.
 """
 
+import re
 import httpx
 import logging
 from datetime import datetime, timezone, timedelta
@@ -12,6 +13,7 @@ ANILIST_URL = "https://graphql.anilist.co"
 
 MEDIA_FIELDS = """
     id
+    idMal
     title { romaji english native }
     coverImage { extraLarge large color }
     bannerImage
@@ -46,13 +48,31 @@ def _week_bounds_unix():
     sunday = (monday + timedelta(days=6)).replace(hour=23, minute=59, second=59)
     return int(monday.timestamp()), int(sunday.timestamp())
 
-def _media_to_meta(media: dict) -> dict:
+# Season suffixes to strip when an AniList entry maps to a tt (IMDB) ID.
+# IMDB treats multi-season anime as one show, so "JUJUTSU KAISEN Season 3"
+# should become "JUJUTSU KAISEN" when served with a tt ID.
+_SEASON_SUFFIX_RE = re.compile(
+    r'\s+(?:'
+    r'Season\s+\d+'                     # Season 2, Season 12
+    r'|\d+(?:st|nd|rd|th)\s+Season'     # 2nd Season, 3rd Season
+    r'|Part\s+\d+'                      # Part 2
+    r'|Cour\s+\d+'                      # Cour 2
+    r'|(?:VIII|VII|VI|IV|III|II)'        # Roman numerals II–VIII (longest first)
+    r')(?:[:\s].*)?$',                  # also strip trailing subtitles (": Foo Bar")
+    re.IGNORECASE,
+)
+
+def _media_to_meta(media: dict, *, id_override: str | None = None) -> dict:
     title = (
         media.get("title", {}).get("english")
         or media.get("title", {}).get("romaji")
         or media.get("title", {}).get("native")
         or "Unknown"
     )
+    # When mapped to a TMDB or IMDB ID, strip season suffixes — both treat
+    # the whole show as one entry so "Season 3" is misleading.
+    if id_override and (id_override.startswith("tmdb:") or id_override.startswith("tt")):
+        title = _SEASON_SUFFIX_RE.sub('', title).strip()
     start = media.get("startDate") or {}
     end = media.get("endDate") or {}
     if start.get("year") and end.get("year") and start["year"] != end["year"]:
@@ -66,7 +86,7 @@ def _media_to_meta(media: dict) -> dict:
     cover = media.get("coverImage") or {}
     poster = cover.get("extraLarge") or cover.get("large")
     return {
-        "id": f"anilist:{media['id']}",
+        "id": id_override or f"anilist:{media['id']}",
         "type": "series",
         "name": title,
         "poster": poster,
@@ -108,7 +128,7 @@ async def get_popular_season(page: int = 1, per_page: int = 30) -> list[dict]:
     }}
     """
     data = await _gql(query, {"season": season, "year": year, "page": page, "perPage": per_page})
-    return [_media_to_meta(m) for m in data["Page"]["media"]]
+    return data["Page"]["media"]
 
 async def get_airing_week(page: int = 1, per_page: int = 50) -> list[dict]:
     start, end = _week_bounds_unix()
@@ -118,7 +138,7 @@ async def get_airing_week(page: int = 1, per_page: int = 50) -> list[dict]:
             airingSchedules(airingAt_greater: $start airingAt_lesser: $end sort: TIME) {
                 airingAt episode
                 media {
-                    id title { romaji english native }
+                    id idMal title { romaji english native }
                     coverImage { extraLarge large color }
                     bannerImage description(asHtml: false)
                     season seasonYear
@@ -138,7 +158,7 @@ async def get_airing_week(page: int = 1, per_page: int = 50) -> list[dict]:
             seen.add(m["id"])
             unique_media.append(m)
     unique_media.sort(key=lambda m: m.get("popularity") or 0, reverse=True)
-    return [_media_to_meta(m) for m in unique_media]
+    return unique_media
 
 async def get_trending(page: int = 1, per_page: int = 30) -> list[dict]:
     query = f"""
@@ -149,7 +169,7 @@ async def get_trending(page: int = 1, per_page: int = 30) -> list[dict]:
     }}
     """
     data = await _gql(query, {"page": page, "perPage": per_page})
-    return [_media_to_meta(m) for m in data["Page"]["media"]]
+    return data["Page"]["media"]
 
 async def get_top_rated(page: int = 1, per_page: int = 30) -> list[dict]:
     query = f"""
@@ -160,7 +180,7 @@ async def get_top_rated(page: int = 1, per_page: int = 30) -> list[dict]:
     }}
     """
     data = await _gql(query, {"page": page, "perPage": per_page})
-    return [_media_to_meta(m) for m in data["Page"]["media"]]
+    return data["Page"]["media"]
 
 async def get_custom(filters: dict, page: int = 1, per_page: int = 30) -> list[dict]:
     args = ["type: ANIME", "isAdult: false"]
@@ -217,7 +237,7 @@ async def get_custom(filters: dict, page: int = 1, per_page: int = 30) -> list[d
     }}
     """
     data = await _gql(query, variables)
-    return [_media_to_meta(m) for m in data["Page"]["media"]]
+    return data["Page"]["media"]
 
 async def get_viewer(token: str) -> dict:
     """Return the authenticated user's id, name, and avatar URL.
@@ -242,14 +262,13 @@ async def get_viewer(token: str) -> dict:
     }
 
 
-async def get_watching_list(token: str, user_id: int, list_status: str = "CURRENT", *, raw: bool = False) -> list[dict]:
+async def get_watching_list(token: str, user_id: int, list_status: str = "CURRENT") -> list[dict]:
     """Return an authenticated user's anime list filtered by status.
 
     *token* is the raw (decrypted) AniList Bearer token — never log it.
     *list_status* matches AniList MediaListStatus: CURRENT, PLANNING, COMPLETED,
     PAUSED, DROPPED, or REPEATING.
-    When *raw* is True, returns the unprocessed AniList media dicts instead of
-    Stremio meta dicts (used by the configure UI preview).
+    Returns raw AniList media dicts — callers apply _media_to_meta as needed.
     """
     query = f"""
     query ($userId: Int, $status: MediaListStatus) {{
@@ -271,16 +290,15 @@ async def get_watching_list(token: str, user_id: int, list_status: str = "CURREN
             media = entry.get("media")
             if media:
                 media_list.append(media)
-    return media_list if raw else [_media_to_meta(m) for m in media_list]
+    return media_list
 
 
-async def get_favourites(token: str, user_id: int, *, raw: bool = False) -> list[dict]:
+async def get_favourites(token: str, user_id: int) -> list[dict]:
     """Return the authenticated user's favourite anime.
 
     Favourites live under User.favourites.anime.nodes, not MediaListCollection.
     *token* is the raw (decrypted) AniList Bearer token — never log it.
-    When *raw* is True, returns the unprocessed AniList media dicts instead of
-    Stremio meta dicts (used by the configure UI preview).
+    Returns raw AniList media dicts — callers apply _media_to_meta as needed.
     """
     query = f"""
     query ($userId: Int) {{
@@ -302,7 +320,7 @@ async def get_favourites(token: str, user_id: int, *, raw: bool = False) -> list
         .get("anime", {})
         .get("nodes") or []
     )
-    return nodes if raw else [_media_to_meta(m) for m in nodes]
+    return nodes
 
 
 async def _fetch_history_with_scores(

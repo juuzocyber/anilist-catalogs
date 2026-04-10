@@ -7,7 +7,7 @@ Catalog IDs are stable strings — changing them breaks existing installs.
 
 MANIFEST = {
     "id": "community.anilist.catalogs",
-    "version": "1.1.2",
+    "version": "1.3.0",
     "name": "AniList Catalogs",
     "description": (
         "Anime catalogs powered by the AniList GraphQL API. "
@@ -16,13 +16,17 @@ MANIFEST = {
     "logo": "https://anilist.co/img/icons/android-chrome-512x512.png",
     "background": "https://s4.anilist.co/file/anilistcdn/media/anime/banner/1-T3B0LjIARh4y.jpg",
 
-    # We only serve catalog + meta — no streams.
-    "resources": ["catalog", "meta"],
+    # Catalog for all clients; meta only for tmdb: and anilist: prefixed IDs.
+    # tt* (IMDB) IDs excluded — Cinemeta serves richer meta (episodes, cast,
+    # seasons) for those.  Fusion resolves tmdb: natively; regular Stremio
+    # uses our meta endpoint for tmdb: and anilist: items only.
+    "resources": [
+        "catalog",
+        {"name": "meta", "types": ["series"], "idPrefixes": ["tmdb:", "anilist:"]},
+    ],
 
     # Stremio content types. Anime maps to "series".
     "types": ["series"],
-
-    "idPrefixes": ["anilist:"],
 
     "catalogs": [
         {

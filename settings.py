@@ -30,3 +30,8 @@ ANILIST_REDIRECT_URI: str = os.getenv("ANILIST_REDIRECT_URI", "")
 # Not required; users supply their own key via the configure UI.
 # If set here it acts as a server-side fallback (future feature).
 OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY", "")
+
+# API documentation (disable by default for public deployments)
+ENABLE_API_DOCS: bool = os.getenv("ENABLE_API_DOCS", "0").strip().lower() in {
+    "1", "true", "yes", "on",
+}

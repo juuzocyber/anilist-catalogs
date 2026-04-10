@@ -4,57 +4,106 @@ CONFIGURE_HTML = """<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AniList Catalogs — Configure</title>
-<style>
+<style nonce="__CSP_NONCE__">
   :root {
-    --bg:       #000000;
-    --surface:  #0a0a0a;
-    --card:     #1c1c1e;
-    --card2:    #2c2c2e;
-    --fill:     rgba(120,120,128,0.20);
-    --fill2:    rgba(120,120,128,0.12);
-    --sep:      rgba(84,84,88,0.55);
-    --text:     #ffffff;
-    --text2:    rgba(235,235,245,0.60);
-    --text3:    rgba(235,235,245,0.25);
-    --radius:   12px;
-    --radius-lg:18px;
-    --pill:     50px;
+    --bg:           #060606;
+    --bg-0:         #0b0b0c;
+    --bg-1:         #111113;
+    --panel:        rgba(17, 17, 19, 0.92);
+    --card:         #171719;
+    --card2:        #1e1f23;
+    --card-hover:   #26282d;
+    --fill:         rgba(255,255,255,0.08);
+    --fill2:        rgba(255,255,255,0.045);
+    --fill-strong:  rgba(255,255,255,0.12);
+    --sep:          rgba(255,255,255,0.09);
+    --sep-strong:   rgba(255,255,255,0.16);
+    --text:         #f5f6f7;
+    --text2:        rgba(245,246,247,0.72);
+    --text3:        rgba(245,246,247,0.34);
+    --text4:        rgba(245,246,247,0.16);
+    --accent:       #f2f2f2;
+    --accent-soft:  rgba(255,255,255,0.14);
+    --shadow-lg:    0 28px 80px rgba(0,0,0,0.45);
+    --shadow-md:    0 14px 36px rgba(0,0,0,0.32);
+    --shadow-sm:    0 8px 22px rgba(0,0,0,0.22);
+    --glow:         0 0 0 1px rgba(255,255,255,0.05), 0 16px 36px rgba(0,0,0,0.34);
+    --radius:       18px;
+    --radius-lg:    26px;
+    --pill:         999px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
+    font-family: 'SF Pro Display', 'Segoe UI', 'Helvetica Neue', sans-serif;
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
     font-size: 14px;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.01em;
+    position: relative;
+    overflow: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(circle at top left, rgba(255,255,255,0.06), transparent 28%),
+      radial-gradient(circle at top right, rgba(91,103,122,0.12), transparent 24%),
+      linear-gradient(180deg, #0c0c0e 0%, #070708 28%, #040404 100%);
+    pointer-events: none;
+    z-index: -2;
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      linear-gradient(90deg, transparent 0 18px, rgba(255,255,255,0.015) 18px 19px),
+      linear-gradient(transparent 0 18px, rgba(255,255,255,0.015) 18px 19px);
+    background-size: 19px 19px;
+    opacity: 0.08;
+    pointer-events: none;
+    z-index: -1;
   }
 
   /* ── Layout ─────────────────────────────────── */
-  .app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+  .app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; backdrop-filter: blur(8px); }
 
   header {
-    border-bottom: 0.5px solid var(--sep);
-    padding: 16px 28px;
+    border-bottom: 1px solid var(--sep);
+    padding: 16px 28px 14px;
     display: flex;
     align-items: center;
-    background: rgba(0,0,0,0.72);
-    backdrop-filter: blur(20px);
+    background: rgba(8,8,9,0.78);
+    backdrop-filter: blur(24px) saturate(120%);
     -webkit-backdrop-filter: blur(20px);
     position: sticky;
     top: 0;
     z-index: 10;
+    box-shadow: 0 10px 34px rgba(0,0,0,0.28);
   }
-  .brand { display: flex; align-items: center; gap: 10px; }
-  header img { width: 24px; height: 24px; border-radius: 6px; }
-  header h1 { font-size: 15px; font-weight: 400; letter-spacing: 0.01em; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand-mark {
+    width: 26px; height: 26px; border-radius: 8px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: linear-gradient(180deg, #15243d 0%, #0c1422 100%);
+    box-shadow: 0 8px 22px rgba(4, 10, 18, 0.34);
+  }
+  .brand-mark svg {
+    width: 16px;
+    height: 16px;
+    display: block;
+  }
+  header h1 { font-size: 15px; font-weight: 600; letter-spacing: -0.02em; }
   .header-sub {
     font-size: 12px;
     color: var(--text3);
-    margin-left: 8px;
-    padding-left: 8px;
-    border-left: 0.5px solid var(--sep);
+    margin-left: 10px;
+    padding-left: 12px;
+    border-left: 1px solid var(--sep);
   }
 
   main {
@@ -68,18 +117,19 @@ CONFIGURE_HTML = """<!DOCTYPE html>
 
   /* ── Left panel — builder ────────────────────── */
   .left-panel {
-    padding: 28px 20px 0;
-    border-right: 0.5px solid var(--sep);
+    padding: 24px 18px 0;
+    border-right: 1px solid var(--sep);
     overflow-y: auto;
-    background: linear-gradient(180deg, #0e0e10 0%, #020202 100%);
+    background:
+      linear-gradient(180deg, rgba(19,19,22,0.96) 0%, rgba(10,10,11,0.98) 55%, rgba(5,5,6,1) 100%);
     display: flex; flex-direction: column;
   }
   .left-panel-content { flex: 1; }
   .left-panel-footer {
     position: sticky; bottom: 0;
-    border-top: 0.5px solid var(--sep);
-    padding: 14px 0;
-    background: #020202;
+    border-top: 1px solid var(--sep);
+    padding: 18px 4px 16px;
+    background: linear-gradient(180deg, rgba(5,5,6,0) 0%, rgba(8,8,9,0.94) 18%, rgba(8,8,9,1) 100%);
     display: flex; flex-direction: column; align-items: center; gap: 8px;
   }
   .left-panel-footer .pane-footer-icons { display: flex; align-items: center; gap: 14px; }
@@ -90,7 +140,8 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    background: #000000;
+    background:
+      linear-gradient(180deg, rgba(8,8,9,0.82) 0%, rgba(5,5,6,0.96) 100%);
   }
   #preview-pane { overflow-y: auto; flex: 1; }
 
@@ -98,80 +149,102 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   .filter-bar {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 12px 28px;
-    border-bottom: 0.5px solid var(--sep);
+    gap: 8px;
+    padding: 16px 28px 12px;
+    border-bottom: 1px solid var(--sep);
     flex-shrink: 0;
+    flex-wrap: wrap;
   }
   /* Filter pill buttons (same style as genres btn) */
   .fb-filter-btn {
     display: flex; align-items: center; justify-content: center; gap: 5px;
-    background: var(--fill2); border: 0.5px solid transparent;
-    border-radius: 20px; color: var(--text2); cursor: pointer;
-    padding: 0 10px; font-size: 12px; font-family: inherit;
-    height: 32px; flex: 1; min-width: 0;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    background: linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.025));
+    border: 1px solid transparent;
+    border-radius: 15px; color: var(--text2); cursor: pointer;
+    padding: 0 16px; font-size: 12px; font-family: inherit;
+    height: 38px; flex: 1; min-width: 0;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.045);
+    transition: background 0.18s, border-color 0.18s, color 0.18s, transform 0.18s, box-shadow 0.18s;
   }
-  .fb-filter-btn:hover { background: var(--fill); border-color: var(--sep); color: var(--text); }
-  .fb-filter-btn.active { border-color: rgba(255,255,255,0.2); color: var(--text); background: var(--card2); }
+  .fb-filter-btn:hover {
+    background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+    border-color: var(--sep-strong); color: var(--text); transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+  }
+  .fb-filter-btn.active {
+    border-color: rgba(255,255,255,0.24); color: var(--text);
+    background: linear-gradient(180deg, rgba(255,255,255,0.1), rgba(255,255,255,0.035));
+    box-shadow: none;
+  }
   .fb-filter-btn.active .fb-chevron { transform: rotate(180deg); }
-  .fb-filter-btn.has-value { color: var(--text); border-color: var(--sep); }
+  .fb-filter-btn.has-value { color: var(--text); border-color: var(--sep-strong); }
+  .sort-icon-dim { opacity: 0.5; }
   /* Option pills inside the shared filter opts panel */
   .filter-opts-pills { display: flex; flex-wrap: wrap; gap: 6px; }
   .filter-opt-pill {
-    padding: 4px 11px; border-radius: var(--pill);
-    border: 0.5px solid var(--sep); background: var(--fill2);
+    padding: 6px 13px; border-radius: var(--pill);
+    border: 1px solid var(--sep); background: rgba(255,255,255,0.035);
     color: var(--text2); font-size: 12px; font-family: inherit;
-    cursor: pointer; transition: background 0.15s, color 0.15s, border-color 0.15s;
+    cursor: pointer; transition: background 0.16s, color 0.16s, border-color 0.16s, transform 0.16s, box-shadow 0.16s;
   }
-  .filter-opt-pill:hover { background: var(--fill); color: var(--text); border-color: rgba(255,255,255,0.12); }
-  .filter-opt-pill.selected { background: #ffffff; border-color: #ffffff; color: #000000; font-weight: 500; }
+  .filter-opt-pill:hover {
+    background: rgba(255,255,255,0.075); color: var(--text); border-color: var(--sep-strong);
+    transform: translateY(-1px);
+  }
+  .filter-opt-pill.selected {
+    background: linear-gradient(180deg, #f8f8f8, #dcdcdc);
+    border-color: transparent; color: #0a0a0a; font-weight: 600;
+    box-shadow: none;
+  }
   .filter-opt-pill.disabled { opacity: 0.35; cursor: default; }
   /* Name input + Add button inline in filter bar */
   .fb-name-input {
-    height: 32px; border-radius: 20px; padding: 0 14px;
-    font-size: 12px; background: var(--fill2);
-    border: 0.5px solid var(--sep); color: var(--text);
+    height: 38px; border-radius: 15px; padding: 0 16px;
+    font-size: 13px; background: rgba(255,255,255,0.04);
+    border: 1px solid var(--sep); color: var(--text);
     font-family: inherit; min-width: 0; width: 100%;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.035);
   }
   .fb-name-input::placeholder { color: var(--text3); }
-  .fb-name-input:focus { outline: none; background: var(--card2); border-color: rgba(255,255,255,0.25); }
-  .btn-fb { height: 32px; padding: 0 16px; border-radius: 20px; font-size: 12px; }
+  .fb-name-input:focus { outline: none; background: rgba(255,255,255,0.055); border-color: rgba(255,255,255,0.24); }
+  .btn-fb { height: 38px; padding: 0 16px; border-radius: 15px; font-size: 12px; }
   .fb-add-btn {
-    height: 32px; padding: 0 16px; border-radius: 20px; font-size: 12px;
-    font-family: inherit; font-weight: 500; cursor: pointer; flex-shrink: 0;
-    background: var(--card2); border: 0.5px solid rgba(255,255,255,0.12);
-    color: var(--text);
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    height: 38px; padding: 0 18px; border-radius: 15px; font-size: 12px;
+    font-family: inherit; font-weight: 700; cursor: pointer; flex-shrink: 0;
+    background: linear-gradient(180deg, #fcfcfc, #dddddd);
+    border: 1px solid transparent;
+    color: #0d0d0d;
+    box-shadow: none;
+    transition: transform 0.16s, opacity 0.16s;
   }
-  .fb-add-btn:hover { background: var(--fill); border-color: rgba(255,255,255,0.22); color: #fff; }
+  .fb-add-btn:hover { transform: translateY(-1px); }
   .fb-chevron { transition: transform 0.15s ease; font-size: 9px; opacity: 0.5; }
-  .fb-sep { width: 0.5px; height: 18px; background: var(--sep); flex-shrink: 0; margin: 0 2px; }
+  .fb-sep { width: 1px; height: 22px; background: var(--sep); flex-shrink: 0; margin: 0 2px; }
   .fb-adult-toggle {
     display: flex; align-items: center; gap: 5px;
-    background: var(--fill2); border: 0.5px solid transparent;
-    border-radius: 20px; color: var(--text2); cursor: pointer;
-    padding: 0 10px; font-size: 12px; font-family: inherit;
-    height: 32px; flex-shrink: 0; user-select: none;
-    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    background: rgba(255,255,255,0.04); border: 1px solid transparent;
+    border-radius: 15px; color: var(--text2); cursor: pointer;
+    padding: 0 12px; font-size: 12px; font-family: inherit;
+    height: 38px; flex-shrink: 0; user-select: none;
+    transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.15s;
   }
-  .fb-adult-toggle:hover { background: var(--fill); border-color: var(--sep); color: var(--text); }
+  .fb-adult-toggle:hover { background: rgba(255,255,255,0.075); border-color: var(--sep-strong); color: var(--text); transform: translateY(-1px); }
   .fb-adult-toggle.active { background: rgba(232,93,4,0.12); border-color: rgba(232,93,4,0.45); color: #e85d04; }
   .fb-adult-toggle input[type=checkbox] { width: 12px; height: 12px; accent-color: #e85d04; cursor: pointer; margin: 0; }
   /* Inline score slider in filter bar */
   .fb-slider-wrap {
     display: flex; align-items: center; gap: 8px;
-    background: var(--fill2); border: 0.5px solid transparent;
-    border-radius: 20px; padding: 0 14px; height: 32px;
+    background: rgba(255,255,255,0.04); border: 1px solid transparent;
+    border-radius: 15px; padding: 0 14px; height: 38px;
     flex: 1.5; min-width: 0;
-    transition: background 0.15s, border-color 0.15s;
+    transition: background 0.15s, border-color 0.15s, transform 0.15s;
   }
-  .fb-slider-wrap:hover { background: var(--fill); border-color: var(--sep); }
+  .fb-slider-wrap:hover { background: rgba(255,255,255,0.075); border-color: var(--sep-strong); transform: translateY(-1px); }
   .fb-slider-label { font-size: 12px; color: var(--text3); white-space: nowrap; }
   .fb-slider-wrap input[type=range] {
     flex: 1; min-width: 40px; height: 3px; margin: 0;
     -webkit-appearance: none; border-radius: 2px;
-    background: rgba(255,255,255,0.15); outline: none;
+    background: rgba(255,255,255,0.11); outline: none;
   }
   .fb-slider-wrap input[type=range]::-webkit-slider-thumb {
     -webkit-appearance: none; width: 13px; height: 13px;
@@ -183,8 +256,9 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   /* ── Always-visible options panel ───────────── */
   .options-panel {
     display: flex; flex-direction: column; gap: 10px;
-    padding: 12px 28px 14px; border-bottom: 0.5px solid var(--sep);
+    padding: 12px 28px 16px; border-bottom: 1px solid var(--sep);
     flex-shrink: 0; max-height: 150px; overflow-y: auto;
+    background: rgba(255,255,255,0.01);
   }
 
   .fb-name-wrap { position: relative; flex: 1.5; min-width: 0; display: flex; }
@@ -195,29 +269,36 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     padding: 4px 10px; white-space: nowrap; pointer-events: none;
     box-shadow: 0 2px 8px rgba(0,0,0,0.4); z-index: 20;
   }
+  #catalog-name-error.visible { display: block; }
   #catalog-name-error::after {
     content: ''; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
     border: 5px solid transparent; border-bottom-color: #e85d04;
   }
+  .fb-name-input.input-error { border-color: #e85d04; }
 
   /* ── Pane tab bar (Preview / Catalogs switch) ─── */
   .pane-tabbar {
     display: flex; align-items: center; justify-content: space-between;
-    gap: 12px; padding: 10px 28px 8px; flex-shrink: 0; flex-wrap: wrap;
-    border-bottom: 0.5px solid var(--sep);
+    gap: 12px; padding: 14px 28px 12px; flex-shrink: 0; flex-wrap: wrap;
+    border-bottom: 1px solid var(--sep);
   }
   .pane-tabs {
-    display: flex; background: var(--fill2); border-radius: 20px;
-    padding: 3px; gap: 2px; flex-shrink: 0;
+    display: flex; background: rgba(255,255,255,0.03); border-radius: var(--pill);
+    padding: 4px; gap: 4px; flex-shrink: 0;
+    border: 1px solid var(--sep);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
   }
   .pane-tab {
-    padding: 4px 14px; border-radius: 17px; border: none; cursor: pointer;
-    font-size: 12px; font-family: inherit; font-weight: 500;
+    padding: 7px 16px; border-radius: var(--pill); border: none; cursor: pointer;
+    font-size: 12px; font-family: inherit; font-weight: 600;
     color: var(--text3); background: transparent;
     transition: background 0.15s, color 0.15s;
   }
   .pane-tab:hover { color: var(--text2); }
-  .pane-tab.active { background: var(--card); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+  .pane-tab.active {
+    background: linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.05));
+    color: var(--text); box-shadow: 0 10px 22px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.06);
+  }
   .pane-tab-extras {
     display: flex; align-items: center; gap: 12px;
     flex-wrap: wrap; flex: 1; min-width: 0; justify-content: flex-end;
@@ -232,30 +313,32 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   }
 
   /* ── Filter tags ─────────────────────────────── */
-  .filter-tags { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 22px; flex-shrink: 0; }
+  .filter-tags { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; min-height: 24px; flex-shrink: 0; }
   .filter-tag {
     display: inline-flex; align-items: center; gap: 3px;
-    padding: 3px 10px; border-radius: var(--pill);
-    background: var(--fill); color: var(--text2);
+    padding: 5px 12px; border-radius: var(--pill);
+    background: rgba(255,255,255,0.05); color: var(--text2);
+    border: 1px solid rgba(255,255,255,0.08);
     font-size: 12px; font-weight: 500; cursor: default;
-    transition: background 0.15s, color 0.15s; user-select: none;
+    transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.15s; user-select: none;
   }
-  .filter-tag:hover { background: var(--card2); color: var(--text); }
+  .filter-tag:hover { background: rgba(255,255,255,0.085); color: var(--text); border-color: var(--sep-strong); transform: translateY(-1px); }
   .filter-tag-x {
     display: none; cursor: pointer; margin-left: 2px;
     color: var(--text3); font-size: 14px; line-height: 1; font-weight: 400;
+    background: none; border: none; padding: 0; font-family: inherit;
   }
   .filter-tag:hover .filter-tag-x { display: inline; }
   .filter-tag-x:hover { color: var(--text); }
   .filter-tag-clear {
     display: none; background: none;
-    border: 0.5px solid var(--sep); border-radius: var(--pill);
+    border: 1px solid var(--sep); border-radius: var(--pill);
     color: var(--text3); font-size: 11px; font-family: inherit;
-    padding: 3px 10px; cursor: pointer; gap: 5px;
-    transition: color 0.15s, border-color 0.15s;
+    padding: 5px 12px; cursor: pointer; gap: 5px;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
   }
   .filter-tags:hover .filter-tag-clear { display: inline-flex; align-items: center; }
-  .filter-tag-clear:hover { color: var(--text2); border-color: var(--text3); }
+  .filter-tag-clear:hover { color: var(--text2); border-color: var(--text3); background: rgba(255,255,255,0.04); }
 
   /* ── Pane tabbar layout ──────────────────────── */
   .pane-tabbar-left { display: flex; align-items: center; gap: 12px; min-width: 0; flex: 1; }
@@ -266,27 +349,29 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   .sort-dropdown { position: relative; flex-shrink: 0; }
   .sort-btn {
     display: flex; align-items: center; gap: 5px;
-    background: none; border: none; cursor: pointer;
-    font-size: 11px; color: var(--text3); padding: 4px 8px;
-    border-radius: 7px; font-family: inherit;
-    transition: background 0.15s, color 0.15s;
+    background: rgba(255,255,255,0.03); border: 1px solid transparent; cursor: pointer;
+    font-size: 11px; color: var(--text3); padding: 8px 12px;
+    border-radius: var(--pill); font-family: inherit;
+    transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.15s;
   }
-  .sort-btn:hover { background: var(--fill); color: var(--text2); }
-  .sort-btn.open  { background: var(--fill); color: var(--text2); }
-  .sort-btn-label { font-weight: 500; color: var(--text2); }
+  .sort-btn:hover { background: rgba(255,255,255,0.075); color: var(--text2); border-color: var(--sep-strong); transform: translateY(-1px); }
+  .sort-btn.open  { background: rgba(255,255,255,0.075); color: var(--text2); border-color: var(--sep-strong); }
+  .sort-btn-label { font-weight: 600; color: var(--text2); }
   .sort-btn-chevron { font-size: 8px; opacity: 0.5; transition: transform 0.15s; }
   .sort-btn.open .sort-btn-chevron { transform: rotate(180deg); }
   .sort-menu {
     display: none; position: absolute; right: 0; top: calc(100% + 6px);
-    background: var(--card); border-radius: 10px;
-    border: 0.5px solid var(--sep);
-    box-shadow: 0 8px 28px rgba(0,0,0,0.55);
+    background: rgba(20,20,22,0.98); border-radius: 16px;
+    border: 1px solid var(--sep);
+    box-shadow: var(--shadow-lg);
     min-width: 160px; z-index: 100; overflow: hidden;
+    backdrop-filter: blur(18px);
   }
+  .sort-menu.open { display: block; }
   .sort-menu-item {
     display: block; width: 100%;
-    padding: 9px 16px; text-align: left;
-    background: none; border: none; border-bottom: 0.5px solid var(--sep);
+    padding: 10px 16px; text-align: left;
+    background: none; border: none; border-bottom: 1px solid rgba(255,255,255,0.05);
     cursor: pointer; font-size: 13px; color: var(--text2); font-family: inherit;
     transition: background 0.1s, color 0.1s;
   }
@@ -295,17 +380,33 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   .sort-menu-item.active { color: var(--text); font-weight: 500; }
 
   /* ── View controls ───────────────────────────── */
-  .view-controls { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .view-controls {
+    display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+    padding: 4px 6px 4px 12px;
+    border-radius: var(--pill);
+    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
   .view-sep { color: var(--sep); font-size: 14px; }
-  .view-toggle { display: flex; gap: 2px; }
+  .view-toggle {
+    display: flex; gap: 3px;
+    padding: 5px;
+    border-radius: var(--pill);
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.05);
+  }
   .view-btn {
     background: none; border: none; cursor: pointer;
-    color: var(--text3); padding: 5px; border-radius: 7px;
+    color: var(--text3); padding: 8px; border-radius: 12px;
     display: flex; align-items: center;
-    transition: background 0.15s, color 0.15s;
+    transition: background 0.15s, color 0.15s, transform 0.15s;
   }
-  .view-btn:hover { background: var(--fill); color: var(--text2); }
-  .view-btn.active { background: var(--fill); color: var(--text); }
+  .view-btn:hover { background: rgba(255,255,255,0.07); color: var(--text2); transform: translateY(-1px); }
+  .view-btn.active {
+    background: linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.05));
+    color: var(--text);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+  }
 
   /* ── List view ───────────────────────────────── */
   .preview-list { display: flex; flex-direction: column; }
@@ -313,17 +414,19 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     display: grid;
     grid-template-columns: 44px 1fr 90px 120px 140px;
     gap: 20px; align-items: center;
-    padding: 10px 4px;
-    border-bottom: 0.5px solid var(--sep);
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
     text-decoration: none; color: inherit;
-    border-radius: 8px;
-    transition: background 0.15s;
+    border-radius: 12px;
+    transition: background 0.15s, transform 0.15s, border-color 0.15s;
+    border: 1px solid transparent;
   }
   .list-item:last-child { border-bottom: none; }
-  .list-item:hover { background: rgba(255,255,255,0.03); }
+  .list-item:hover { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.07); transform: translateY(-1px); }
   .list-thumb {
-    width: 44px; height: 62px; border-radius: 6px;
+    width: 44px; height: 62px; border-radius: 8px;
     overflow: hidden; background: var(--card); flex-shrink: 0;
+    box-shadow: 0 10px 24px rgba(0,0,0,0.28);
   }
   .list-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .list-main { min-width: 0; }
@@ -334,12 +437,22 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   }
   .list-genres { display: flex; flex-wrap: wrap; gap: 4px; }
   .genre-badge {
-    display: inline-block; padding: 2px 7px; border-radius: 4px;
+    display: inline-block; padding: 3px 8px; border-radius: 10px;
     font-size: 10px; font-weight: 500; line-height: 1.4;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
   }
   .list-score { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
   .list-score-pct { font-size: 13px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 4px; }
-  .list-al-icon { width: 11px; height: 11px; border-radius: 2px; opacity: 0.7; }
+  .al-logo-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: linear-gradient(180deg, #15243d 0%, #0c1422 100%);
+    box-shadow: 0 4px 10px rgba(4, 10, 18, 0.24);
+    flex-shrink: 0;
+  }
+  .list-al-icon {
+    width: 11px; height: 11px; border-radius: 2px; opacity: 0.86;
+    font-size: 8px; line-height: 1;
+  }
   .list-stat { font-size: 11px; color: var(--text3); }
   .list-meta-col { display: flex; flex-direction: column; gap: 3px; }
   .list-meta-primary { font-size: 12px; color: var(--text2); }
@@ -348,46 +461,76 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   /* ── Detail card view ───────────────────────── */
   .detail-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+    gap: 14px;
     padding: 20px 28px 28px;
   }
   .detail-card {
-    display: flex; border-radius: var(--radius);
-    overflow: hidden; background: var(--card);
+    display: flex; border-radius: 16px;
+    overflow: hidden; background: linear-gradient(180deg, rgba(27,27,30,0.98), rgba(18,18,20,0.98));
     color: inherit; cursor: pointer;
-    transition: background 0.15s;
-    height: 230px;
+    text-decoration: none;
+    transition: background 0.18s, transform 0.18s, box-shadow 0.18s, border-color 0.18s;
+    height: 270px;
+    border: 1px solid rgba(255,255,255,0.07);
+    box-shadow: var(--shadow-sm);
+    --studio-color: #ffffff;
+    --studio-banner: rgba(255,255,255,0.18);
+    --studio-banner-border: rgba(255,255,255,0.14);
+    --detail-banner-height: 88px;
   }
-  .detail-card:hover { background: var(--card2); }
+  .detail-card:hover {
+    background: linear-gradient(180deg, rgba(34,35,39,0.98), rgba(21,22,25,0.98));
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+    border-color: rgba(255,255,255,0.11);
+  }
+  .detail-card:visited { color: inherit; }
   .detail-poster {
     flex: 0 0 35%; position: relative; overflow: hidden; background: var(--fill2);
   }
   .detail-poster img { width: 100%; height: 100%; object-fit: cover; object-position: top; display: block; }
   .detail-poster-overlay {
-    position: absolute; bottom: 0; left: 0; right: 0;
-    padding: 32px 9px 8px;
-    background: linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.72) 40%, rgba(0,0,0,0.88) 100%);
+    position: absolute; left: 0; right: 0; bottom: 0;
+    top: calc(100% - var(--detail-banner-height));
+    padding: 0;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0.38) 26%, rgba(0,0,0,0.82) 72%, rgba(0,0,0,0.96) 100%);
     pointer-events: none;
+    display: flex;
+    align-items: flex-end;
   }
   .detail-overlay-inner {
-    background: rgba(0,0,0,0.35);
-    border-radius: 5px;
-    padding: 4px 7px 5px;
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    width: 100%;
+    background: var(--studio-banner);
+    padding: 7px 14px;
+    border-radius: 0;
+    backdrop-filter: blur(3px) saturate(122%);
+    -webkit-backdrop-filter: blur(3px) saturate(122%);
+    min-height: var(--detail-banner-height);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
   }
   .detail-overlay-title {
-    font-size: 11px; font-weight: 700; color: #fff;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    line-height: 1.3; letter-spacing: -0.1px;
+    font-size: 14px; font-weight: 700; color: #fff;
+    overflow: hidden;
+    line-height: 1.18; letter-spacing: -0.035em;
+    text-shadow: 0 1px 12px rgba(0,0,0,0.45);
+    transition: color 0.18s ease;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
   }
+  .detail-card:hover .detail-overlay-title { color: var(--studio-color); }
   .detail-overlay-studio {
-    font-size: 10px; font-weight: 500; margin-top: 1px;
+    font-size: 11px; font-weight: 600; margin-top: 4px;
+    color: var(--studio-color);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    letter-spacing: 0.01em;
+    text-shadow: 0 1px 10px rgba(0,0,0,0.3);
   }
   .detail-body {
-    flex: 1; min-width: 0; padding: 11px 12px 10px;
+    flex: 1; min-width: 0; padding: 16px 16px 14px;
     display: flex; flex-direction: column; gap: 4px;
     overflow: hidden;
   }
@@ -403,13 +546,22 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     display: flex; align-items: center; gap: 4px; flex-shrink: 0;
     font-size: 12px; font-weight: 600; color: #fff;
     border-radius: var(--pill);
-    padding: 2px 9px 2px 7px;
+    padding: 4px 12px 4px 9px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.08);
+    min-width: 78px;
+    justify-content: center;
+    white-space: nowrap;
   }
-  .detail-score-icon { width: 13px; height: 13px; border-radius: 3px; object-fit: cover; flex-shrink: 0; }
-  .detail-meta { font-size: 11px; color: var(--text3); flex-shrink: 0; }
+  .detail-score-icon {
+    width: 14px; height: 14px; border-radius: 3px;
+    line-height: 1;
+  }
+  .detail-meta { font-size: 11px; color: var(--text3); flex-shrink: 0; margin-top: 4px; }
   .detail-desc {
-    font-size: 11px; color: var(--text2); line-height: 1.55;
+    font-size: 11px; color: var(--text2); line-height: 1.65;
     flex: 1; overflow-y: auto; min-height: 0;
+    margin-top: 6px;
   }
   .detail-desc::-webkit-scrollbar { width: 3px; }
   .detail-desc::-webkit-scrollbar-track { background: transparent; }
@@ -451,8 +603,9 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     text-align: center;
     gap: 12px;
     margin: 0 28px;
-    border-radius: var(--radius);
-    border: 0.5px dashed var(--sep);
+    border-radius: 24px;
+    border: 1px dashed rgba(255,255,255,0.12);
+    background: linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.015));
   }
   .preview-prompt-icon { font-size: 34px; opacity: 0.25; }
   .preview-loading {
@@ -472,17 +625,26 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   }
   .preview-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
     gap: 18px;
     padding: 20px 28px 28px;
   }
-  .poster { display: flex; flex-direction: column; gap: 7px; width: 175px; flex-shrink: 0; text-decoration: none; color: inherit; cursor: pointer; }
+  .poster {
+    display: flex; flex-direction: column; gap: 9px; width: 210px; flex-shrink: 0;
+    text-decoration: none; color: inherit; cursor: pointer;
+    transition: transform 0.18s ease;
+    --studio-color: #ffffff;
+    --studio-banner: rgba(255,255,255,0.18);
+  }
+  .poster:hover { transform: translateY(-4px); }
   .poster-img {
-    border-radius: 10px;
+    border-radius: 14px;
     overflow: hidden;
     aspect-ratio: 2/3;
     background: var(--card);
     position: relative;
+    border: 1px solid rgba(255,255,255,0.07);
+    box-shadow: var(--shadow-md);
   }
   .poster-img img {
     width: 100%; height: 100%;
@@ -490,12 +652,12 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     display: block;
     transition: transform 0.22s ease;
   }
-  .poster:hover .poster-img img { transform: scale(1.04); }
+  .poster:hover .poster-img img { transform: scale(1.05); }
   .poster-genres {
     position: absolute;
     top: 0; left: 0; right: 0;
     padding: 8px 6px 20px;
-    display: flex; flex-wrap: wrap; gap: 3px;
+    display: flex; flex-wrap: wrap; gap: 3px; justify-content: center;
     background: linear-gradient(180deg, rgba(0,0,0,0.78) 0%, transparent 100%);
     opacity: 0;
     transition: opacity 0.2s ease;
@@ -503,46 +665,212 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   }
   .poster:hover .poster-genres { opacity: 1; }
   .poster-genres .genre-badge { font-size: 9px; padding: 2px 6px; }
+  .genre-badge[data-genre] { cursor: pointer; }
+  .genre--action { background:#e85d04bb;color:#fff;border:0.5px solid #e85d04dd; }
+  .genre--adventure { background:#f48c06bb;color:#fff;border:0.5px solid #f48c06dd; }
+  .genre--comedy { background:#a7c957bb;color:#fff;border:0.5px solid #a7c957dd; }
+  .genre--drama { background:#4895efbb;color:#fff;border:0.5px solid #4895efdd; }
+  .genre--ecchi { background:#f72585bb;color:#fff;border:0.5px solid #f72585dd; }
+  .genre--fantasy { background:#7b2fbebb;color:#fff;border:0.5px solid #7b2fbedd; }
+  .genre--horror { background:#9b2226bb;color:#fff;border:0.5px solid #9b2226dd; }
+  .genre--mahou-shoujo { background:#f48fb1bb;color:#fff;border:0.5px solid #f48fb1dd; }
+  .genre--mecha { background:#4361eebb;color:#fff;border:0.5px solid #4361eedd; }
+  .genre--music { background:#c77dffbb;color:#fff;border:0.5px solid #c77dffdd; }
+  .genre--mystery { background:#0077b6bb;color:#fff;border:0.5px solid #0077b6dd; }
+  .genre--psychological { background:#bc6c25bb;color:#fff;border:0.5px solid #bc6c25dd; }
+  .genre--romance { background:#e63946bb;color:#fff;border:0.5px solid #e63946dd; }
+  .genre--sci-fi { background:#48cae4bb;color:#fff;border:0.5px solid #48cae4dd; }
+  .genre--slice-of-life { background:#52b788bb;color:#fff;border:0.5px solid #52b788dd; }
+  .genre--sports { background:#2dc653bb;color:#fff;border:0.5px solid #2dc653dd; }
+  .genre--supernatural { background:#9d4eddbb;color:#fff;border:0.5px solid #9d4edddd; }
+  .genre--thriller { background:#d62828bb;color:#fff;border:0.5px solid #d62828dd; }
+  .genre-soft--action { background:#e85d0428;color:#e85d04;border:0.5px solid #e85d0455; }
+  .genre-soft--adventure { background:#f48c0628;color:#f48c06;border:0.5px solid #f48c0655; }
+  .genre-soft--comedy { background:#a7c95728;color:#a7c957;border:0.5px solid #a7c95755; }
+  .genre-soft--drama { background:#4895ef28;color:#4895ef;border:0.5px solid #4895ef55; }
+  .genre-soft--ecchi { background:#f7258528;color:#f72585;border:0.5px solid #f7258555; }
+  .genre-soft--fantasy { background:#7b2fbe28;color:#7b2fbe;border:0.5px solid #7b2fbe55; }
+  .genre-soft--horror { background:#9b222628;color:#9b2226;border:0.5px solid #9b222655; }
+  .genre-soft--mahou-shoujo { background:#f48fb128;color:#f48fb1;border:0.5px solid #f48fb155; }
+  .genre-soft--mecha { background:#4361ee28;color:#4361ee;border:0.5px solid #4361ee55; }
+  .genre-soft--music { background:#c77dff28;color:#c77dff;border:0.5px solid #c77dff55; }
+  .genre-soft--mystery { background:#0077b628;color:#0077b6;border:0.5px solid #0077b655; }
+  .genre-soft--psychological { background:#bc6c2528;color:#bc6c25;border:0.5px solid #bc6c2555; }
+  .genre-soft--romance { background:#e6394628;color:#e63946;border:0.5px solid #e6394655; }
+  .genre-soft--sci-fi { background:#48cae428;color:#48cae4;border:0.5px solid #48cae455; }
+  .genre-soft--slice-of-life { background:#52b78828;color:#52b788;border:0.5px solid #52b78855; }
+  .genre-soft--sports { background:#2dc65328;color:#2dc653;border:0.5px solid #2dc65355; }
+  .genre-soft--supernatural { background:#9d4edd28;color:#9d4edd;border:0.5px solid #9d4edd55; }
+  .genre-soft--thriller { background:#d6282828;color:#d62828;border:0.5px solid #d6282855; }
+  .theme-orange { --studio-color:#e85d04; --studio-banner:rgba(232,93,4,0.18); --studio-banner-border:rgba(232,93,4,0.12); }
+  .theme-gold { --studio-color:#f48c06; --studio-banner:rgba(244,140,6,0.18); --studio-banner-border:rgba(244,140,6,0.12); }
+  .theme-lime { --studio-color:#a7c957; --studio-banner:rgba(167,201,87,0.18); --studio-banner-border:rgba(167,201,87,0.12); }
+  .theme-blue { --studio-color:#4895ef; --studio-banner:rgba(72,149,239,0.18); --studio-banner-border:rgba(72,149,239,0.12); }
+  .theme-pink { --studio-color:#f72585; --studio-banner:rgba(247,37,133,0.18); --studio-banner-border:rgba(247,37,133,0.12); }
+  .theme-purple { --studio-color:#7b2fbe; --studio-banner:rgba(123,47,190,0.18); --studio-banner-border:rgba(123,47,190,0.12); }
+  .theme-red { --studio-color:#e63946; --studio-banner:rgba(230,57,70,0.18); --studio-banner-border:rgba(230,57,70,0.12); }
+  .theme-cyan { --studio-color:#48cae4; --studio-banner:rgba(72,202,228,0.18); --studio-banner-border:rgba(72,202,228,0.12); }
+  .theme-green { --studio-color:#52b788; --studio-banner:rgba(82,183,136,0.18); --studio-banner-border:rgba(82,183,136,0.12); }
+  .theme-violet { --studio-color:#9d4edd; --studio-banner:rgba(157,78,221,0.18); --studio-banner-border:rgba(157,78,221,0.12); }
+  .theme-sky { --studio-color:#0077b6; --studio-banner:rgba(0,119,182,0.18); --studio-banner-border:rgba(0,119,182,0.12); }
+  .theme-amber { --studio-color:#f4c430; --studio-banner:rgba(244,196,48,0.18); --studio-banner-border:rgba(244,196,48,0.12); }
+  .theme-coral { --studio-color:#ff7a59; --studio-banner:rgba(255,122,89,0.18); --studio-banner-border:rgba(255,122,89,0.12); }
+  .theme-mint { --studio-color:#26c485; --studio-banner:rgba(38,196,133,0.18); --studio-banner-border:rgba(38,196,133,0.12); }
+  .theme-rose { --studio-color:#ff5d8f; --studio-banner:rgba(255,93,143,0.18); --studio-banner-border:rgba(255,93,143,0.12); }
+  .theme-ocean { --studio-color:#118ab2; --studio-banner:rgba(17,138,178,0.18); --studio-banner-border:rgba(17,138,178,0.12); }
+  .theme-indigo { --studio-color:#3a86ff; --studio-banner:rgba(58,134,255,0.18); --studio-banner-border:rgba(58,134,255,0.12); }
+  .theme-magenta { --studio-color:#ff006e; --studio-banner:rgba(255,0,110,0.18); --studio-banner-border:rgba(255,0,110,0.12); }
+  .detail-banner-lines-1 { --detail-banner-height: 51px; }
+  .detail-banner-lines-2 { --detail-banner-height: 68px; }
+  .detail-banner-lines-3 { --detail-banner-height: 85px; }
+  .detail-banner-lines-4 { --detail-banner-height: 102px; }
+  .poster-bottom-tags {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 12px;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0;
+    transition: bottom 0.2s ease, opacity 0.2s ease;
+  }
+  .poster:hover .poster-bottom-tags { opacity: 1; }
+  .poster.has-banner .poster-bottom-tags { bottom: 46px; }
+  .poster-neutral-tag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 9px;
+    border-radius: 10px;
+    background: rgba(214, 218, 224, 0.52);
+    border: 1px solid rgba(214, 218, 224, 0.58);
+    color: rgba(12, 14, 18, 0.92);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.14);
+  }
   .poster-meta {
     position: absolute;
     bottom: 0; left: 0; right: 0;
-    padding: 7px 8px;
-    background: rgba(0,0,0,0.57);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    padding: 10px 14px;
+    background: var(--studio-banner);
+    backdrop-filter: blur(3px) saturate(122%);
+    -webkit-backdrop-filter: blur(3px) saturate(122%);
     opacity: 0;
     transition: opacity 0.2s ease;
     pointer-events: none;
+    text-align: center;
   }
   .poster:hover .poster-meta { opacity: 1; }
-  .poster-meta-row { font-size: 10px; color: rgba(255,255,255,0.92); font-weight: 500; }
-  .poster-meta-sub { font-size: 10px; color: rgba(255,255,255,0.55); margin-top: 2px; }
+  .poster-meta-row {
+    font-size: 12px; color: rgba(255,255,255,0.96); font-weight: 700;
+    letter-spacing: -0.02em;
+    text-shadow: 0 1px 12px rgba(0,0,0,0.4);
+  }
   .poster-title {
-    font-size: 12px;
-    color: var(--text2);
+    font-size: 13px;
+    color: var(--text);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    transition: color 0.18s ease;
+  }
+  .poster:hover .poster-title { color: var(--studio-color); }
+  .preset-name.ai-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .ai-star-icon {
+    width: 14px;
+    height: 14px;
+    color: #a78bfa;
+    flex-shrink: 0;
+    filter: drop-shadow(0 0 8px rgba(167,139,250,0.28));
   }
   .poster-score {
     display: flex;
     align-items: center;
     gap: 5px;
     font-size: 11px;
-    color: var(--text3);
-    margin-top: -3px;
+    color: var(--text2);
+    margin-top: -2px;
   }
-  .poster-anilist-logo { width: 13px; height: 13px; border-radius: 3px; flex-shrink: 0; }
+  .poster-anilist-logo {
+    width: 13px; height: 13px; border-radius: 3px;
+    font-size: 9px; line-height: 1;
+  }
+  .al-logo-badge svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .poster-score-value,
+  .list-score-value,
+  .detail-score-value {
+    display: inline-block;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .detail-score-value {
+    min-width: 38px;
+    text-align: right;
+    color: #fff;
+  }
+  .score-high { color: #2d6a4f; }
+  .score-mid { color: #52b788; }
+  .score-low { color: #f48c06; }
+  .score-poor { color: #e63946; }
+  .score-none { color: var(--text3); }
+  .detail-score-badge.detail-score-high { background: #2d6a4f; }
+  .detail-score-badge.detail-score-mid { background: #52b788; }
+  .detail-score-badge.detail-score-low { background: #f48c06; }
+  .detail-score-badge.detail-score-poor { background: #e63946; }
+  .detail-score-badge.detail-score-none { background: rgba(255,255,255,0.07); }
+  .hidden { display: none !important; }
+  .pane-hidden { display: none !important; }
+  .pointer-disabled { pointer-events: none !important; }
+  .ai-badge {
+    background: rgba(139,92,246,0.12);
+    color: #a78bfa;
+    border-color: rgba(139,92,246,0.3);
+  }
+  .ai-connected-hidden { display: none; }
+  .select-hidden { display: none; }
+  .catalogs-hidden { display: none !important; }
+  .catalog-meta-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 20px;
+  }
+  .qr-section-tight { margin-top: 0; }
+  .stack-end { margin-top: auto; }
+  .divider-tight { margin: 12px 0; }
+  .inline-hint {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 6px;
+  }
 
   /* ── Section headings ────────────────────────── */
   .section-title {
     font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
+    font-weight: 700;
+    letter-spacing: 0.11em;
     text-transform: uppercase;
     color: var(--text3);
-    margin-bottom: 10px;
-    padding-left: 2px;
+    margin-bottom: 12px;
+    padding-left: 4px;
   }
   section { margin-bottom: 32px; }
 
@@ -553,30 +881,51 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     gap: 8px;
   }
   .preset-card {
-    background: var(--card);
-    border: 0.5px solid var(--sep);
-    border-radius: var(--radius);
-    padding: 13px 14px;
+    background: linear-gradient(180deg, rgba(29,29,32,0.98), rgba(20,20,22,0.98));
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px;
+    padding: 16px 16px;
     cursor: pointer;
-    transition: background 0.15s ease;
+    transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 14px;
+    box-shadow: var(--shadow-sm);
+    position: relative;
+    overflow: hidden;
   }
-  .preset-card:hover  { background: var(--card2); }
-  .preset-card:active { background: var(--fill); }
+  .preset-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.06), transparent 42%);
+    opacity: 0;
+    transition: opacity 0.18s ease;
+    pointer-events: none;
+  }
+  .preset-card:hover  {
+    background: linear-gradient(180deg, rgba(36,37,41,0.98), rgba(24,24,27,0.98));
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    border-color: rgba(255,255,255,0.11);
+  }
+  .preset-card:hover::before { opacity: 1; }
+  .preset-card:active { background: rgba(255,255,255,0.06); }
   .preset-info { flex: 1; min-width: 0; }
-  .preset-name { font-weight: 500; font-size: 13px; letter-spacing: -0.1px; }
-  .preset-desc { font-size: 11px; color: var(--text2); margin-top: 2px; }
+  .preset-name { font-weight: 700; font-size: 15px; letter-spacing: -0.03em; }
+  .preset-desc { font-size: 12px; color: var(--text2); margin-top: 4px; line-height: 1.45; }
   .preset-badge {
-    font-size: 10px;
-    font-weight: 500;
-    padding: 2px 9px;
-    border-radius: var(--pill);
-    background: rgba(255,255,255,0.12);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.08);
     color: var(--text);
     flex-shrink: 0;
     display: none;
+    border: 1px solid rgba(255,255,255,0.1);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
   }
   .preset-card.added .preset-badge { display: block; }
   .preset-chevron {
@@ -584,9 +933,9 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     font-size: 16px;
     flex-shrink: 0;
     line-height: 1;
-    transition: color 0.15s;
+    transition: color 0.15s, transform 0.15s;
   }
-  .preset-card:hover .preset-chevron { color: var(--text2); }
+  .preset-card:hover .preset-chevron { color: var(--text2); transform: translateX(2px); }
 
   /* ── Advanced panel fields ───────────────────── */
   .field { display: flex; flex-direction: column; gap: 6px; }
@@ -648,15 +997,44 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   #catalogs-pane { display: flex; flex-direction: row; min-height: 0; flex: 1; overflow: hidden; }
   .catalogs-list-col {
     flex: 1; min-width: 0; overflow-y: auto;
-    padding: 16px 24px 24px;
+    padding: 20px 24px 24px;
     display: flex; flex-direction: column; gap: 10px;
   }
   .catalogs-side-col {
-    flex: 0 0 320px; border-left: 0.5px solid var(--sep);
-    padding: 16px 20px; display: flex; flex-direction: column; gap: 0;
-    overflow-y: auto; background: var(--bg);
+    flex: 0 0 340px; border-left: 1px solid var(--sep);
+    padding: 12px 16px; display: flex; flex-direction: column; gap: 0;
+    overflow-y: hidden; background: linear-gradient(180deg, rgba(14,14,16,0.96), rgba(8,8,9,0.98));
   }
-  .catalogs-side-col .divider { margin: 12px 0; }
+  .catalogs-side-col .divider { margin: 6px 0; }
+  .side-module {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .side-module:last-child { margin-bottom: 0; }
+  .side-module.tight { gap: 5px; }
+  .side-or {
+    text-align: center;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: var(--text4);
+    text-transform: uppercase;
+    margin: 0 0 7px;
+  }
+  .import-row { display: flex; gap: 8px; }
+  .import-row input { flex: 1; font-size: 12px; padding: 8px 11px; border-radius: 12px; }
+  #import-feedback {
+    font-size: 11px;
+    margin-top: 6px;
+    display: none;
+    line-height: 1.6;
+    color: var(--text2);
+  }
+  #import-feedback.visible { display: block; }
+  #import-feedback.ok { color: var(--text2); }
+  #import-feedback.err { color: #e85d04; }
 
   /* ── Buttons ─────────────────────────────────── */
   .btn {
@@ -664,29 +1042,30 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     align-items: center;
     justify-content: center;
     gap: 6px;
-    padding: 9px 16px;
-    border-radius: 10px;
-    border: none;
+    padding: 10px 16px;
+    border-radius: 14px;
+    border: 1px solid transparent;
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 700;
     font-family: inherit;
     cursor: pointer;
-    transition: opacity 0.15s, transform 0.1s ease;
+    transition: opacity 0.15s, transform 0.1s ease, background 0.15s, border-color 0.15s, color 0.15s;
     white-space: nowrap;
-    letter-spacing: -0.1px;
+    letter-spacing: -0.02em;
     -webkit-font-smoothing: antialiased;
   }
   .btn:hover  { opacity: 0.78; }
   .btn:active { transform: scale(0.97); opacity: 1; }
-  .btn-primary { background: #ffffff; color: #000000; }
-  .btn-ghost   { background: var(--fill); color: var(--text); }
-  .btn-danger  { background: var(--fill2); color: var(--text2); }
-  .btn-sm  { padding: 7px 13px; font-size: 12px; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .btn-primary { background: linear-gradient(180deg, #ffffff, #dfdfdf); color: #000000; box-shadow: none; }
+  .btn-ghost   { background: rgba(255,255,255,0.05); color: var(--text); border-color: rgba(255,255,255,0.07); }
+  .btn-danger  { background: rgba(220,38,38,0.12); color: #fca5a5; border-color: rgba(248,113,113,0.15); }
+  .btn-sm  { padding: 6px 11px; font-size: 11px; }
   .btn-full { width: 100%; }
 
   /* ── Panel headings ──────────────────────────── */
-  .panel-title { font-size: 13px; font-weight: 600; color: var(--text); letter-spacing: -0.1px; }
-  .panel-sub   { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .panel-title { font-size: 14px; font-weight: 700; color: var(--text); letter-spacing: -0.03em; }
+  .panel-sub   { font-size: 12px; color: var(--text2); margin-top: 4px; line-height: 1.5; }
 
   /* ── Catalog list — spaced cards ────────────── */
   .catalog-list {
@@ -707,69 +1086,76 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   .left-panel::-webkit-scrollbar-thumb:hover,
   .mid-panel::-webkit-scrollbar-thumb:hover { background: rgba(84,84,88,0.50); }
   .catalog-item {
-    background: var(--card);
-    border: 0.5px solid var(--sep);
-    border-radius: var(--radius);
-    padding: 14px 14px;
+    background: linear-gradient(180deg, rgba(28,28,31,0.98), rgba(18,18,20,0.98));
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 16px 16px;
     display: flex;
     align-items: center;
-    gap: 12px;
-    transition: background 0.15s ease, transform 0.12s ease, box-shadow 0.12s ease;
+    gap: 14px;
+    transition: background 0.18s ease, transform 0.12s ease, box-shadow 0.12s ease, border-color 0.18s ease;
     position: relative;
     cursor: pointer;
+    box-shadow: var(--shadow-sm);
+    isolation: isolate;
   }
-  .catalog-item:hover { background: var(--card2); }
+  .catalog-item:hover { background: linear-gradient(180deg, rgba(35,36,40,0.98), rgba(22,22,25,0.98)); border-color: rgba(255,255,255,0.12); box-shadow: var(--shadow-md); }
   .catalog-item.active-preview {
-    background: var(--card2);
-    box-shadow: inset 2px 0 0 rgba(255,255,255,0.25);
+    background: linear-gradient(180deg, rgba(37,38,42,0.98), rgba(23,24,27,0.98));
+    border-color: rgba(255,255,255,0.14);
+    box-shadow: inset 3px 0 0 rgba(255,255,255,0.22), var(--shadow-md);
   }
   .catalog-item.dragging { opacity: 0.35; }
   .catalog-item .drag-handle { color: var(--text3); cursor: grab; font-size: 13px; flex-shrink: 0; line-height: 1; }
   .catalog-item .drag-handle:active { cursor: grabbing; }
   .catalog-item-info { flex: 1; min-width: 0; }
-  .catalog-item-name { font-size: 13px; font-weight: 500; letter-spacing: -0.1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .catalog-item-type { font-size: 11px; color: var(--text3); margin-top: 1px; }
+  .catalog-item-name { font-size: 14px; font-weight: 700; letter-spacing: -0.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .catalog-item-type { font-size: 11px; color: var(--text3); margin-top: 4px; }
   .catalog-rename-input {
-    font-size: 13px; font-weight: 500; letter-spacing: -0.1px;
-    background: var(--fill2); border: 0.5px solid rgba(235,235,245,0.35);
-    border-radius: 6px; color: var(--text);
-    padding: 2px 7px; width: 100%; outline: none;
+    font-size: 14px; font-weight: 600; letter-spacing: -0.03em;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(235,235,245,0.24);
+    border-radius: 12px; color: var(--text);
+    padding: 8px 10px; width: 100%; outline: none;
   }
   .catalog-rename-input:focus { border-color: rgba(235,235,245,0.6); }
   .catalog-type-badge {
-    font-size: 10px; font-weight: 600;
-    padding: 2px 8px;
-    border-radius: var(--pill);
+    font-size: 9px; font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 10px;
     flex-shrink: 0;
-    background: rgba(235,235,245,0.07); color: var(--text3);
-    letter-spacing: 0.01em;
-    border: 0.5px solid var(--sep);
+    background: rgba(255,255,255,0.06); color: var(--text2);
+    letter-spacing: 0.06em;
+    border: 1px solid rgba(255,255,255,0.09);
+    text-transform: uppercase;
   }
   .catalog-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
   .remove-btn, .shuffle-btn, .edit-btn {
     display: flex; align-items: center; gap: 5px;
-    padding: 5px 11px; border-radius: 7px; border: none;
-    font-size: 11px; font-weight: 500; font-family: inherit;
+    padding: 8px 12px; border-radius: 12px; border: 1px solid transparent;
+    font-size: 11px; font-weight: 600; font-family: inherit;
     cursor: pointer; flex-shrink: 0;
-    transition: background 0.15s, color 0.15s, opacity 0.15s;
+    transition: background 0.15s, color 0.15s, opacity 0.15s, transform 0.15s, border-color 0.15s;
   }
-  .edit-btn   { background: var(--fill); color: var(--text2); }
-  .shuffle-btn { background: var(--fill); color: var(--text2); }
-  .remove-btn { background: rgba(220,38,38,0.15); color: #f87171; }
-  .edit-btn:hover   { background: var(--card2); color: var(--text); }
-  .shuffle-btn:hover { background: var(--card2); color: var(--text); }
-  .shuffle-btn.active { background: var(--fill); color: var(--text); }
-  .remove-btn:hover { background: rgba(220,38,38,0.28); color: #fca5a5; }
+  .edit-btn   { background: rgba(255,255,255,0.06); color: var(--text2); border-color: rgba(255,255,255,0.08); }
+  .shuffle-btn { background: rgba(255,255,255,0.06); color: var(--text2); border-color: rgba(255,255,255,0.08); }
+  .remove-btn { background: rgba(220,38,38,0.14); color: #fca5a5; border-color: rgba(248,113,113,0.14); }
+  .edit-btn:hover   { background: rgba(255,255,255,0.1); color: var(--text); transform: translateY(-1px); }
+  .shuffle-btn:hover { background: rgba(255,255,255,0.1); color: var(--text); transform: translateY(-1px); }
+  .shuffle-btn.active { background: rgba(255,255,255,0.12); color: var(--text); }
+  .remove-btn:hover { background: rgba(220,38,38,0.24); color: #fecaca; transform: translateY(-1px); }
   .catalog-num {
-    flex-shrink: 0; width: 28px; height: 28px;
-    border-radius: 8px; background: var(--fill2);
+    flex-shrink: 0; width: 34px; height: 34px;
+    border-radius: 12px; background: rgba(255,255,255,0.1);
     display: flex; align-items: center; justify-content: center;
-    font-size: 12px; font-weight: 600; color: var(--text3);
+    font-size: 12px; font-weight: 800; color: rgba(255,255,255,0.98);
+    border: 1px solid rgba(255,255,255,0.14);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
   }
   .catalog-count-badge {
-    font-size: 11px; font-weight: 500; color: var(--text2);
-    background: var(--fill2); border-radius: var(--pill);
-    padding: 2px 10px; flex-shrink: 0;
+    font-size: 11px; font-weight: 600; color: var(--text2);
+    background: rgba(255,255,255,0.05); border-radius: 10px;
+    padding: 6px 12px; flex-shrink: 0;
+    border: 1px solid rgba(255,255,255,0.08);
   }
 
   /* ── Empty state ─────────────────────────────── */
@@ -783,35 +1169,47 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     font-size: 13px;
     text-align: center;
     gap: 10px;
-    padding: 28px;
-    background: var(--card);
-    border-radius: var(--radius);
+    padding: 32px;
+    background: linear-gradient(180deg, rgba(26,26,29,0.96), rgba(17,17,19,0.96));
+    border-radius: 24px;
+    border: 1px solid rgba(255,255,255,0.08);
   }
   .empty-icon { font-size: 28px; opacity: 0.35; }
 
   /* ── URL output ──────────────────────────────── */
   .btn-stremio {
     display: flex; align-items: center; justify-content: center; gap: 7px;
-    width: 100%; padding: 10px 16px; border-radius: 10px; border: none;
-    background: var(--fill); color: var(--text);
-    font-size: 13px; font-weight: 600; font-family: inherit;
+    width: 100%; padding: 9px 12px; border-radius: 16px; border: 1px solid transparent;
+    background: linear-gradient(180deg, #ffffff, #dfdfdf); color: #0a0a0a;
+    font-size: 12px; font-weight: 700; font-family: inherit;
     cursor: pointer; letter-spacing: -0.1px;
-    transition: opacity 0.15s, transform 0.1s, background 0.15s;
+    transition: opacity 0.15s, transform 0.1s, background 0.15s, box-shadow 0.15s;
     -webkit-font-smoothing: antialiased;
+    box-shadow: none;
   }
-  .btn-stremio:hover  { background: var(--card2); }
+  .btn-stremio:hover  { transform: translateY(-1px); }
   .btn-stremio:active { transform: scale(0.97); }
   .url-alt-label { font-size: 11px; color: var(--text3); margin: 12px 0 8px; line-height: 1.6; }
   .qr-localhost-notice { font-size: 11px; color: var(--text3); text-align: center; line-height: 1.5; margin-top: 4px; }
-  .url-box { background: var(--card); border-radius: var(--radius); padding: 14px; }
+  .url-box {
+    background: linear-gradient(180deg, rgba(26,26,29,0.98), rgba(18,18,20,0.98));
+    border-radius: 14px;
+    padding: 11px;
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: var(--shadow-sm);
+  }
   .url-box-row { display: flex; align-items: flex-start; gap: 8px; }
   .url-text {
     font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-    font-size: 11px; color: var(--text2);
+    font-size: 10px; color: var(--text2);
     word-break: break-all; line-height: 1.65;
-    max-height: 72px; overflow-y: auto;
-    margin-bottom: 10px; cursor: text; user-select: all;
+    max-height: 68px; overflow-y: auto;
+    margin-bottom: 8px; cursor: text; user-select: all;
     scrollbar-width: thin; scrollbar-color: var(--sep) transparent;
+    padding: 8px 10px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
   }
   .url-text::-webkit-scrollbar { width: 4px; }
   .url-text::-webkit-scrollbar-track { background: transparent; }
@@ -825,16 +1223,17 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     white-space: nowrap;
   }
   .copy-icon-btn:hover { color: var(--text); background: var(--fill); }
-  .copy-row { display: flex; gap: 8px; }
-  .copy-feedback { font-size: 11px; color: var(--text3); margin-top: 4px; display: none; }
-  .copy-feedback.show { display: block; }
+  .copy-row { display: flex; gap: 6px; }
   .qr-section { margin-top: 0; }
   .qr-wrap {
-    background: var(--card); border-radius: var(--radius); padding: 12px;
-    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    background: linear-gradient(180deg, rgba(26,26,29,0.98), rgba(18,18,20,0.98)); border-radius: 14px; padding: 10px;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: var(--shadow-sm);
   }
-  #qr-canvas-wrap canvas { border-radius: 6px; display: block; }
-  .qr-sub { font-size: 11px; color: var(--text3); text-align: center; line-height: 1.5; }
+  #qr-canvas-wrap canvas,
+  #qr-canvas-wrap img { border-radius: 12px; display: block; max-width: 100%; height: auto; }
+  .qr-sub { font-size: 10px; color: var(--text3); text-align: center; line-height: 1.35; }
   .important-note {
     padding: 10px 12px;
     border: 0.5px solid var(--sep); border-radius: var(--radius);
@@ -844,37 +1243,46 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   .important-note strong { color: var(--text2); }
 
   /* ── Divider ─────────────────────────────────── */
-  .divider { border: none; border-top: 0.5px solid var(--sep); margin: 24px 0; }
+  .divider { border: none; border-top: 1px solid var(--sep); margin: 24px 0; }
 
   /* ── Drag-over lift ─────────────────────────── */
   .catalog-item.drag-over {
-    transform: translateY(-3px) scale(1.015);
+    transform: translateX(8px) translateY(-3px) scale(1.01);
     background: var(--card2) !important;
     box-shadow: 0 8px 20px rgba(0,0,0,0.45);
     z-index: 1;
     border-radius: var(--radius) !important;
   }
+  .catalog-item.shift-down { transform: translateY(10px); }
+  .catalog-item.shift-up { transform: translateY(-10px); }
 
   /* ── Auth header section ─────────────────────────── */
   .header-auth { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
   .btn-connect {
     display: flex; align-items: center; gap: 6px;
-    padding: 6px 14px; border-radius: 20px; border: 0.5px solid var(--sep);
-    background: var(--fill2); color: var(--text2);
-    font-size: 12px; font-weight: 500; font-family: inherit;
+    padding: 9px 16px; border-radius: var(--pill); border: 1px solid rgba(255,255,255,0.09);
+    background: rgba(255,255,255,0.045); color: var(--text2);
+    font-size: 12px; font-weight: 600; font-family: inherit;
     cursor: pointer; text-decoration: none;
-    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.15s, box-shadow 0.15s;
   }
-  .btn-connect:hover { background: var(--fill); color: var(--text); border-color: rgba(255,255,255,0.15); }
-  .auth-connected { display: flex; align-items: center; gap: 8px; }
-  .auth-avatar { width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--sep); object-fit: cover; flex-shrink: 0; }
-  .auth-name { font-size: 12px; color: var(--text2); font-weight: 500; }
+  .auth-connect-icon { opacity: 0.7; }
+  .btn-connect:hover { background: rgba(255,255,255,0.08); color: var(--text); border-color: rgba(255,255,255,0.18); transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+  .auth-connected {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 8px 6px 6px;
+    border-radius: var(--pill);
+    background: rgba(255,255,255,0.035);
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+  .auth-avatar { width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid rgba(255,255,255,0.1); object-fit: cover; flex-shrink: 0; }
+  .auth-name { font-size: 12px; color: var(--text); font-weight: 600; }
   .btn-disconnect {
-    padding: 4px 10px; border-radius: 20px; border: 0.5px solid var(--sep);
-    background: none; color: var(--text3); font-size: 11px; font-family: inherit;
-    cursor: pointer; transition: color 0.15s, border-color 0.15s;
+    padding: 6px 12px; border-radius: var(--pill); border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.04); color: var(--text3); font-size: 11px; font-family: inherit;
+    cursor: pointer; transition: color 0.15s, border-color 0.15s, background 0.15s;
   }
-  .btn-disconnect:hover { color: #f87171; border-color: rgba(248,113,113,0.4); }
+  .btn-disconnect:hover { color: #f87171; border-color: rgba(248,113,113,0.4); background: rgba(248,113,113,0.08); }
 
   /* ── Error / auth banners ────────────────────────── */
   .error-banner {
@@ -882,6 +1290,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     background: rgba(220,38,38,0.12); border-bottom: 0.5px solid rgba(220,38,38,0.35);
     font-size: 12px; color: #f87171; font-weight: 500;
   }
+  .error-banner.visible { display: block; }
   .url-warn-icon {
     display: none; position: relative; cursor: help;
     color: #fbbf24; padding: 4px 2px; flex-shrink: 0;
@@ -898,13 +1307,14 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   .url-warn-icon:hover .url-warn-tooltip { display: block; }
 
   /* ── Account preset pills ────────────────────────── */
-  .preset-card.account-locked { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+  .preset-card.account-locked { opacity: 0.42; cursor: not-allowed; pointer-events: none; }
   .account-badge {
-    font-size: 10px; font-weight: 600; padding: 2px 8px;
-    border-radius: var(--pill); flex-shrink: 0;
-    background: rgba(235,235,245,0.07); color: var(--text3);
-    letter-spacing: 0.01em;
-    border: 0.5px solid var(--sep);
+    font-size: 9px; font-weight: 700; padding: 3px 8px;
+    border-radius: 10px; flex-shrink: 0;
+    background: rgba(255,255,255,0.06); color: var(--text2);
+    letter-spacing: 0.08em;
+    border: 1px solid rgba(255,255,255,0.08);
+    text-transform: uppercase;
   }
 
   /* ── AI Recommendations pill ─────────────────────── */
@@ -912,18 +1322,19 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   .preset-card.ai-no-key:hover { border-color: rgba(220,38,38,0.7) !important; }
   .ai-gear-btn {
     display: none; align-items: center; justify-content: center;
-    width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
-    border: none; background: var(--fill); color: var(--text3);
+    width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+    border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.05); color: var(--text3);
     cursor: pointer; font-size: 12px; line-height: 1;
     transition: background 0.15s, color 0.15s;
   }
   .preset-card:not(.account-locked):hover .ai-gear-btn { display: flex; }
-  .ai-gear-btn:hover { background: var(--card2); color: var(--text); }
+  .ai-gear-btn:hover { background: rgba(255,255,255,0.1); color: var(--text); }
   .ai-connected-tag {
-    font-size: 10px; font-weight: 600; padding: 2px 7px;
-    border-radius: var(--pill); flex-shrink: 0;
+    font-size: 9px; font-weight: 700; padding: 3px 8px;
+    border-radius: 10px; flex-shrink: 0;
     background: rgba(34,197,94,0.10); color: #22c55e;
-    letter-spacing: 0.01em; border: 0.5px solid rgba(34,197,94,0.3);
+    letter-spacing: 0.08em; border: 1px solid rgba(34,197,94,0.3);
+    text-transform: uppercase;
   }
 
   /* ── AI Settings Modal ───────────────────────────── */
@@ -965,6 +1376,8 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     transition: border-color 0.15s, background 0.15s;
   }
   .ai-modal-select { cursor: pointer; padding: 0 10px; }
+  #ai-model-custom { display: none; margin-top: 6px; }
+  #ai-model-custom.visible { display: block; }
   .ai-modal-input::placeholder { color: var(--text3); }
   .ai-modal-input:focus, .ai-modal-select:focus {
     outline: none; border-color: rgba(255,255,255,0.25); background: #2c2c2e;
@@ -1000,26 +1413,63 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     background: #ffffff; border: none; color: #000000;
     transition: opacity 0.15s;
   }
+  .preview-error-detail {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 6px;
+  }
   .ai-modal-save:hover { opacity: 0.85; }
   .ai-modal-save:disabled { opacity: 0.4; cursor: not-allowed; }
 
   @media (max-width: 1024px) {
     main { grid-template-columns: 326px 1fr; }
+    .catalogs-side-col { flex-basis: 316px; }
+    .preview-grid { grid-template-columns: repeat(auto-fill, minmax(188px, 1fr)); }
+    .poster { width: 188px; }
+    .detail-grid { grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); }
   }
   @media (max-width: 768px) {
     main { grid-template-columns: 1fr; }
-    .mid-panel { border-top: 0.5px solid var(--sep); }
+    .mid-panel { border-top: 1px solid var(--sep); }
     header { padding: 14px 20px; }
     .header-sub { display: none; }
+    .filter-bar,
+    .options-panel,
+    .pane-tabbar,
+    .preview-grid,
+    .detail-grid,
+    .preview-list,
+    .pane-footer,
+    .catalogs-list-col,
+    .catalogs-side-col { padding-left: 18px; padding-right: 18px; }
+    #catalogs-pane { flex-direction: column; }
+    .catalogs-side-col {
+      flex: 0 0 auto;
+      border-left: none;
+      border-top: 1px solid var(--sep);
+    }
+    .detail-grid { grid-template-columns: 1fr; }
+    .detail-card { height: auto; min-height: 270px; }
+    .preview-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 14px; }
+    .poster { width: 100%; }
+    .list-item { grid-template-columns: 44px 1fr; gap: 14px; }
+    .list-score, .list-meta-col { display: none; }
+    .pane-tab-extras { justify-content: flex-start; }
+    .view-controls { width: 100%; justify-content: space-between; }
   }
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="/static/qrcode.min.js"></script>
 </head>
 <body>
 <div class="app">
   <header>
     <div class="brand">
-      <img src="https://anilist.co/img/icons/android-chrome-512x512.png" alt="AniList">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" role="img" focusable="false" aria-hidden="true">
+          <path fill="#02A9FF" d="M15.533 15.51V5.725c0-.561-.31-.87-.871-.87h-1.915c-.562 0-.871.309-.871.87v4.646c0 .131 1.261.739 1.294.868.961 3.754.209 6.758-.702 6.898 1.489.074 1.652.79.543.3.17-2.003.832-1.999 2.735-.073.016.016.39.8.414.8h4.496c.561 0 .871-.309.871-.87v-1.914c0-.562-.31-.871-.871-.871h-5.123Z"></path>
+          <path fill="#FFFFFF" d="M8.071 4.855 3.04 19.164h3.908l.852-2.475h4.257l.832 2.475h3.889L11.766 4.855H8.071Zm.619 8.664 1.22-3.963 1.336 3.963H8.69Z"></path>
+        </svg>
+      </div>
       <h1>AniList Catalogs</h1>
     </div>
     <span class="header-sub">Configure</span>
@@ -1034,8 +1484,8 @@ CONFIGURE_HTML = """<!DOCTYPE html>
       <div class="left-panel-content">
       <section>
         <div class="section-title">Quick Add</div>
-        <div class="presets-grid">
-          <div class="preset-card" id="preset-anilist-popular-season" onclick="addPreset('anilist-popular-season','Popular This Season')">
+        <div class="presets-grid" id="quick-add-grid">
+          <div class="preset-card" id="preset-anilist-popular-season" data-action="add-preset" data-id="anilist-popular-season" data-name="Popular This Season">
             <div class="preset-info">
               <div class="preset-name">Popular This Season</div>
               <div class="preset-desc">Top anime airing right now</div>
@@ -1043,7 +1493,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
             <span class="account-badge">Preset</span><div class="preset-badge">Added</div>
             <span class="preset-chevron">&#8250;</span>
           </div>
-          <div class="preset-card" id="preset-anilist-airing-week" onclick="addPreset('anilist-airing-week','Airing This Week')">
+          <div class="preset-card" id="preset-anilist-airing-week" data-action="add-preset" data-id="anilist-airing-week" data-name="Airing This Week">
             <div class="preset-info">
               <div class="preset-name">Airing This Week</div>
               <div class="preset-desc">New episodes this week</div>
@@ -1051,7 +1501,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
             <span class="account-badge">Preset</span><div class="preset-badge">Added</div>
             <span class="preset-chevron">&#8250;</span>
           </div>
-          <div class="preset-card" id="preset-anilist-trending" onclick="addPreset('anilist-trending','Trending Now')">
+          <div class="preset-card" id="preset-anilist-trending" data-action="add-preset" data-id="anilist-trending" data-name="Trending Now">
             <div class="preset-info">
               <div class="preset-name">Trending Now</div>
               <div class="preset-desc">What everyone's watching</div>
@@ -1059,7 +1509,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
             <span class="account-badge">Preset</span><div class="preset-badge">Added</div>
             <span class="preset-chevron">&#8250;</span>
           </div>
-          <div class="preset-card" id="preset-anilist-top-rated" onclick="addPreset('anilist-top-rated','Top Rated All Time')">
+          <div class="preset-card" id="preset-anilist-top-rated" data-action="add-preset" data-id="anilist-top-rated" data-name="Top Rated All Time">
             <div class="preset-info">
               <div class="preset-name">Top Rated All Time</div>
               <div class="preset-desc">Highest scored anime ever</div>
@@ -1067,15 +1517,15 @@ CONFIGURE_HTML = """<!DOCTYPE html>
             <span class="account-badge">Preset</span><div class="preset-badge">Added</div>
             <span class="preset-chevron">&#8250;</span>
           </div>
-          <div class="preset-card account-locked" id="preset-anilist-ai-recommendations" onclick="addAiCatalog()">
+          <div class="preset-card account-locked" id="preset-anilist-ai-recommendations" data-action="add-ai">
             <div class="preset-info">
-              <div class="preset-name">AI Recommendations</div>
+              <div class="preset-name ai-title"><svg class="ai-star-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9.2 3.2c.52 2.92 1.5 4.03 2.6 4.83.82.6 1.74.95 4.9 1.6-2.93.52-4.05 1.5-4.85 2.6-.6.82-.95 1.74-1.6 4.9-.52-2.93-1.5-4.05-2.6-4.85-.82-.6-1.74-.95-4.9-1.6 2.93-.52 4.05-1.5 4.85-2.6.6-.82.95-1.74 1.6-4.9Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M18.2 3.4c.24 1.35.7 1.86 1.2 2.23.38.27.8.44 2.26.74-1.35.24-1.87.7-2.24 1.2-.27.38-.44.8-.74 2.26-.24-1.35-.7-1.87-1.2-2.24-.38-.27-.8-.44-2.26-.74 1.35-.24 1.87-.7 2.24-1.2.27-.38.44-.8.74-2.26Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M17.2 14.2c.3 1.68.87 2.33 1.5 2.78.46.34.97.54 2.82.92-1.68.3-2.34.87-2.79 1.5-.34.46-.54.97-.92 2.82-.3-1.68-.87-2.34-1.5-2.79-.46-.34-.97-.54-2.82-.92 1.68-.3 2.34-.87 2.79-1.5.34-.46.54-.97.92-2.82Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>AI Recommendations</div>
               <div class="preset-desc">Personalised picks powered by AI</div>
             </div>
-            <span class="account-badge" style="background:rgba(139,92,246,0.12);color:#a78bfa;border-color:rgba(139,92,246,0.3)">AI</span>
+            <span class="account-badge ai-badge">AI</span>
             <div class="preset-badge">Added</div>
-            <button class="ai-gear-btn" id="ai-gear-btn" onclick="event.stopPropagation();openAiModal()" title="Configure AI settings">&#9881;</button>
-            <span class="ai-connected-tag" id="ai-connected-tag" style="display:none">Connected</span>
+            <button class="ai-gear-btn" id="ai-gear-btn" data-action="open-ai-modal" title="Configure AI settings">&#9881;</button>
+            <span class="ai-connected-tag ai-connected-hidden" id="ai-connected-tag">Connected</span>
             <span class="preset-chevron">&#8250;</span>
           </div>
         </div>
@@ -1086,31 +1536,31 @@ CONFIGURE_HTML = """<!DOCTYPE html>
       <section>
         <div class="section-title">AniList Profile Catalogs</div>
         <div class="presets-grid" id="account-presets-grid">
-          <div class="preset-card account-locked" id="preset-anilist-watching-current" onclick="addAccountPreset('anilist-watching-current','Currently Watching','CURRENT')">
+          <div class="preset-card account-locked" id="preset-anilist-watching-current" data-action="add-account-preset" data-id="anilist-watching-current" data-name="Currently Watching" data-status="CURRENT">
             <div class="preset-info"><div class="preset-name">Currently Watching</div><div class="preset-desc">Anime you're actively watching</div></div>
             <span class="account-badge">Account</span><div class="preset-badge">Added</div><span class="preset-chevron">&#8250;</span>
           </div>
-          <div class="preset-card account-locked" id="preset-anilist-watching-planning" onclick="addAccountPreset('anilist-watching-planning','Plan to Watch','PLANNING')">
+          <div class="preset-card account-locked" id="preset-anilist-watching-planning" data-action="add-account-preset" data-id="anilist-watching-planning" data-name="Plan to Watch" data-status="PLANNING">
             <div class="preset-info"><div class="preset-name">Plan to Watch</div><div class="preset-desc">Your watch list</div></div>
             <span class="account-badge">Account</span><div class="preset-badge">Added</div><span class="preset-chevron">&#8250;</span>
           </div>
-          <div class="preset-card account-locked" id="preset-anilist-watching-completed" onclick="addAccountPreset('anilist-watching-completed','Completed','COMPLETED')">
+          <div class="preset-card account-locked" id="preset-anilist-watching-completed" data-action="add-account-preset" data-id="anilist-watching-completed" data-name="Completed" data-status="COMPLETED">
             <div class="preset-info"><div class="preset-name">Completed</div><div class="preset-desc">Anime you've finished</div></div>
             <span class="account-badge">Account</span><div class="preset-badge">Added</div><span class="preset-chevron">&#8250;</span>
           </div>
-          <div class="preset-card account-locked" id="preset-anilist-watching-paused" onclick="addAccountPreset('anilist-watching-paused','Paused','PAUSED')">
+          <div class="preset-card account-locked" id="preset-anilist-watching-paused" data-action="add-account-preset" data-id="anilist-watching-paused" data-name="Paused" data-status="PAUSED">
             <div class="preset-info"><div class="preset-name">Paused</div><div class="preset-desc">On hold</div></div>
             <span class="account-badge">Account</span><div class="preset-badge">Added</div><span class="preset-chevron">&#8250;</span>
           </div>
-          <div class="preset-card account-locked" id="preset-anilist-watching-dropped" onclick="addAccountPreset('anilist-watching-dropped','Dropped','DROPPED')">
+          <div class="preset-card account-locked" id="preset-anilist-watching-dropped" data-action="add-account-preset" data-id="anilist-watching-dropped" data-name="Dropped" data-status="DROPPED">
             <div class="preset-info"><div class="preset-name">Dropped</div><div class="preset-desc">Anime you've stopped watching</div></div>
             <span class="account-badge">Account</span><div class="preset-badge">Added</div><span class="preset-chevron">&#8250;</span>
           </div>
-          <div class="preset-card account-locked" id="preset-anilist-watching-repeating" onclick="addAccountPreset('anilist-watching-repeating','Rewatching','REPEATING')">
+          <div class="preset-card account-locked" id="preset-anilist-watching-repeating" data-action="add-account-preset" data-id="anilist-watching-repeating" data-name="Rewatching" data-status="REPEATING">
             <div class="preset-info"><div class="preset-name">Rewatching</div><div class="preset-desc">Currently rewatching</div></div>
             <span class="account-badge">Account</span><div class="preset-badge">Added</div><span class="preset-chevron">&#8250;</span>
           </div>
-          <div class="preset-card account-locked" id="preset-anilist-favourites" onclick="addAccountPreset('anilist-favourites','My Favourites','FAVOURITES')">
+          <div class="preset-card account-locked" id="preset-anilist-favourites" data-action="add-account-preset" data-id="anilist-favourites" data-name="My Favourites" data-status="FAVOURITES">
             <div class="preset-info"><div class="preset-name">My Favourites</div><div class="preset-desc">Your starred anime</div></div>
             <span class="account-badge">Account</span><div class="preset-badge">Added</div><span class="preset-chevron">&#8250;</span>
           </div>
@@ -1119,14 +1569,14 @@ CONFIGURE_HTML = """<!DOCTYPE html>
       </div><!-- end .left-panel-content -->
       <div class="left-panel-footer">
         <div class="pane-footer-icons">
-          <a class="pane-footer-icon" href="https://github.com/juuzocyber/anilist-catalogs" target="_blank" rel="noopener" title="GitHub">
+          <a class="pane-footer-icon" href="https://github.com/juuzocyber/anilist-catalogs" target="_blank" rel="noopener noreferrer" title="GitHub">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
           </a>
           <a class="pane-footer-icon" href="#" title="Buy me a coffee">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4z"/></svg>
           </a>
         </div>
-        <div class="pane-footer-text">Version: v1.1.2 &mdash; Developed by juuzo</div>
+        <div class="pane-footer-text">Version: v1.3.0 &mdash; Developed by juuzo</div>
       </div>
     </div>
 
@@ -1135,19 +1585,19 @@ CONFIGURE_HTML = """<!DOCTYPE html>
 
       <!-- Filter bar -->
       <div class="filter-bar">
-        <button class="fb-filter-btn" id="btn-genres" onclick="setActiveFilter('genres')">
+        <button class="fb-filter-btn" id="btn-genres" data-action="set-active-filter" data-filter="genres">
           <span id="lbl-genres">Genres</span>
           <span class="fb-chevron">&#9660;</span>
         </button>
-        <select id="f-year" style="display:none">
+        <select id="f-year" class="select-hidden">
           <option value="">Year</option>
           __YEAR_OPTIONS__
         </select>
-        <button class="fb-filter-btn" id="btn-year" onclick="setActiveFilter('year')">
+        <button class="fb-filter-btn" id="btn-year" data-action="set-active-filter" data-filter="year">
           <span id="lbl-year">Year</span>
           <span class="fb-chevron">&#9660;</span>
         </button>
-        <select id="f-season" style="display:none">
+        <select id="f-season" class="select-hidden">
           <option value="">Season</option>
           <option value="CURRENT">Current Season</option>
           <option value="WINTER">Winter</option>
@@ -1155,11 +1605,11 @@ CONFIGURE_HTML = """<!DOCTYPE html>
           <option value="SUMMER">Summer</option>
           <option value="FALL">Fall</option>
         </select>
-        <button class="fb-filter-btn" id="btn-season" onclick="setActiveFilter('season')">
+        <button class="fb-filter-btn" id="btn-season" data-action="set-active-filter" data-filter="season">
           <span id="lbl-season">Season</span>
           <span class="fb-chevron">&#9660;</span>
         </button>
-        <select id="f-format" style="display:none">
+        <select id="f-format" class="select-hidden">
           <option value="">Format</option>
           <option value="TV">TV Series</option>
           <option value="TV_SHORT">TV Short</option>
@@ -1168,21 +1618,21 @@ CONFIGURE_HTML = """<!DOCTYPE html>
           <option value="ONA">ONA</option>
           <option value="SPECIAL">Special</option>
         </select>
-        <button class="fb-filter-btn" id="btn-format" onclick="setActiveFilter('format')">
+        <button class="fb-filter-btn" id="btn-format" data-action="set-active-filter" data-filter="format">
           <span id="lbl-format">Format</span>
           <span class="fb-chevron">&#9660;</span>
         </button>
-        <select id="f-status" style="display:none">
+        <select id="f-status" class="select-hidden">
           <option value="">Status</option>
           <option value="RELEASING">Airing</option>
           <option value="FINISHED">Finished</option>
           <option value="NOT_YET_RELEASED">Upcoming</option>
         </select>
-        <button class="fb-filter-btn" id="btn-status" onclick="setActiveFilter('status')">
+        <button class="fb-filter-btn" id="btn-status" data-action="set-active-filter" data-filter="status">
           <span id="lbl-status">Status</span>
           <span class="fb-chevron">&#9660;</span>
         </button>
-        <select id="f-sort" style="display:none">
+        <select id="f-sort" class="select-hidden">
           <option value="POPULARITY_DESC">Popularity</option>
           <option value="TRENDING_DESC">Trending</option>
           <option value="SCORE_DESC">Score</option>
@@ -1192,11 +1642,10 @@ CONFIGURE_HTML = """<!DOCTYPE html>
         <div class="fb-sep"></div>
         <div class="fb-slider-wrap">
           <span class="fb-slider-label">Score</span>
-          <input type="range" id="f-score" min="0" max="90" step="10" value="0"
-                 oninput="document.getElementById('score-val').textContent = this.value > 0 ? this.value + '+' : 'Any'; scheduleAutoPreview()">
+          <input type="range" id="f-score" min="0" max="90" step="10" value="0">
           <span class="fb-slider-val" id="score-val">Any</span>
         </div>
-        <select id="f-daterange" style="display:none">
+        <select id="f-daterange" class="select-hidden">
           <option value="">Date Range</option>
           <option value="this-week">This Week</option>
           <option value="this-month">This Month</option>
@@ -1204,20 +1653,20 @@ CONFIGURE_HTML = """<!DOCTYPE html>
           <option value="this-year">This Year</option>
           <option value="last-year">Last Year</option>
         </select>
-        <button class="fb-filter-btn" id="btn-daterange" onclick="setActiveFilter('daterange')">
+        <button class="fb-filter-btn" id="btn-daterange" data-action="set-active-filter" data-filter="daterange">
           <span id="lbl-daterange">Date Range</span>
           <span class="fb-chevron">&#9660;</span>
         </button>
         <label class="fb-adult-toggle" id="adult-toggle">
-          <input type="checkbox" id="f-adult" onchange="onAdultChange()">
+          <input type="checkbox" id="f-adult">
           Adult
         </label>
         <div class="fb-sep"></div>
         <div class="fb-name-wrap" id="catalog-name-wrap">
-          <input class="fb-name-input" type="text" id="catalog-name" placeholder="Catalog name" oninput="clearNameError()">
+          <input class="fb-name-input" type="text" id="catalog-name" placeholder="Catalog Name">
           <div id="catalog-name-error">Name required</div>
         </div>
-        <button class="fb-add-btn" id="catalog-add-btn" onclick="addCustom()">Add</button>
+        <button class="fb-add-btn" id="catalog-add-btn" data-action="add-custom">Add</button>
       </div>
 
       <!-- Always-visible options panel -->
@@ -1229,8 +1678,8 @@ CONFIGURE_HTML = """<!DOCTYPE html>
       <div class="pane-tabbar">
         <div class="pane-tabbar-left">
           <div class="pane-tabs">
-            <button class="pane-tab active" id="tab-preview" onclick="setPaneTab('preview')">Preview</button>
-            <button class="pane-tab" id="tab-catalogs" onclick="setPaneTab('catalogs')">Your Catalogs</button>
+            <button class="pane-tab active" id="tab-preview" data-action="set-pane-tab" data-pane="preview">Preview</button>
+            <button class="pane-tab" id="tab-catalogs" data-action="set-pane-tab" data-pane="catalogs">Your Catalogs</button>
           </div>
           <div class="filter-tags-wrap">
             <svg class="tags-icon" width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
@@ -1243,28 +1692,28 @@ CONFIGURE_HTML = """<!DOCTYPE html>
           <span class="panel-sub-inline" id="preview-sub">Set filters or click a catalog to preview</span>
           <div class="view-controls">
             <div class="sort-dropdown" id="sort-dropdown">
-              <button class="sort-btn" id="sort-btn" onclick="toggleSortMenu()">
-                <svg width="11" height="11" viewBox="0 0 12 12" fill="currentColor" style="opacity:0.5"><path d="M3 2v8M3 10l-2-2M3 10l2-2M9 10V2M9 2L7 4M9 2l2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
+              <button class="sort-btn" id="sort-btn" data-action="toggle-sort-menu">
+                <svg class="sort-icon-dim" width="11" height="11" viewBox="0 0 12 12" fill="currentColor"><path d="M3 2v8M3 10l-2-2M3 10l2-2M9 10V2M9 2L7 4M9 2l2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>
                 <span class="sort-btn-label" id="sort-btn-label">Popularity</span>
                 <span class="sort-btn-chevron">&#9660;</span>
               </button>
               <div class="sort-menu" id="sort-menu">
-                <button class="sort-menu-item active" data-value="POPULARITY_DESC" onclick="setSortValue('POPULARITY_DESC')">Popularity</button>
-                <button class="sort-menu-item" data-value="TRENDING_DESC" onclick="setSortValue('TRENDING_DESC')">Trending</button>
-                <button class="sort-menu-item" data-value="SCORE_DESC" onclick="setSortValue('SCORE_DESC')">Average Score</button>
-                <button class="sort-menu-item" data-value="START_DATE_DESC" onclick="setSortValue('START_DATE_DESC')">Newest</button>
-                <button class="sort-menu-item" data-value="FAVOURITES_DESC" onclick="setSortValue('FAVOURITES_DESC')">Favorites</button>
+                <button class="sort-menu-item active" data-action="set-sort-value" data-value="POPULARITY_DESC">Popularity</button>
+                <button class="sort-menu-item" data-action="set-sort-value" data-value="TRENDING_DESC">Trending</button>
+                <button class="sort-menu-item" data-action="set-sort-value" data-value="SCORE_DESC">Average Score</button>
+                <button class="sort-menu-item" data-action="set-sort-value" data-value="START_DATE_DESC">Newest</button>
+                <button class="sort-menu-item" data-action="set-sort-value" data-value="FAVOURITES_DESC">Favorites</button>
               </div>
             </div>
             <span class="view-sep">|</span>
             <div class="view-toggle">
-              <button class="view-btn active" id="view-btn-grid" onclick="setView('grid')" title="Grid view">
+              <button class="view-btn active" id="view-btn-grid" data-action="set-view" data-view="grid" title="Grid view">
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="0" y="0" width="6" height="6" rx="1.5"/><rect x="8" y="0" width="6" height="6" rx="1.5"/><rect x="0" y="8" width="6" height="6" rx="1.5"/><rect x="8" y="8" width="6" height="6" rx="1.5"/></svg>
               </button>
-              <button class="view-btn" id="view-btn-detail" onclick="setView('detail')" title="Detail view">
+              <button class="view-btn" id="view-btn-detail" data-action="set-view" data-view="detail" title="Detail view">
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="0" y="0" width="5" height="6" rx="1"/><rect x="7" y="0" width="7" height="2" rx="0.75"/><rect x="7" y="3" width="5" height="1.5" rx="0.5"/><rect x="7" y="5" width="6" height="1" rx="0.5"/><rect x="0" y="8" width="5" height="6" rx="1"/><rect x="7" y="8" width="7" height="2" rx="0.75"/><rect x="7" y="11" width="5" height="1.5" rx="0.5"/><rect x="7" y="13" width="6" height="1" rx="0.5"/></svg>
               </button>
-              <button class="view-btn" id="view-btn-list" onclick="setView('list')" title="List view">
+              <button class="view-btn" id="view-btn-list" data-action="set-view" data-view="list" title="List view">
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="0" y="0" width="5" height="5" rx="1.5"/><rect x="7" y="1" width="7" height="1.5" rx="0.75"/><rect x="7" y="3.5" width="5" height="1" rx="0.5"/><rect x="0" y="7" width="5" height="5" rx="1.5"/><rect x="7" y="8" width="7" height="1.5" rx="0.75"/><rect x="7" y="10.5" width="5" height="1" rx="0.5"/></svg>
               </button>
             </div>
@@ -1283,35 +1732,38 @@ CONFIGURE_HTML = """<!DOCTYPE html>
       </div>
 
       <!-- Catalogs pane (hidden by default) -->
-      <div id="catalogs-pane" style="display:none">
+      <div id="catalogs-pane" class="catalogs-hidden">
         <div class="catalogs-list-col">
-          <div style="display:flex;align-items:center;justify-content:space-between;min-height:20px">
+          <div class="catalog-meta-row">
             <div class="panel-sub-inline">Drag to reorder &middot; click to preview</div>
-            <span class="catalog-count-badge" id="catalog-count-badge" style="display:none"></span>
+            <span class="catalog-count-badge hidden" id="catalog-count-badge"></span>
           </div>
           <div class="catalog-list" id="catalog-list"></div>
         </div>
         <div class="catalogs-side-col">
-          <div class="section-title">Install AniList Catalogs</div>
-          <button class="btn-stremio" onclick="openInStremio()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
-            Add to Stremio
-          </button>
-          <div style="text-align:center;font-size:11px;color:var(--text3);margin:10px 0">OR</div>
-          <div class="url-box">
-            <div class="url-text" id="url-display">—</div>
-            <div class="copy-row">
-              <button class="btn btn-ghost btn-sm btn-full" onclick="copyUrl()">Copy URL</button>
-              <div class="url-warn-icon" id="token-warning">
-                &#9888;
-                <div class="url-warn-tooltip">This URL contains a session key for your AniList account. Keep it private and do not share it. If it expires, just reconnect AniList.</div>
+          <div class="side-module tight">
+            <div class="section-title">Install AniList Catalogs</div>
+            <button class="btn-stremio" id="open-stremio-btn" data-action="open-stremio">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+              Add to Stremio
+            </button>
+          </div>
+          <div class="side-or">OR</div>
+          <div class="side-module">
+            <div class="url-box">
+              <div class="url-text" id="url-display">—</div>
+              <div class="copy-row">
+                <button class="btn btn-ghost btn-sm btn-full" id="copy-url-btn" data-action="copy-url">Copy URL</button>
+                <div class="url-warn-icon" id="token-warning">
+                  &#9888;
+                  <div class="url-warn-tooltip">This URL contains a session key for your AniList account. Keep it private and do not share it. If it expires, just reconnect AniList.</div>
+                </div>
               </div>
-              <div class="copy-feedback" id="copy-feedback">&#10003; Copied</div>
             </div>
           </div>
 
-          <div style="text-align:center;font-size:11px;color:var(--text3);margin:10px 0">OR</div>
-          <div class="qr-section" style="margin-top:0">
+          <div class="side-or">OR</div>
+          <div class="side-module qr-section qr-section-tight">
             <div class="qr-wrap">
               <div class="qr-sub">Scan this QR code with your mobile device</div>
               <div id="qr-canvas-wrap"></div>
@@ -1319,14 +1771,16 @@ CONFIGURE_HTML = """<!DOCTYPE html>
             </div>
           </div>
 
-          <div style="margin-top:auto">
-            <hr class="divider" style="margin:12px 0">
-            <div class="section-title">Import Config</div>
-            <div style="display:flex;gap:8px;">
-              <input type="text" id="import-url" placeholder="Paste manifest URL…" style="flex:1;font-size:12px;padding:7px 10px">
-              <button class="btn btn-ghost btn-sm" onclick="importConfig()">Import</button>
+          <div class="stack-end">
+            <hr class="divider divider-tight">
+            <div class="side-module tight">
+              <div class="section-title">Import Config</div>
+              <div class="import-row">
+                <input type="text" id="import-url" placeholder="Paste manifest URL…">
+                <button class="btn btn-primary btn-sm" id="import-btn" data-action="import-config">Import</button>
+              </div>
+              <div id="import-feedback"></div>
             </div>
-            <div id="import-feedback" style="font-size:11px;margin-top:8px;display:none;line-height:1.5"></div>
           </div>
         </div>
       </div>
@@ -1336,9 +1790,10 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   </main>
 </div>
 
-<script>
+<script nonce="__CSP_NONCE__">
 const GENRES = ["Action","Adventure","Comedy","Drama","Ecchi","Fantasy","Horror","Mahou Shoujo","Mecha","Music","Mystery","Psychological","Romance","Sci-Fi","Slice of Life","Sports","Supernatural","Thriller"];
 const BASE_URL = window.location.origin;
+const ANILIST_MARK = '<span class="al-logo-badge" aria-hidden="true"><svg viewBox="0 0 24 24" role="img" focusable="false" aria-hidden="true"><path fill="#02A9FF" d="M15.533 15.51V5.725c0-.561-.31-.87-.871-.87h-1.915c-.562 0-.871.309-.871.87v4.646c0 .131 1.261.739 1.294.868.961 3.754.209 6.758-.702 6.898 1.489.074 1.652.79.543.3.17-2.003.832-1.999 2.735-.073.016.016.39.8.414.8h4.496c.561 0 .871-.309.871-.87v-1.914c0-.562-.31-.871-.871-.871h-5.123Z"></path><path fill="#FFFFFF" d="M8.071 4.855 3.04 19.164h3.908l.852-2.475h4.257l.832 2.475h3.889L11.766 4.855H8.071Zm.619 8.664 1.22-3.963 1.336 3.963H8.69Z"></path></svg></span>';
 
 const GENRE_COLORS = {
   'Action':'#e85d04','Adventure':'#f48c06','Comedy':'#a7c957','Drama':'#4895ef',
@@ -1347,14 +1802,18 @@ const GENRE_COLORS = {
   'Romance':'#e63946','Sci-Fi':'#48cae4','Slice of Life':'#52b788',
   'Sports':'#2dc653','Supernatural':'#9d4edd','Thriller':'#d62828',
 };
-const STUDIO_COLORS = {
-  'MAPPA':'#e85d04','Ufotable':'#7b2fbe','Kyoto Animation':'#4895ef',
-  'Wit Studio':'#52b788','MADHOUSE':'#48cae4','Bones':'#f48c06',
-  'Toei Animation':'#e63946','A-1 Pictures':'#4361ee','CloverWorks':'#c77dff',
-  'David Production':'#f4c430','Trigger':'#e84393','J.C.Staff':'#0077b6',
-  'Shaft':'#9d4edd','Production I.G':'#3d8f4a','P.A. Works':'#bc6c25',
-  'Doga Kobo':'#a7c957','Studio KAI':'#48cae4','White Fox':'#52b788',
-  'Brains Base':'#f48c06','Sunrise':'#e85d04',
+const THEME_KEYS = [
+  'orange','gold','lime','blue','pink','purple','red','cyan','green',
+  'violet','sky','amber','coral','mint','rose','ocean','indigo','magenta'
+];
+const STUDIO_THEMES = {
+  'MAPPA':'orange','Ufotable':'purple','Kyoto Animation':'blue',
+  'Wit Studio':'green','MADHOUSE':'cyan','Bones':'gold',
+  'Toei Animation':'red','A-1 Pictures':'indigo','CloverWorks':'pink',
+  'David Production':'amber','Trigger':'rose','J.C.Staff':'sky',
+  'Shaft':'violet','Production I.G':'ocean','P.A. Works':'coral',
+  'Doga Kobo':'lime','Studio KAI':'cyan','White Fox':'green',
+  'Brains Base':'gold','Sunrise':'orange',
 };
 const PRESET_IDS = new Set([
   'anilist-popular-season','anilist-airing-week','anilist-trending','anilist-top-rated'
@@ -1381,10 +1840,11 @@ let currentView = 'grid';
 
 // ── Auth state ────────────────────────────────────
 const _urlParams = new URLSearchParams(window.location.search);
+const _hashParams = new URLSearchParams(window.location.hash.startsWith('#') ? window.location.hash.slice(1) : '');
 // Session key: a short 12-char token handed back by the OAuth callback.
 // The actual encrypted AniList token lives server-side; only this key travels
 // in the manifest URL (as "{config_token}~{session_key}").
-let _sessionKey = _urlParams.get('s') || null;
+let _sessionKey = _hashParams.get('s') || _urlParams.get('s') || null;
 // OpenRouter state — populated from /api/me response on load.
 let _hasOrKey = false;
 let _orModel  = 'meta-llama/llama-3.3-70b-instruct';
@@ -1393,6 +1853,7 @@ let _orModel  = 'meta-llama/llama-3.3-70b-instruct';
 if (_sessionKey) {
   const _cleanUrl = new URL(window.location.href);
   _cleanUrl.searchParams.delete('s');
+  _cleanUrl.hash = '';
   window.history.replaceState({}, '', _cleanUrl.toString());
 }
 
@@ -1442,6 +1903,54 @@ function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+function slugifyGenre(genre) {
+  return String(genre || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+function genreBadgeClass(genre, variant) {
+  const prefix = variant === 'soft' ? 'genre-soft--' : 'genre--';
+  return prefix + slugifyGenre(genre);
+}
+
+function studioThemeKey(studio) {
+  if (studio && STUDIO_THEMES[studio]) return STUDIO_THEMES[studio];
+  const key = String(studio || 'studio');
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) hash = ((hash << 5) - hash + key.charCodeAt(i)) | 0;
+  return THEME_KEYS[Math.abs(hash) % THEME_KEYS.length];
+}
+
+function studioThemeClass(studio) {
+  return 'theme-' + studioThemeKey(studio);
+}
+
+function scoreClass(score) {
+  if (!score) return 'score-none';
+  if (score >= 80) return 'score-high';
+  if (score >= 70) return 'score-mid';
+  if (score >= 60) return 'score-low';
+  return 'score-poor';
+}
+
+function detailScoreClass(score) {
+  const cls = scoreClass(score);
+  return 'detail-' + cls;
+}
+
+function detailBannerLineClass(title) {
+  const titleLength = String(title || '').length;
+  const titleLines = titleLength > 58 ? 4 : titleLength > 36 ? 3 : titleLength > 20 ? 2 : 1;
+  return 'detail-banner-lines-' + titleLines;
+}
+
+function setHidden(el, hidden) {
+  if (el) el.classList.toggle('hidden', hidden);
+}
+
+function setVisibleClass(el, className, visible) {
+  if (el) el.classList.toggle(className, visible);
+}
+
 // ── Auth helpers ──────────────────────────────────
 async function fetchMe() {
   if (!_sessionKey) { renderAuthUI(null); return; }
@@ -1463,16 +1972,14 @@ function renderAuthUI(user) {
   const el = document.getElementById('header-auth');
   if (!el) return;
   if (user) {
-    el.innerHTML =
-      '<div class="auth-connected">' +
+    el.innerHTML = '<div class="auth-connected">' +
       (user.avatar ? '<img class="auth-avatar" src="' + escHtml(user.avatar) + '" alt="">' : '') +
       '<span class="auth-name">' + escHtml(user.name) + '</span>' +
-      '<button class="btn-disconnect" onclick="disconnect()">Disconnect</button>' +
+      '<button class="btn-disconnect" data-action="disconnect">Disconnect</button>' +
       '</div>';
   } else {
-    el.innerHTML =
-      '<a class="btn-connect" href="/oauth/login" onclick="saveConfigBeforeLogin()">' +
-      '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="opacity:0.7"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>' +
+    el.innerHTML = '<a class="btn-connect" href="/oauth/login" data-action="save-config-before-login">' +
+      '<svg class="auth-connect-icon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>' +
       'Connect AniList</a>';
   }
   updateAccountPills();
@@ -1485,17 +1992,17 @@ function updateAccountPills() {
     const card = document.getElementById('preset-' + id);
     if (card) {
       card.classList.toggle('account-locked', locked);
-      card.style.pointerEvents = locked ? 'none' : '';
+      card.classList.toggle('pointer-disabled', locked);
     }
   });
   // AI pill: locked when not authenticated, red outline when authenticated but no OR key
   const aiCard = document.getElementById('preset-anilist-ai-recommendations');
   if (aiCard) {
     aiCard.classList.toggle('account-locked', locked);
-    aiCard.style.pointerEvents = locked ? 'none' : '';
+    aiCard.classList.toggle('pointer-disabled', locked);
     aiCard.classList.toggle('ai-no-key', !locked && !_hasOrKey);
     const connTag = document.getElementById('ai-connected-tag');
-    if (connTag) connTag.style.display = (!locked && _hasOrKey) ? '' : 'none';
+    setHidden(connTag, locked || !_hasOrKey);
   }
 }
 
@@ -1508,7 +2015,11 @@ function saveConfigBeforeLogin() {
 function disconnect() {
   // Tell the server to clear session + OR key caches, best-effort.
   if (_sessionKey) {
-    fetch('/oauth/logout?s=' + encodeURIComponent(_sessionKey)).catch(() => {});
+    fetch('/oauth/logout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session: _sessionKey }),
+    }).catch(() => {});
   }
   _sessionKey = null;
   _hasOrKey   = false;
@@ -1591,8 +2102,8 @@ function updateNameInput() {
 
   const hasFilters = hasActiveAdditionalFilters();
   const hideForSource = activeSource && !hasFilters;
-  wrap.style.display   = hideForSource ? 'none' : '';
-  addBtn.style.display = hideForSource ? 'none' : '';
+  wrap.classList.toggle('hidden', hideForSource);
+  addBtn.classList.toggle('hidden', hideForSource);
 
   if (activeSource && hasFilters) {
     const inp       = document.getElementById('catalog-name');
@@ -1657,6 +2168,51 @@ function _applySourcePreview() {
   renderPreview(filtered, subtitle);
 }
 
+async function previewPresetWithCurrentFilters(cat) {
+  setPreviewLoading(cat.name);
+  try {
+    if (cat.id === 'anilist-airing-week') {
+      const media = await fetchAiringWeekPreview();
+      const filtered = _filterSourceMedia(media);
+      const subtitle = filtered.length < media.length
+        ? `${cat.name} \u2014 ${filtered.length} of ${media.length} titles`
+        : `${cat.name} \u2014 ${filtered.length} titles`;
+      renderPreview(filtered, subtitle);
+      return;
+    }
+
+    const sort  = document.getElementById('f-sort').value;
+    const score = parseInt(document.getElementById('f-score').value);
+    const year   = selectedYears.length === 1 ? selectedYears[0] : '';
+    const season = selectedSeasons.length === 1 ? selectedSeasons[0] : '';
+    const sv = resolveSeasonVars(season, year);
+    const variables = { ...PRESET_VARS[cat.id]() };
+
+    if (sort)                    variables.sort = [sort];
+    if (!includeAdult)           variables.isAdult = false;
+    if (selectedFormats.length)  variables.format_in = [...selectedFormats];
+    else delete variables.format_in;
+    if (selectedStatuses.length) variables.status_in = [...selectedStatuses];
+    else delete variables.status_in;
+    if (sv.season)               variables.season = sv.season;
+    else delete variables.season;
+    if (sv.seasonYear)           variables.seasonYear = sv.seasonYear;
+    else delete variables.seasonYear;
+    if (score > 0)               variables.averageScore_greater = score;
+    else delete variables.averageScore_greater;
+    if (selectedGenres.length)   variables.genre_in = [...selectedGenres];
+    else delete variables.genre_in;
+
+    const media = await fetchPreview(variables);
+    renderPreview(media, `${cat.name} \u2014 ${media.length} titles`);
+  } catch (e) {
+    console.error('[preset preview] Error:', e);
+    document.getElementById('preview-sub').textContent = 'Failed to load preview';
+    document.getElementById('preview-area').innerHTML =
+      `<div class="preview-prompt"><div>Could not reach AniList API</div><div class="preview-error-detail">${escHtml(e instanceof Error ? e.message : String(e))}</div></div>`;
+  }
+}
+
 // Fetch source content from the server and then apply client-side filters.
 async function fetchAndShowSource() {
   if (!activeSource) return;
@@ -1666,7 +2222,7 @@ async function fetchAndShowSource() {
     if (!_sessionKey) {
       document.getElementById('preview-sub').textContent = activeSource.name;
       document.getElementById('preview-area').innerHTML =
-        '<div class="preview-prompt"><div class="preview-prompt-icon">&#128274;</div><div>Account catalog<br><span style="font-size:11px;color:var(--text3)">Connect your AniList account to preview this list</span></div></div>';
+        '<div class="preview-prompt"><div class="preview-prompt-icon">&#128274;</div><div>Account catalog<br><span class="preview-error-detail">Connect your AniList account to preview this list</span></div></div>';
       return;
     }
     setPreviewLoading(activeSource.name);
@@ -1688,7 +2244,7 @@ async function fetchAndShowSource() {
       console.error('[source] watching fetch error:', e);
       document.getElementById('preview-sub').textContent = 'Failed to load list';
       document.getElementById('preview-area').innerHTML =
-        `<div class="preview-prompt"><div>Could not load account catalog</div><div style="font-size:11px;color:var(--text3);margin-top:6px">${escHtml(e instanceof Error ? e.message : String(e))}</div></div>`;
+        `<div class="preview-prompt"><div>Could not load account catalog</div><div class="preview-error-detail">${escHtml(e instanceof Error ? e.message : String(e))}</div></div>`;
     }
     return;
   }
@@ -1697,13 +2253,13 @@ async function fetchAndShowSource() {
     if (!_sessionKey) {
       document.getElementById('preview-sub').textContent = activeSource.name;
       document.getElementById('preview-area').innerHTML =
-        '<div class="preview-prompt"><div class="preview-prompt-icon">&#128274;</div><div>Account catalog<br><span style="font-size:11px;color:var(--text3)">Connect your AniList account to use AI recommendations</span></div></div>';
+        '<div class="preview-prompt"><div class="preview-prompt-icon">&#128274;</div><div>Account catalog<br><span class="preview-error-detail">Connect your AniList account to use AI recommendations</span></div></div>';
       return;
     }
     if (!_hasOrKey) {
       document.getElementById('preview-sub').textContent = activeSource.name;
       document.getElementById('preview-area').innerHTML =
-        '<div class="preview-prompt"><div class="preview-prompt-icon">&#9881;</div><div>OpenRouter key required<br><span style="font-size:11px;color:var(--text3)">Click the gear icon on the AI pill to add your key</span></div></div>';
+        '<div class="preview-prompt"><div class="preview-prompt-icon">&#9881;</div><div>OpenRouter key required<br><span class="preview-error-detail">Click the gear icon on the AI pill to add your key</span></div></div>';
       return;
     }
     setPreviewLoading('AI is thinking\u2026 (this may take a moment)');
@@ -1725,7 +2281,7 @@ async function fetchAndShowSource() {
       console.error('[source] ai fetch error:', e);
       document.getElementById('preview-sub').textContent = 'Failed to load AI recommendations';
       document.getElementById('preview-area').innerHTML =
-        `<div class="preview-prompt"><div>Could not load AI recommendations</div><div style="font-size:11px;color:var(--text3);margin-top:6px">${escHtml(e instanceof Error ? e.message : String(e))}</div></div>`;
+        `<div class="preview-prompt"><div>Could not load AI recommendations</div><div class="preview-error-detail">${escHtml(e instanceof Error ? e.message : String(e))}</div></div>`;
     }
   }
 }
@@ -1791,10 +2347,10 @@ function openAiModal() {
     const knownVals = Array.from(select.options).map(o => o.value).filter(v => v !== 'custom');
     if (knownVals.includes(_orModel)) {
       select.value = _orModel;
-      customInput.style.display = 'none';
+      customInput.classList.remove('visible');
     } else {
       select.value = 'custom';
-      customInput.style.display = 'block';
+      customInput.classList.add('visible');
       customInput.value = _orModel;
     }
   }
@@ -1816,10 +2372,10 @@ function handleAiModelChange() {
   const customInput = document.getElementById('ai-model-custom');
   if (!select || !customInput) return;
   if (select.value === 'custom') {
-    customInput.style.display = 'block';
+    customInput.classList.add('visible');
     customInput.focus();
   } else {
-    customInput.style.display = 'none';
+    customInput.classList.remove('visible');
   }
 }
 
@@ -2121,7 +2677,7 @@ const PRESET_VARS = {
 // ── AniList preview fetch ─────────────────────────
 const PREVIEW_QUERY = `
   query($sort:[MediaSort],$format_in:[MediaFormat],$season:MediaSeason,$seasonYear:Int,$status_in:[MediaStatus],$genre_in:[String],$averageScore_greater:Int,$startDate_greater:FuzzyDateInt,$startDate_lesser:FuzzyDateInt,$isAdult:Boolean){
-    Page(page:1,perPage:24){
+    Page(page:1,perPage:50){
       media(type:ANIME,isAdult:$isAdult,sort:$sort,format_in:$format_in,season:$season,seasonYear:$seasonYear,status_in:$status_in,genre_in:$genre_in,averageScore_greater:$averageScore_greater,startDate_greater:$startDate_greater,startDate_lesser:$startDate_lesser){
         id title{romaji english} coverImage{large} averageScore popularity
         genres format episodes status season seasonYear description(asHtml:false)
@@ -2231,43 +2787,38 @@ function renderPreview(media, subtitle) {
   area.innerHTML = currentView === 'list' ? renderListView(media) : currentView === 'detail' ? renderDetailView(media) : renderGridView(media);
 }
 
-function scoreColor(s) {
-  if (s >= 80) return '#2d6a4f';
-  if (s >= 70) return '#52b788';
-  if (s >= 60) return '#f48c06';
-  return '#e63946';
-}
-
 function renderGridView(media) {
   return '<div class="preview-grid">' + media.map(m => {
     const title  = escHtml(m.title.english || m.title.romaji || '');
     const score  = m.averageScore ? (m.averageScore / 10).toFixed(1) : '';
-    const scoreCol = m.averageScore ? scoreColor(m.averageScore) : 'var(--text3)';
+    const studio = ((m.studios && m.studios.nodes && m.studios.nodes[0]) || {}).name || '';
+    const themeClass = studioThemeClass(studio);
+    const scoreCls = scoreClass(m.averageScore || 0);
     const genres = (m.genres || []).slice(0, 3).map(g => {
-      const c = GENRE_COLORS[g] || '#888';
-      return `<span class="genre-badge" style="background:${c}bb;color:#fff;border:0.5px solid ${c}dd;cursor:pointer" onclick="event.preventDefault();event.stopPropagation();applyGenreFilter('${escHtml(g)}')">${escHtml(g)}</span>`;
+      return `<span class="genre-badge ${genreBadgeClass(g, 'hard')}" data-genre="${escHtml(g)}">${escHtml(g)}</span>`;
     }).join('');
     const fmt    = FORMAT_LABELS[m.format] || m.format || '';
     const eps    = m.episodes ? m.episodes + ' ep' + (m.episodes !== 1 ? 's' : '') : '';
-    const metaTop = [fmt, eps].filter(Boolean).join(' · ');
+    const neutralTags = [fmt, eps].filter(Boolean).map(tag =>
+      `<span class="poster-neutral-tag">${escHtml(tag)}</span>`
+    ).join('');
     let metaSub = '';
     if (m.nextAiringEpisode) {
       const t = m.nextAiringEpisode.timeUntilAiring;
       const d = Math.floor(t / 86400), h = Math.floor(t / 3600);
-      metaSub = `Ep ${m.nextAiringEpisode.episode} in ${d > 0 ? d + 'd' : h + 'h'}`;
+      if (d > 0) metaSub = `Episode ${m.nextAiringEpisode.episode} in ${d} day${d === 1 ? '' : 's'}`;
+      else metaSub = `Episode ${m.nextAiringEpisode.episode} in ${h} hour${h === 1 ? '' : 's'}`;
     }
-    return `<a class="poster" href="https://anilist.co/anime/${m.id}" target="_blank" rel="noopener">
+    return `<a class="poster ${themeClass} ${metaSub ? 'has-banner' : ''}" href="https://anilist.co/anime/${m.id}" target="_blank" rel="noopener noreferrer">
       <div class="poster-img">
         <img src="${escHtml(m.coverImage.large)}" alt="${title}" loading="lazy">
         <div class="poster-genres">${genres}</div>
-        <div class="poster-meta">
-          ${metaTop ? `<div class="poster-meta-row">${escHtml(metaTop)}</div>` : ''}
-          ${metaSub ? `<div class="poster-meta-sub">${escHtml(metaSub)}</div>` : ''}
-        </div>
+        ${neutralTags ? `<div class="poster-bottom-tags">${neutralTags}</div>` : ''}
+        ${metaSub ? `<div class="poster-meta"><div class="poster-meta-row">${escHtml(metaSub)}</div></div>` : ''}
       </div>
       <div class="poster-title">${title}</div>
       <div class="poster-score">
-        ${score ? `<img class="poster-anilist-logo" src="https://anilist.co/img/icons/android-chrome-512x512.png" alt=""><span style="color:${scoreCol}">${score}</span>` : ''}
+        ${score ? `${ANILIST_MARK.replace('al-logo-badge', 'al-logo-badge poster-anilist-logo')}<span class="poster-score-value ${scoreCls}">${score}</span>` : ''}
       </div>
     </a>`;
   }).join('') + '</div>';
@@ -2278,12 +2829,12 @@ function renderListView(media) {
     if (!nae) return '';
     const t = nae.timeUntilAiring;
     const d = Math.floor(t / 86400), h = Math.floor(t / 3600);
-    return `Ep ${nae.episode} in ${d > 0 ? d + 'd' : h + 'h'}`;
+    return `Episode ${nae.episode} in ${d > 0 ? d + ' day' + (d === 1 ? '' : 's') : h + ' hour' + (h === 1 ? '' : 's')}`;
   }
   return '<div class="preview-list">' + media.map(m => {
     const title   = escHtml(m.title.english || m.title.romaji || '');
     const score   = m.averageScore ? m.averageScore + '%' : '\u2014';
-    const scoreCol = m.averageScore ? scoreColor(m.averageScore) : 'var(--text3)';
+    const scoreCls = scoreClass(m.averageScore || 0);
     const users   = m.popularity ? (m.popularity >= 1000 ? (m.popularity / 1000).toFixed(0) + 'K' : m.popularity) + ' users' : '';
     const format  = escHtml(FORMAT_LABELS[m.format] || m.format || '');
     const eps     = m.episodes ? m.episodes + ' ep' + (m.episodes !== 1 ? 's' : '') : '';
@@ -2291,17 +2842,16 @@ function renderListView(media) {
     const airing  = escHtml(airingText(m.nextAiringEpisode));
     const statusL = escHtml(STATUS_LABELS[m.status] || m.status || '');
     const genres  = (m.genres || []).slice(0, 3).map(g => {
-      const c = GENRE_COLORS[g] || '#888';
-      return `<span class="genre-badge" style="background:${c}28;color:${c};border:0.5px solid ${c}55;cursor:pointer" onclick="event.preventDefault();event.stopPropagation();applyGenreFilter('${escHtml(g)}')">${escHtml(g)}</span>`;
+      return `<span class="genre-badge ${genreBadgeClass(g, 'soft')}" data-genre="${escHtml(g)}">${escHtml(g)}</span>`;
     }).join('');
-    return `<a class="list-item" href="https://anilist.co/anime/${m.id}" target="_blank" rel="noopener">
+    return `<a class="list-item" href="https://anilist.co/anime/${m.id}" target="_blank" rel="noopener noreferrer">
       <div class="list-thumb"><img src="${escHtml(m.coverImage.large)}" alt="${title}" loading="lazy"></div>
       <div class="list-main">
         <div class="list-title">${title}</div>
         <div class="list-genres">${genres}</div>
       </div>
       <div class="list-score">
-        <div class="list-score-pct"><img class="list-al-icon" src="https://anilist.co/img/icons/android-chrome-512x512.png" alt=""><span style="color:${scoreCol}">${score}</span></div>
+        <div class="list-score-pct">${ANILIST_MARK.replace('al-logo-badge', 'al-logo-badge list-al-icon')}<span class="list-score-value ${scoreCls}">${score}</span></div>
         <div class="list-stat">${users}</div>
       </div>
       <div class="list-meta-col">
@@ -2338,34 +2888,33 @@ function renderDetailView(media) {
     return { ep: nae.episode, time: d > 0 ? `${d} days, ${h} hours` : `${h} hours, ${min} mins` };
   }
   return '<div class="detail-grid">' + media.map(m => {
-    const title   = escHtml(m.title.english || m.title.romaji || '');
+    const rawTitle = m.title.english || m.title.romaji || '';
+    const title   = escHtml(rawTitle);
     const score   = m.averageScore || 0;
+    const scoreCls = scoreClass(score);
     const fmt     = FORMAT_LABELS[m.format] || m.format || '';
     const eps     = m.episodes ? m.episodes + (m.episodes !== 1 ? ' episodes' : ' episode') : '';
     const meta    = [fmt, eps].filter(Boolean).join(' \u00b7 ');
     const period  = [SEASON_LABELS[m.season], m.seasonYear].filter(Boolean).join(' ');
     const airing  = airingStr(m.nextAiringEpisode);
     const studio  = ((m.studios && m.studios.nodes && m.studios.nodes[0]) || {}).name || '';
-    const studioColor = STUDIO_COLORS[studio] || 'rgba(235,235,245,0.55)';
+    const themeClass = studioThemeClass(studio);
+    const bannerLineClass = detailBannerLineClass(rawTitle);
     const desc    = m.description ? escHtml(m.description.replace(/<[^>]*>/g, '').replace(/\\n/g, ' ')) : '';
-    const themeColor = STUDIO_COLORS[studio] || null;
     const genres  = (m.genres || []).slice(0, 3).map(g => {
-      const c = themeColor || GENRE_COLORS[g] || '#888';
-      const lighter = themeColor ? (GENRE_COLORS[g] || c) : c;
-      return `<span class="genre-badge" style="background:${lighter}22;color:${lighter}cc;border:0.5px solid ${lighter}44;cursor:pointer" onclick="event.stopPropagation();applyGenreFilter('${escHtml(g)}')">${escHtml(g)}</span>`;
+      return `<span class="genre-badge ${genreBadgeClass(g, 'soft')}" data-genre="${escHtml(g)}">${escHtml(g)}</span>`;
     }).join('');
-    const sc = scoreColor(score);
-    const scoreBadge = score ? `<div class="detail-score-badge" style="background:${sc}"><img class="detail-score-icon" src="https://anilist.co/img/icons/android-chrome-512x512.png" alt="AL">${score}%</div>` : '';
+    const scoreBadge = score ? `<div class="detail-score-badge ${detailScoreClass(score)}">${ANILIST_MARK.replace('al-logo-badge', 'al-logo-badge detail-score-icon')}<span class="detail-score-value">${score}%</span></div>` : '';
     const headerLeft = airing
       ? `<div class="detail-airing-label">Ep ${airing.ep} airing in</div><div class="detail-airing-time">${escHtml(airing.time)}</div>`
       : `<div class="detail-period">${escHtml(period)}</div>`;
-    return `<div class="detail-card" onclick="window.open('https://anilist.co/anime/${m.id}','_blank')">
+    return `<a class="detail-card ${themeClass} ${bannerLineClass}" href="https://anilist.co/anime/${m.id}" target="_blank" rel="noopener noreferrer">
       <div class="detail-poster">
         <img src="${escHtml(m.coverImage.large)}" alt="${title}" loading="lazy">
         <div class="detail-poster-overlay">
           <div class="detail-overlay-inner">
             <div class="detail-overlay-title">${title}</div>
-            ${studio ? `<div class="detail-overlay-studio" style="color:${studioColor}">${escHtml(studio)}</div>` : ''}
+            ${studio ? `<div class="detail-overlay-studio">${escHtml(studio)}</div>` : ''}
           </div>
         </div>
       </div>
@@ -2380,7 +2929,7 @@ function renderDetailView(media) {
           <div class="detail-genres">${genres}</div>
         </div>
       </div>
-    </div>`;
+    </a>`;
   }).join('') + '</div>';
 }
 
@@ -2399,15 +2948,15 @@ function setSortValue(val) {
 }
 function toggleSortMenu() {
   const menu = document.getElementById('sort-menu');
-  const isOpen = menu.style.display === 'block';
+  const isOpen = menu.classList.contains('open');
   if (isOpen) { closeSortMenu(); } else {
-    menu.style.display = 'block';
+    menu.classList.add('open');
     document.getElementById('sort-btn').classList.add('open');
   }
 }
 function closeSortMenu() {
   const menu = document.getElementById('sort-menu');
-  if (menu) menu.style.display = 'none';
+  if (menu) menu.classList.remove('open');
   const btn = document.getElementById('sort-btn');
   if (btn) btn.classList.remove('open');
 }
@@ -2421,9 +2970,9 @@ function setPaneTab(tab) {
   currentPane = tab;
   document.getElementById('tab-preview').classList.toggle('active', tab === 'preview');
   document.getElementById('tab-catalogs').classList.toggle('active', tab === 'catalogs');
-  document.getElementById('preview-pane').style.display = tab === 'preview' ? '' : 'none';
-  document.getElementById('catalogs-pane').style.display = tab === 'catalogs' ? 'flex' : 'none';
-  document.getElementById('preview-tab-extras').style.display = tab === 'preview' ? '' : 'none';
+  document.getElementById('preview-pane').classList.toggle('pane-hidden', tab !== 'preview');
+  document.getElementById('catalogs-pane').classList.toggle('catalogs-hidden', tab !== 'catalogs');
+  document.getElementById('preview-tab-extras').classList.toggle('pane-hidden', tab !== 'preview');
 }
 
 // ── Filter tags ───────────────────────────────────
@@ -2454,8 +3003,8 @@ function renderFilterTags() {
 
   const container = document.getElementById('filter-tags');
   container.innerHTML = tags.map(t =>
-    `<span class="filter-tag" onclick="event.stopPropagation()">${escHtml(t.label)}<span class="filter-tag-x" onclick="removeFilter('${escHtml(t.key)}')">&#10005;</span></span>`
-  ).join('') + (tags.length ? '<button class="filter-tag-clear" onclick="clearAllFilters()">Clear All &#10005;</button>' : '');
+    `<span class="filter-tag">${escHtml(t.label)}<button class="filter-tag-x" type="button" data-action="remove-filter" data-key="${escHtml(t.key)}">&#10005;</button></span>`
+  ).join('') + (tags.length ? '<button class="filter-tag-clear" type="button" data-action="clear-all-filters">Clear All &#10005;</button>' : '');
 }
 
 function removeFilter(key) {
@@ -2656,7 +3205,7 @@ async function previewCustom() {
     console.error('[preview] Error:', e);
     document.getElementById('preview-sub').textContent = 'Failed to load preview';
     document.getElementById('preview-area').innerHTML =
-      `<div class="preview-prompt"><div>Could not reach AniList API</div><div style="font-size:11px;color:var(--text3);margin-top:6px">${escHtml(e instanceof Error ? e.message : String(e))}</div></div>`;
+      `<div class="preview-prompt"><div>Could not reach AniList API</div><div class="preview-error-detail">${escHtml(e instanceof Error ? e.message : String(e))}</div></div>`;
   }
 }
 
@@ -2664,17 +3213,17 @@ async function previewCustom() {
 function clearNameError() {
   const inp = document.getElementById('catalog-name');
   const err = document.getElementById('catalog-name-error');
-  inp.style.borderColor = '';
-  err.style.display = 'none';
+  inp.classList.remove('input-error');
+  err.classList.remove('visible');
 }
 
 function addCustom() {
   const nameInput = document.getElementById('catalog-name');
   const name = nameInput.value.trim();
   if (!name) {
-    nameInput.style.borderColor = '#e85d04';
+    nameInput.classList.add('input-error');
     const errEl = document.getElementById('catalog-name-error');
-    errEl.style.display = 'block';
+    errEl.classList.add('visible');
     clearTimeout(errEl._hideTimer);
     errEl._hideTimer = setTimeout(() => clearNameError(), 2500);
     nameInput.focus();
@@ -2786,18 +3335,18 @@ async function previewCatalog(id) {
     loadFiltersIntoForm(cat.filters);
   }
   setPreviewLoading(cat.name);
+  if (cat.type === 'preset') {
+    await previewPresetWithCurrentFilters(cat);
+    return;
+  }
   try {
-    const media = cat.type === 'preset'
-      ? cat.id === 'anilist-airing-week'
-        ? await fetchAiringWeekPreview()
-        : await fetchPreview(PRESET_VARS[cat.id]())
-      : await fetchPreview(filtersToVars(cat.filters));
+    const media = await fetchPreview(filtersToVars(cat.filters));
     renderPreview(media, `${cat.name} \u2014 ${media.length} titles`);
   } catch(e) {
     console.error('[preview] Error:', e);
     document.getElementById('preview-sub').textContent = 'Failed to load preview';
     document.getElementById('preview-area').innerHTML =
-      `<div class="preview-prompt"><div>Could not reach AniList API</div><div style="font-size:11px;color:var(--text3);margin-top:6px">${escHtml(e instanceof Error ? e.message : String(e))}</div></div>`;
+      `<div class="preview-prompt"><div>Could not reach AniList API</div><div class="preview-error-detail">${escHtml(e instanceof Error ? e.message : String(e))}</div></div>`;
   }
 }
 
@@ -2819,7 +3368,12 @@ function scheduleAutoPreview() {
     }
     // If _sourceMedia is null the in-flight fetchAndShowSource will call _applySourcePreview when done
   } else {
-    autoPreviewTimer = setTimeout(previewCustom, 1000);
+    const previewCat = catalogs.find(c => c.id === previewingId);
+    if (previewCat && previewCat.type === 'preset') {
+      autoPreviewTimer = setTimeout(() => previewPresetWithCurrentFilters(previewCat), 400);
+    } else {
+      autoPreviewTimer = setTimeout(previewCustom, 1000);
+    }
   }
 }
 
@@ -2848,32 +3402,26 @@ function render() {
   const countBadge = document.getElementById('catalog-count-badge');
   if (countBadge) {
     countBadge.textContent = catalogs.length + ' Catalog' + (catalogs.length !== 1 ? 's' : '');
-    countBadge.style.display = catalogs.length > 0 ? '' : 'none';
+    countBadge.classList.toggle('hidden', catalogs.length === 0);
   }
   if (catalogs.length === 0) {
     list.innerHTML = '<div class="empty-state"><div class="empty-icon">&#127916;</div><div>No catalogs yet.<br>Use Quick Add or the builder.</div></div>';
   } else {
     list.innerHTML = catalogs.map((c, i) => `
-      <div class="catalog-item ${previewingId === c.id ? 'active-preview' : ''}" draggable="true" data-id="${c.id}"
-           ondragstart="dragStart(event,${i})" ondragover="dragOver(event,${i})"
-           ondrop="drop(event,${i})" ondragleave="dragLeave(event)"
-           onclick="previewCatalog('${c.id}')">
-        <span class="drag-handle" onclick="event.stopPropagation()">&#8597;</span>
+      <div class="catalog-item ${previewingId === c.id ? 'active-preview' : ''}" draggable="true" data-id="${c.id}" data-index="${i}" data-action="preview-catalog">
+        <span class="drag-handle">&#8597;</span>
         <div class="catalog-num">${i + 1}</div>
         <div class="catalog-item-info">
           ${renamingId === c.id
-            ? `<input class="catalog-rename-input" data-rename-id="${c.id}" value="${escHtml(c.name)}"
-                 onclick="event.stopPropagation()"
-                 onblur="commitRename('${c.id}', this.value)"
-                 onkeydown="if(event.key==='Enter'){this.blur();}if(event.key==='Escape'){cancelRename();}">`
+            ? `<input class="catalog-rename-input" data-rename-id="${c.id}" value="${escHtml(c.name)}">`
             : `<div class="catalog-item-name">${escHtml(c.name)}</div>`
           }
           <div class="catalog-item-type"><span class="catalog-type-badge">${c.type === 'watching' ? 'Account' : c.type === 'ai' ? 'AI' : c.type === 'custom' ? 'Custom' : 'Preset'}</span></div>
         </div>
-        <div class="catalog-actions" onclick="event.stopPropagation()">
-          <button class="edit-btn" onclick="startRenaming('${c.id}')">&#9998; Rename</button>
-          <button class="shuffle-btn ${c.randomize ? 'active' : ''}" onclick="toggleRandomize('${c.id}')">${SHUFFLE_ICON} Randomize</button>
-          <button class="remove-btn" onclick="removeCatalog('${c.id}')">&#128465; Remove</button>
+        <div class="catalog-actions">
+          <button class="edit-btn" type="button" data-action="start-rename" data-id="${c.id}">&#9998; Rename</button>
+          <button class="shuffle-btn ${c.randomize ? 'active' : ''}" type="button" data-action="toggle-randomize" data-id="${c.id}">${SHUFFLE_ICON} Randomize</button>
+          <button class="remove-btn" type="button" data-action="remove-catalog" data-id="${c.id}">&#128465; Remove</button>
         </div>
       </div>
     `).join('');
@@ -2935,13 +3483,18 @@ function dragStart(e, i) {
 }
 function dragOver(e, i) {
   e.preventDefault();
-  document.querySelectorAll('.catalog-item').forEach(el => el.classList.remove('drag-over'));
+  document.querySelectorAll('.catalog-item').forEach(el => el.classList.remove('drag-over', 'shift-up', 'shift-down'));
   e.currentTarget.classList.add('drag-over');
+  document.querySelectorAll('.catalog-item').forEach((el, idx) => {
+    if (dragIdx === null || idx === i) return;
+    if (dragIdx < i && idx > dragIdx && idx <= i) el.classList.add('shift-up');
+    if (dragIdx > i && idx >= i && idx < dragIdx) el.classList.add('shift-down');
+  });
 }
 function dragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
 function drop(e, i) {
   e.preventDefault();
-  document.querySelectorAll('.catalog-item').forEach(el => el.classList.remove('drag-over', 'dragging'));
+  document.querySelectorAll('.catalog-item').forEach(el => el.classList.remove('drag-over', 'dragging', 'shift-up', 'shift-down'));
   dragMoved = false;
   if (dragIdx === null || dragIdx === i) { dragIdx = null; return; }
   const moved = catalogs.splice(dragIdx, 1)[0];
@@ -2951,14 +3504,14 @@ function drop(e, i) {
 }
 document.addEventListener('dragend', () => {
   dragMoved = false;
-  document.querySelectorAll('.catalog-item.dragging').forEach(el => el.classList.remove('dragging'));
+  document.querySelectorAll('.catalog-item').forEach(el => el.classList.remove('dragging', 'drag-over', 'shift-up', 'shift-down'));
 });
 
 // ── Import config from manifest URL ──────────────
 async function importConfig() {
   const raw = document.getElementById('import-url').value.trim();
   const fb  = document.getElementById('import-feedback');
-  fb.style.display = 'none';
+  fb.className = '';
 
   try {
     // Pull the path segment from any URL shaped like /{segment}/manifest.json.
@@ -3039,14 +3592,12 @@ async function importConfig() {
     render();
 
     const n = catalogs.length;
-    fb.style.color = 'var(--text2)';
     fb.textContent = '\u2713 Imported ' + n + ' catalog' + (n !== 1 ? 's' : '');
-    fb.style.display = 'block';
-    setTimeout(() => { fb.style.display = 'none'; }, 3000);
+    fb.className = 'visible ok';
+    setTimeout(() => { fb.className = ''; }, 3000);
   } catch(e) {
-    fb.style.color = '#e85d04';
     fb.textContent = '\u2717 ' + e.message;
-    fb.style.display = 'block';
+    fb.className = 'visible err';
   }
 }
 
@@ -3136,15 +3687,6 @@ function updateQrCode(url) {
     colorLight: '#1c1c1e',
     correctLevel: QRCode.CorrectLevel.M,
   });
-
-  // qrcodejs creates a canvas immediately and an img shortly after
-  wrap.querySelectorAll('canvas, img').forEach(el => { el.style.borderRadius = '6px'; });
-  const observer = new MutationObserver(() => {
-    wrap.querySelectorAll('canvas, img').forEach(el => { el.style.borderRadius = '6px'; });
-  });
-  observer.observe(wrap, { childList: true });
-  setTimeout(() => observer.disconnect(), 500);
-
 }
 
 function openInStremio() {
@@ -3156,26 +3698,242 @@ function openInStremio() {
 async function copyUrl() {
   const url = _currentManifestUrl || document.getElementById('url-display').textContent;
   await navigator.clipboard.writeText(url);
-  const fb = document.getElementById('copy-feedback');
-  fb.classList.add('show');
-  setTimeout(() => fb.classList.remove('show'), 2000);
+  const btn = document.getElementById('copy-url-btn');
+  btn.textContent = '✓ Copied';
+  btn.disabled = true;
+  setTimeout(() => { btn.textContent = 'Copy URL'; btn.disabled = false; }, 2000);
 }
 
 // ── Init ──────────────────────────────────────────
-catalogs = [
-  { id: 'anilist-popular-season', name: 'Popular This Season', type: 'preset' },
-  { id: 'anilist-airing-week',    name: 'Airing This Week',    type: 'preset' },
-  { id: 'anilist-trending',       name: 'Trending Now',        type: 'preset' },
-  { id: 'anilist-top-rated',      name: 'Top Rated All Time',  type: 'preset' },
-];
+function bindStaticUiEvents() {
+  const scoreInput = document.getElementById('f-score');
+  if (scoreInput) {
+    scoreInput.addEventListener('input', e => {
+      const score = parseInt(e.target.value, 10) || 0;
+      document.getElementById('score-val').textContent = score > 0 ? score + '+' : 'Any';
+      scheduleAutoPreview();
+    });
+  }
 
-// Show auth error banner if redirected back with ?error=auth_failed
-if (_urlParams.get('error') === 'auth_failed') {
+  const adultInput = document.getElementById('f-adult');
+  if (adultInput) adultInput.addEventListener('change', onAdultChange);
+
+  const nameInput = document.getElementById('catalog-name');
+  if (nameInput) {
+    nameInput.addEventListener('input', () => {
+      if (nameInput.value.trim()) clearNameError();
+    });
+    nameInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addCustom();
+      }
+    });
+  }
+
+  const importInput = document.getElementById('import-url');
+  if (importInput) {
+    importInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        importConfig();
+      }
+    });
+  }
+
+  const catalogList = document.getElementById('catalog-list');
+  if (catalogList) {
+    catalogList.addEventListener('dragstart', e => {
+      const item = e.target.closest('.catalog-item');
+      if (!item) return;
+      dragStart(e, parseInt(item.dataset.index, 10));
+    });
+    catalogList.addEventListener('dragover', e => {
+      const item = e.target.closest('.catalog-item');
+      if (!item) return;
+      dragOver(e, parseInt(item.dataset.index, 10));
+    });
+    catalogList.addEventListener('dragleave', e => {
+      const item = e.target.closest('.catalog-item');
+      if (!item || item.contains(e.relatedTarget)) return;
+      dragLeave({ currentTarget: item });
+    });
+    catalogList.addEventListener('drop', e => {
+      const item = e.target.closest('.catalog-item');
+      if (!item) return;
+      drop(e, parseInt(item.dataset.index, 10));
+    });
+  }
+
+  document.addEventListener('keydown', e => {
+    const renameInput = e.target.closest('.catalog-rename-input');
+    if (!renameInput) return;
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      renameInput.blur();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      cancelRename();
+    }
+  });
+
+  document.addEventListener('focusout', e => {
+    const renameInput = e.target.closest('.catalog-rename-input');
+    if (!renameInput) return;
+    commitRename(renameInput.dataset.renameId, renameInput.value);
+  });
+
+  document.addEventListener('click', e => {
+    if (e.target?.id === 'ai-modal-overlay') {
+      closeAiModal();
+      return;
+    }
+
+    const genreBadge = e.target.closest('.genre-badge[data-genre]');
+    if (genreBadge) {
+      e.preventDefault();
+      e.stopPropagation();
+      applyGenreFilter(genreBadge.dataset.genre);
+      return;
+    }
+
+    const actionEl = e.target.closest('[data-action]');
+    if (!actionEl) return;
+
+    switch (actionEl.dataset.action) {
+      case 'save-config-before-login':
+        saveConfigBeforeLogin();
+        return;
+      case 'disconnect':
+        e.preventDefault();
+        disconnect();
+        return;
+      case 'set-active-filter':
+        e.preventDefault();
+        setActiveFilter(actionEl.dataset.filter);
+        return;
+      case 'add-custom':
+        e.preventDefault();
+        addCustom();
+        return;
+      case 'set-pane-tab':
+        e.preventDefault();
+        setPaneTab(actionEl.dataset.pane);
+        return;
+      case 'toggle-sort-menu':
+        e.preventDefault();
+        toggleSortMenu();
+        return;
+      case 'set-sort-value':
+        e.preventDefault();
+        setSortValue(actionEl.dataset.value);
+        return;
+      case 'set-view':
+        e.preventDefault();
+        setView(actionEl.dataset.view);
+        return;
+      case 'add-preset':
+        e.preventDefault();
+        addPreset(actionEl.dataset.id, actionEl.dataset.name);
+        return;
+      case 'add-account-preset':
+        e.preventDefault();
+        addAccountPreset(actionEl.dataset.id, actionEl.dataset.name, actionEl.dataset.status);
+        return;
+      case 'add-ai':
+        e.preventDefault();
+        addAiCatalog();
+        return;
+      case 'open-ai-modal':
+        e.preventDefault();
+        e.stopPropagation();
+        openAiModal();
+        return;
+      case 'open-stremio':
+        e.preventDefault();
+        openInStremio();
+        return;
+      case 'copy-url':
+        e.preventDefault();
+        copyUrl();
+        return;
+      case 'import-config':
+        e.preventDefault();
+        importConfig();
+        return;
+      case 'remove-filter':
+        e.preventDefault();
+        e.stopPropagation();
+        removeFilter(actionEl.dataset.key);
+        return;
+      case 'clear-all-filters':
+        e.preventDefault();
+        clearAllFilters();
+        return;
+      case 'preview-catalog':
+        if (e.target.closest('.catalog-actions') || e.target.closest('.catalog-rename-input') || e.target.closest('.drag-handle')) return;
+        previewCatalog(actionEl.dataset.id);
+        return;
+      case 'start-rename':
+        e.preventDefault();
+        e.stopPropagation();
+        startRenaming(actionEl.dataset.id);
+        return;
+      case 'toggle-randomize':
+        e.preventDefault();
+        e.stopPropagation();
+        toggleRandomize(actionEl.dataset.id);
+        return;
+      case 'remove-catalog':
+        e.preventDefault();
+        e.stopPropagation();
+        removeCatalog(actionEl.dataset.id);
+        return;
+      case 'close-ai-modal':
+        e.preventDefault();
+        closeAiModal();
+        return;
+      case 'test-or-key':
+        e.preventDefault();
+        testOrKey();
+        return;
+      case 'save-ai-modal':
+        e.preventDefault();
+        saveOrKeyFromModal();
+        return;
+      default:
+        return;
+    }
+  });
+
+  document.addEventListener('change', e => {
+    if (e.target?.id === 'ai-model-select') handleAiModelChange();
+  });
+}
+
+if (!catalogs.length) {
+  catalogs = [
+    { id: 'anilist-popular-season', name: 'Popular This Season', type: 'preset' },
+    { id: 'anilist-airing-week',    name: 'Airing This Week',    type: 'preset' },
+    { id: 'anilist-trending',       name: 'Trending Now',        type: 'preset' },
+    { id: 'anilist-top-rated',      name: 'Top Rated All Time',  type: 'preset' },
+  ];
+}
+
+// Show auth error banner if redirected back with an OAuth error
+const _authError = _urlParams.get('error');
+if (_authError) {
   const banner = document.getElementById('error-banner');
   if (banner) {
-    banner.textContent = 'Failed to authenticate with AniList. Please try again.';
-    banner.style.display = 'block';
+    const errorMessages = {
+      auth_failed: 'Failed to authenticate with AniList. Please try again.',
+      auth_invalid_client: 'AniList rejected this app configuration. Check your AniList client ID, client secret, and redirect URI.',
+    };
+    banner.textContent = errorMessages[_authError] || errorMessages.auth_failed;
+    banner.classList.add('visible');
   }
+  _sessionKey = null;
+  _hasOrKey = false;
   // Clean error param from URL without reloading
   const cleanUrl = new URL(window.location.href);
   cleanUrl.searchParams.delete('error');
@@ -3183,6 +3941,7 @@ if (_urlParams.get('error') === 'auth_failed') {
 }
 
 // Bootstrap auth UI — validates token against /api/me if present
+bindStaticUiEvents();
 fetchMe();
 
 render();
@@ -3191,37 +3950,37 @@ renderFilterTags();
 </script>
 
 <!-- AI Settings Modal -->
-<div class="ai-modal-overlay" id="ai-modal-overlay" onclick="if(event.target===this)closeAiModal()">
+<div class="ai-modal-overlay" id="ai-modal-overlay">
   <div class="ai-modal">
     <div class="ai-modal-header">
       <div class="ai-modal-title">AI Recommendations Settings</div>
-      <button class="ai-modal-close" onclick="closeAiModal()">&#10005;</button>
+      <button class="ai-modal-close" data-action="close-ai-modal">&#10005;</button>
     </div>
     <div class="ai-modal-body">
       <div class="ai-modal-section">
         <label class="ai-modal-label">Model</label>
-        <select id="ai-model-select" class="ai-modal-select" onchange="handleAiModelChange()">
+        <select id="ai-model-select" class="ai-modal-select">
           <option value="meta-llama/llama-3.3-70b-instruct">Llama 3.3 70B Instruct (Default &mdash; fast &amp; cheap)</option>
           <option value="google/gemini-flash-1.5">Gemini Flash 1.5 (Fast)</option>
           <option value="openai/gpt-4o-mini">GPT-4o Mini (Accurate)</option>
           <option value="anthropic/claude-haiku-4-5-20251001">Claude Haiku 4.5 (Fast)</option>
           <option value="custom">Custom model&hellip;</option>
         </select>
-        <input type="text" id="ai-model-custom" class="ai-modal-input" placeholder="e.g. mistralai/mixtral-8x7b-instruct" style="display:none;margin-top:6px">
+        <input type="text" id="ai-model-custom" class="ai-modal-input" placeholder="e.g. mistralai/mixtral-8x7b-instruct">
       </div>
       <div class="ai-modal-section">
         <label class="ai-modal-label">OpenRouter API Key</label>
         <div class="ai-key-row">
           <input type="password" id="ai-key-input" class="ai-modal-input" placeholder="sk-or-v1-\u2026" autocomplete="off">
-          <button class="ai-test-btn" id="ai-test-btn" onclick="testOrKey()">Test</button>
+          <button class="ai-test-btn" id="ai-test-btn" data-action="test-or-key">Test</button>
         </div>
         <div class="ai-key-feedback" id="ai-key-feedback"></div>
         <div class="ai-key-hint">Get a free key at openrouter.ai/keys &mdash; key is encrypted and stored server-side only</div>
       </div>
     </div>
     <div class="ai-modal-footer">
-      <button class="ai-modal-cancel" onclick="closeAiModal()">Cancel</button>
-      <button class="ai-modal-save" id="ai-modal-save-btn" onclick="saveOrKeyFromModal()">Save</button>
+      <button class="ai-modal-cancel" data-action="close-ai-modal">Cancel</button>
+      <button class="ai-modal-save" id="ai-modal-save-btn" data-action="save-ai-modal">Save</button>
     </div>
   </div>
 </div>

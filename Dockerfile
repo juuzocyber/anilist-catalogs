@@ -21,8 +21,12 @@ COPY --from=deps /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.
 COPY --from=deps /usr/local/bin /usr/local/bin
 
 # Copy application source
-COPY anilist.py cache.py config.py configure.py crypto.py \
-     main.py manifest.py models.py settings.py ./
+# Keep this broad enough that new runtime modules don't get omitted from the
+# image on future releases (for example id_mapper.py).
+COPY *.py ./
+
+# Static runtime assets served by FastAPI (for example the vendored QR script).
+COPY static ./static
 
 # Hand ownership to appuser
 RUN chown -R appuser:appuser /app

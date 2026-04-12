@@ -7,7 +7,7 @@ Catalog IDs are stable strings — changing them breaks existing installs.
 
 MANIFEST = {
     "id": "community.anilist.catalogs",
-    "version": "1.3.0",
+    "version": "1.4.2",
     "name": "AniList Catalogs",
     "description": (
         "Anime catalogs powered by the AniList GraphQL API. "

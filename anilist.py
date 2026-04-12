@@ -2,11 +2,15 @@
 AniList GraphQL client.
 """
 
-import re
-import httpx
+import asyncio
+import json
 import logging
+import re
+import unicodedata
 from datetime import datetime, timezone, timedelta
 from typing import Optional
+
+import httpx
 
 logger = logging.getLogger(__name__)
 ANILIST_URL = "https://graphql.anilist.co"
@@ -32,6 +36,21 @@ MEDIA_FIELDS = """
     siteUrl
 """
 
+AI_HISTORY_MEDIA_FIELDS = """
+    id
+    title { romaji english native }
+    averageScore
+    meanScore
+    popularity
+"""
+
+AI_RECOMMENDATION_TARGET = 50
+AI_RECOMMENDATION_MINIMUM = 30
+AI_MODEL_CANDIDATE_COUNT = 100
+AI_PROMPT_COMPLETED_LIMIT = 80
+AI_PROMPT_WATCHING_LIMIT = 20
+AI_EXCLUSION_STATUSES = ("COMPLETED", "CURRENT", "PAUSED", "DROPPED", "REPEATING")
+
 def _season_now():
     now = datetime.now(timezone.utc)
     month = now.month
@@ -47,6 +66,48 @@ def _week_bounds_unix():
     monday = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
     sunday = (monday + timedelta(days=6)).replace(hour=23, minute=59, second=59)
     return int(monday.timestamp()), int(sunday.timestamp())
+
+
+def _normalize_title_key(title: str) -> str:
+    normalized = unicodedata.normalize("NFKC", title).casefold()
+    normalized = re.sub(r"[^\w\s]", " ", normalized)
+    return re.sub(r"\s+", " ", normalized).strip()
+
+
+def _title_variants(media: dict) -> set[str]:
+    variants: set[str] = set()
+    for key in ("english", "romaji", "native"):
+        title = (media.get("title") or {}).get(key)
+        if title:
+            normalized = _normalize_title_key(title)
+            if normalized:
+                variants.add(normalized)
+    return variants
+
+
+def _entry_sort_key(entry: dict) -> tuple[int, int, int]:
+    media = entry["media"]
+    user_score = entry.get("user_score") or 0
+    community_score = media.get("averageScore") or media.get("meanScore") or 0
+    popularity = media.get("popularity") or 0
+    return (user_score, community_score, popularity)
+
+
+def _format_history_entry(entry: dict) -> str:
+    media = entry["media"]
+    title = (
+        (media.get("title") or {}).get("english")
+        or (media.get("title") or {}).get("romaji")
+        or (media.get("title") or {}).get("native")
+        or "Unknown"
+    )
+    user_score = entry.get("user_score") or 0
+    if user_score:
+        score_str = f"{user_score}/10"
+    else:
+        avg = media.get("averageScore") or media.get("meanScore")
+        score_str = f"~{avg // 10}/10" if avg else "?"
+    return f"{title} ({score_str})"
 
 # Season suffixes to strip when an AniList entry maps to a tt (IMDB) ID.
 # IMDB treats multi-season anime as one show, so "JUJUTSU KAISEN Season 3"
@@ -324,7 +385,10 @@ async def get_favourites(token: str, user_id: int) -> list[dict]:
 
 
 async def _fetch_history_with_scores(
-    token: str, user_id: int, status: str,
+    token: str,
+    user_id: int,
+    status: str,
+    media_fields: str = AI_HISTORY_MEDIA_FIELDS,
 ) -> list[dict]:
     """Fetch user's anime list with personal scores for AI recommendation context.
 
@@ -338,7 +402,7 @@ async def _fetch_history_with_scores(
                 entries {{
                     score(format: POINT_10)
                     media {{
-                        {MEDIA_FIELDS}
+                        {media_fields}
                     }}
                 }}
             }}
@@ -373,51 +437,54 @@ async def get_ai_recommendations(
     Returns raw AniList media dicts (same shape as MEDIA_FIELDS — apply
     _media_to_meta in the caller).  Never logs the openrouter_key.
     """
-    import asyncio as _asyncio
-    import json as _json
-    import re as _re
-
-    # 1. Fetch completed + currently-watching history with user scores
+    # 1. Fetch watch history with user scores. Completed/current shape the prompt,
+    # while the broader seen set prevents already-watched titles from leaking back.
     try:
-        completed = await _fetch_history_with_scores(anilist_token, user_id, "COMPLETED")
-        watching  = await _fetch_history_with_scores(anilist_token, user_id, "CURRENT")
+        history_lists = await asyncio.gather(*[
+            _fetch_history_with_scores(anilist_token, user_id, status)
+            for status in AI_EXCLUSION_STATUSES
+        ])
     except Exception as exc:
         logger.error("AI recs: failed to fetch watch history: %s", exc)
         return []
 
-    all_entries = (completed + watching)[:50]
-    if not all_entries:
+    history_by_status = dict(zip(AI_EXCLUSION_STATUSES, history_lists))
+    completed = history_by_status.get("COMPLETED", [])
+    watching = history_by_status.get("CURRENT", [])
+    seen_entries = [
+        entry
+        for status in AI_EXCLUSION_STATUSES
+        for entry in history_by_status.get(status, [])
+    ]
+
+    if not seen_entries:
         logger.warning("AI recs: no watch history found, returning empty list")
         return []
 
-    # 2. Format as compact text — prefer user score, fall back to community average
-    parts = []
+    prompt_completed = sorted(completed, key=_entry_sort_key, reverse=True)[:AI_PROMPT_COMPLETED_LIMIT]
+    prompt_watching = sorted(watching, key=_entry_sort_key, reverse=True)[:AI_PROMPT_WATCHING_LIMIT]
+    prompt_entries = prompt_completed + prompt_watching
+    if not prompt_entries:
+        prompt_entries = sorted(seen_entries, key=_entry_sort_key, reverse=True)[:AI_PROMPT_COMPLETED_LIMIT]
+
+    # 2. Build exclusion sets from the full seen history.
     seen_titles: set[str] = set()
     seen_ids: set[int] = set()
-    for entry in all_entries:
+    for entry in seen_entries:
         m = entry["media"]
-        title = (
-            (m.get("title") or {}).get("english")
-            or (m.get("title") or {}).get("romaji")
-            or "Unknown"
-        )
-        user_score = entry["user_score"]
-        if user_score:
-            score_str = f"{user_score}/10"
-        else:
-            avg = m.get("averageScore") or m.get("meanScore")
-            score_str = f"~{avg // 10}/10" if avg else "?"
-        parts.append(f"{title} ({score_str})")
-        # Track ALL title variants for dedup — the LLM may recommend by any name
-        for key in ("english", "romaji", "native"):
-            t = (m.get("title") or {}).get(key)
-            if t:
-                seen_titles.add(t.lower().strip())
+        seen_titles.update(_title_variants(m))
         if m.get("id"):
             seen_ids.add(m["id"])
-    history_text = ", ".join(parts)
 
-    # 3. POST to OpenRouter — ask for titles, not IDs
+    completed_text = ", ".join(_format_history_entry(entry) for entry in prompt_completed)
+    watching_text = ", ".join(_format_history_entry(entry) for entry in prompt_watching)
+    if not completed_text:
+        completed_text = ", ".join(_format_history_entry(entry) for entry in prompt_entries)
+    if not watching_text:
+        watching_text = "None"
+
+    # 3. POST to OpenRouter - ask for more titles than we need so strict filtering
+    # still leaves a healthy unseen list.
     system_prompt = (
         "You are an anime recommendation engine. "
         "Return only a valid JSON array of anime title strings. "
@@ -425,10 +492,13 @@ async def get_ai_recommendations(
         "No explanation, no IDs, only the JSON array of strings."
     )
     user_prompt = (
-        "Based on this watch history, recommend 50 anime the user hasn't seen. "
-        "Focus on titles similar in genre, tone, and quality to their highest-rated entries. "
+        f"Based on this AniList history, recommend {AI_MODEL_CANDIDATE_COUNT} anime the user has not seen. "
+        "Treat completed anime as the strongest signal and currently watching anime as a secondary signal. "
+        "Do not recommend anything already in completed, current, paused, dropped, or repeating. "
+        "Focus on titles similar in genre, tone, and quality to their highest-rated completed entries. "
         "Return only a JSON array of anime title strings.\n\n"
-        f"Watch history: {history_text}"
+        f"Completed history (strongest signal): {completed_text}\n\n"
+        f"Currently watching (secondary signal): {watching_text}"
     )
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -445,7 +515,7 @@ async def get_ai_recommendations(
                         {"role": "user",   "content": user_prompt},
                     ],
                     "temperature": 0.7,
-                    "max_tokens": 2048,
+                    "max_tokens": 4096,
                 },
             )
         if resp.status_code != 200:
@@ -459,11 +529,11 @@ async def get_ai_recommendations(
     # 4. Parse JSON array of title strings from the model's response
     try:
         content = (payload.get("choices") or [{}])[0].get("message", {}).get("content", "").strip()
-        match = _re.search(r"\[[\s\S]*\]", content)
+        match = re.search(r"\[[\s\S]*\]", content)
         if not match:
             logger.error("AI recs: no JSON array in model response (first 200 chars): %s", content[:200])
             return []
-        raw_titles = _json.loads(match.group(0))
+        raw_titles = json.loads(match.group(0))
         if not isinstance(raw_titles, list):
             logger.error("AI recs: parsed value is not a list")
             return []
@@ -473,12 +543,14 @@ async def get_ai_recommendations(
             if not isinstance(item, str) or not item.strip():
                 continue
             normalized = item.strip()
-            key = normalized.lower()
+            key = _normalize_title_key(normalized)
+            if not key:
+                continue
             if key not in seen_in_resp and key not in seen_titles:
                 candidate_titles.append(normalized)
                 seen_in_resp.add(key)
-        if len(candidate_titles) > 50:
-            candidate_titles = candidate_titles[:50]
+        if len(candidate_titles) > AI_MODEL_CANDIDATE_COUNT:
+            candidate_titles = candidate_titles[:AI_MODEL_CANDIDATE_COUNT]
     except Exception as exc:
         logger.error("AI recs: failed to parse OpenRouter response: %s", exc)
         return []
@@ -487,7 +559,7 @@ async def get_ai_recommendations(
         logger.warning("AI recs: no valid candidate titles extracted")
         return []
 
-    # 5. Batch-search AniList for titles using aliased queries (10 per batch)
+    # 5. Batch-search AniList for titles using aliased queries (10 per batch).
     async def _search_batch(titles: list[str]) -> list[dict]:
         """Search multiple anime titles in a single AniList query using aliases."""
         alias_parts = []
@@ -514,25 +586,86 @@ async def get_ai_recommendations(
 
     all_media: list[dict] = []
     found_ids: set[int] = set()
+    found_titles: set[str] = set()
     for batch in batches:
         try:
             results = await _search_batch(batch)
             for media in results:
                 mid = media["id"]
-                if mid not in seen_ids and mid not in found_ids:
-                    all_media.append(media)
-                    found_ids.add(mid)
+                title_keys = _title_variants(media)
+                if mid in seen_ids or mid in found_ids:
+                    continue
+                if title_keys & seen_titles:
+                    continue
+                if title_keys and title_keys & found_titles:
+                    continue
+                all_media.append(media)
+                found_ids.add(mid)
+                found_titles.update(title_keys)
         except Exception as exc:
             logger.warning("AI recs: AniList search batch failed: %s", exc)
             continue
-        if len(all_media) >= 50:
+        if len(all_media) >= AI_RECOMMENDATION_TARGET:
             break
+
+    # 6. If the model leaves us short after strict filtering, fill the gap using
+    # AniList's own recommendation graph seeded from the user's strongest history.
+    if len(all_media) < AI_RECOMMENDATION_MINIMUM:
+        seed_entries = prompt_completed or prompt_entries
+        seed_ids = [
+            entry["media"]["id"]
+            for entry in seed_entries
+            if entry.get("media") and entry["media"].get("id")
+        ]
+
+        async def _recommendation_batch(seed_batch: list[int]) -> list[dict]:
+            alias_parts = []
+            for i, media_id in enumerate(seed_batch):
+                alias_parts.append(
+                    f"a{i}: Media(id: {media_id}, type: ANIME) {{ "
+                    f"recommendations(sort: RATING_DESC, perPage: 12) {{ "
+                    f"nodes {{ mediaRecommendation {{ {MEDIA_FIELDS} isAdult }} }} "
+                    f"}} }}"
+                )
+            data = await _gql("query {\n" + "\n".join(alias_parts) + "\n}", {})
+            fallback_results: list[dict] = []
+            for i in range(len(seed_batch)):
+                media = data.get(f"a{i}") or {}
+                nodes = (media.get("recommendations") or {}).get("nodes") or []
+                for node in nodes:
+                    candidate = node.get("mediaRecommendation")
+                    if candidate and candidate.get("id") and not candidate.get("isAdult"):
+                        fallback_results.append(candidate)
+            return fallback_results
+
+        for start in range(0, len(seed_ids), 5):
+            try:
+                fallback_results = await _recommendation_batch(seed_ids[start : start + 5])
+            except Exception as exc:
+                logger.warning("AI recs: AniList recommendation fallback failed: %s", exc)
+                continue
+            for media in fallback_results:
+                mid = media["id"]
+                title_keys = _title_variants(media)
+                if mid in seen_ids or mid in found_ids:
+                    continue
+                if title_keys & seen_titles:
+                    continue
+                if title_keys and title_keys & found_titles:
+                    continue
+                all_media.append(media)
+                found_ids.add(mid)
+                found_titles.update(title_keys)
+                if len(all_media) >= AI_RECOMMENDATION_TARGET:
+                    break
+            if len(all_media) >= AI_RECOMMENDATION_TARGET:
+                break
 
     if not all_media:
         logger.warning("AI recs: no valid media found from title search")
         return []
 
-    return all_media[:50]
+    return all_media[:AI_RECOMMENDATION_TARGET]
 
 
 async def get_meta(anilist_id: int) -> Optional[dict]:

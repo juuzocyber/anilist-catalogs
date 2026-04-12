@@ -222,4 +222,4 @@ SORT_OPTIONS = {
 }
 
 from datetime import datetime as _dt
-CURRENT_YEARS = list(range(_dt.now().year + 1, 2000, -1))
+CURRENT_YEARS = list(range(_dt.now().year + 1, 1979, -1))

@@ -3,8 +3,25 @@ CONFIGURE_HTML = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preload" href="/static/MonaSansVF.woff2" as="font" type="font/woff2" crossorigin>
 <title>AniList Catalogs — Configure</title>
 <style nonce="__CSP_NONCE__">
+  @font-face {
+    font-family: 'Mona Sans VF';
+    src: url('/static/MonaSansVF.woff2') format('woff2');
+    font-weight: 200 900;
+    font-stretch: 75% 125%;
+    font-style: normal;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Mona Sans VF';
+    src: url('/static/MonaSansVF.woff2') format('woff2');
+    font-weight: 200 900;
+    font-stretch: 75% 125%;
+    font-style: italic;
+    font-display: swap;
+  }
   :root {
     --bg:           #060606;
     --bg-0:         #0b0b0c;
@@ -33,8 +50,16 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     --pill:         999px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  body,
+  button,
+  input,
+  select,
+  textarea {
+    font-family: 'Mona Sans VF', 'Mona Sans', 'Segoe UI', 'Helvetica Neue', sans-serif;
+    font-optical-sizing: auto;
+    font-feature-settings: "ss05" on;
+  }
   body {
-    font-family: 'SF Pro Display', 'Segoe UI', 'Helvetica Neue', sans-serif;
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
@@ -158,26 +183,76 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   /* Filter pill buttons (same style as genres btn) */
   .fb-filter-btn {
     display: flex; align-items: center; justify-content: center; gap: 5px;
-    background: linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.025));
+    background: rgba(255,255,255,0.04);
     border: 1px solid transparent;
-    border-radius: 15px; color: var(--text2); cursor: pointer;
+    border-radius: 10px; color: var(--text2); cursor: pointer;
     padding: 0 16px; font-size: 12px; font-family: inherit;
     height: 38px; flex: 1; min-width: 0;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.045);
     transition: background 0.18s, border-color 0.18s, color 0.18s, transform 0.18s, box-shadow 0.18s;
   }
   .fb-filter-btn:hover {
-    background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03));
+    background: rgba(255,255,255,0.07);
     border-color: var(--sep-strong); color: var(--text); transform: translateY(-1px);
     box-shadow: var(--shadow-sm);
   }
   .fb-filter-btn.active {
     border-color: rgba(255,255,255,0.24); color: var(--text);
-    background: linear-gradient(180deg, rgba(255,255,255,0.1), rgba(255,255,255,0.035));
+    background: rgba(255,255,255,0.10);
     box-shadow: none;
   }
   .fb-filter-btn.active .fb-chevron { transform: rotate(180deg); }
   .fb-filter-btn.has-value { color: var(--text); border-color: var(--sep-strong); }
+  .year-dropdown { position: relative; display: flex; flex: 1.12 1 0; width: 0; min-width: 0; }
+  .year-dropdown .fb-filter-btn { flex: 1 1 0; width: auto; }
+  .year-dropdown .fb-filter-btn.open .fb-chevron { transform: rotate(180deg); }
+  .year-menu {
+    display: none;
+    position: absolute;
+    left: 0;
+    top: calc(100% + 6px);
+    min-width: 100%;
+    max-height: 320px;
+    overflow-y: auto;
+    background: rgba(20,20,22,0.98);
+    border-radius: 12px;
+    border: 1px solid var(--sep);
+    box-shadow: var(--shadow-lg);
+    z-index: 110;
+    padding: 6px 0;
+    backdrop-filter: blur(18px);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.2) transparent;
+  }
+  .year-menu.open { display: block; }
+  .year-menu::-webkit-scrollbar { width: 8px; }
+  .year-menu::-webkit-scrollbar-track { background: transparent; }
+  .year-menu::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.18);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  .year-menu::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.26); }
+  .year-menu-item {
+    display: block;
+    width: 100%;
+    padding: 9px 14px;
+    text-align: left;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--text2);
+    font-family: inherit;
+    transition: background 0.1s, color 0.1s;
+  }
+  .year-menu-item:hover { background: var(--fill); color: var(--text); }
+  .year-menu-item.active {
+    background: rgba(72,149,239,0.2);
+    color: #9fc6ff;
+    font-weight: 600;
+  }
   .sort-icon-dim { opacity: 0.5; }
   /* Option pills inside the shared filter opts panel */
   .filter-opts-pills { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -192,7 +267,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     transform: translateY(-1px);
   }
   .filter-opt-pill.selected {
-    background: linear-gradient(180deg, #f8f8f8, #dcdcdc);
+    background: #e7e7e7;
     border-color: transparent; color: #0a0a0a; font-weight: 600;
     box-shadow: none;
   }
@@ -209,9 +284,9 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   .fb-name-input:focus { outline: none; background: rgba(255,255,255,0.055); border-color: rgba(255,255,255,0.24); }
   .btn-fb { height: 38px; padding: 0 16px; border-radius: 15px; font-size: 12px; }
   .fb-add-btn {
-    height: 38px; padding: 0 18px; border-radius: 15px; font-size: 12px;
+    height: 38px; padding: 0 18px; border-radius: 6px; font-size: 12px;
     font-family: inherit; font-weight: 700; cursor: pointer; flex-shrink: 0;
-    background: linear-gradient(180deg, #fcfcfc, #dddddd);
+    background: #ececec;
     border: 1px solid transparent;
     color: #0d0d0d;
     box-shadow: none;
@@ -223,7 +298,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   .fb-adult-toggle {
     display: flex; align-items: center; gap: 5px;
     background: rgba(255,255,255,0.04); border: 1px solid transparent;
-    border-radius: 15px; color: var(--text2); cursor: pointer;
+    border-radius: 10px; color: var(--text2); cursor: pointer;
     padding: 0 12px; font-size: 12px; font-family: inherit;
     height: 38px; flex-shrink: 0; user-select: none;
     transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.15s;
@@ -235,8 +310,8 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   .fb-slider-wrap {
     display: flex; align-items: center; gap: 8px;
     background: rgba(255,255,255,0.04); border: 1px solid transparent;
-    border-radius: 15px; padding: 0 14px; height: 38px;
-    flex: 1.5; min-width: 0;
+    border-radius: 10px; padding: 0 14px; height: 38px;
+    flex: 1.3; min-width: 0;
     transition: background 0.15s, border-color 0.15s, transform 0.15s;
   }
   .fb-slider-wrap:hover { background: rgba(255,255,255,0.075); border-color: var(--sep-strong); transform: translateY(-1px); }
@@ -261,7 +336,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     background: rgba(255,255,255,0.01);
   }
 
-  .fb-name-wrap { position: relative; flex: 1.5; min-width: 0; display: flex; }
+  .fb-name-wrap { position: relative; flex: 1.8; min-width: 0; display: flex; }
   .fb-name-wrap .fb-name-input { flex: 1; }
   #catalog-name-error {
     display: none; position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-50%);
@@ -296,7 +371,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   }
   .pane-tab:hover { color: var(--text2); }
   .pane-tab.active {
-    background: linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.05));
+    background: rgba(255,255,255,0.10);
     color: var(--text); box-shadow: 0 10px 22px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.06);
   }
   .pane-tab-extras {
@@ -316,10 +391,10 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   .filter-tags { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; min-height: 24px; flex-shrink: 0; }
   .filter-tag {
     display: inline-flex; align-items: center; gap: 3px;
-    padding: 5px 12px; border-radius: var(--pill);
+    padding: 4px 10px; border-radius: var(--pill);
     background: rgba(255,255,255,0.05); color: var(--text2);
     border: 1px solid rgba(255,255,255,0.08);
-    font-size: 12px; font-weight: 500; cursor: default;
+    font-size: 11px; font-weight: 500; cursor: default;
     transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.15s; user-select: none;
   }
   .filter-tag:hover { background: rgba(255,255,255,0.085); color: var(--text); border-color: var(--sep-strong); transform: translateY(-1px); }
@@ -350,7 +425,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   .sort-btn {
     display: flex; align-items: center; gap: 5px;
     background: rgba(255,255,255,0.03); border: 1px solid transparent; cursor: pointer;
-    font-size: 11px; color: var(--text3); padding: 8px 12px;
+    font-size: 11px; color: var(--text3); padding: 7px 11px;
     border-radius: var(--pill); font-family: inherit;
     transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.15s;
   }
@@ -382,28 +457,28 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   /* ── View controls ───────────────────────────── */
   .view-controls {
     display: flex; align-items: center; gap: 10px; flex-shrink: 0;
-    padding: 4px 6px 4px 12px;
-    border-radius: var(--pill);
-    background: rgba(255,255,255,0.025);
-    border: 1px solid rgba(255,255,255,0.06);
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    border: none;
   }
   .view-sep { color: var(--sep); font-size: 14px; }
   .view-toggle {
     display: flex; gap: 3px;
-    padding: 5px;
-    border-radius: var(--pill);
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.05);
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+    border: none;
   }
   .view-btn {
     background: none; border: none; cursor: pointer;
-    color: var(--text3); padding: 8px; border-radius: 12px;
+    color: var(--text3); padding: 7px; border-radius: 10px;
     display: flex; align-items: center;
     transition: background 0.15s, color 0.15s, transform 0.15s;
   }
   .view-btn:hover { background: rgba(255,255,255,0.07); color: var(--text2); transform: translateY(-1px); }
   .view-btn.active {
-    background: linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.05));
+    background: rgba(255,255,255,0.10);
     color: var(--text);
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
   }
@@ -417,14 +492,14 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     padding: 12px 14px;
     border-bottom: 1px solid rgba(255,255,255,0.05);
     text-decoration: none; color: inherit;
-    border-radius: 12px;
+    border-radius: 10px;
     transition: background 0.15s, transform 0.15s, border-color 0.15s;
     border: 1px solid transparent;
   }
   .list-item:last-child { border-bottom: none; }
   .list-item:hover { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.07); transform: translateY(-1px); }
   .list-thumb {
-    width: 44px; height: 62px; border-radius: 8px;
+    width: 44px; height: 62px; border-radius: 4px;
     overflow: hidden; background: var(--card); flex-shrink: 0;
     box-shadow: 0 10px 24px rgba(0,0,0,0.28);
   }
@@ -466,7 +541,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     padding: 20px 28px 28px;
   }
   .detail-card {
-    display: flex; border-radius: 16px;
+    display: flex; border-radius: 6px;
     overflow: hidden; background: linear-gradient(180deg, rgba(27,27,30,0.98), rgba(18,18,20,0.98));
     color: inherit; cursor: pointer;
     text-decoration: none;
@@ -475,7 +550,9 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     border: 1px solid rgba(255,255,255,0.07);
     box-shadow: var(--shadow-sm);
     --studio-color: #ffffff;
-    --studio-banner: rgba(255,255,255,0.18);
+    --studio-color-soft: #ffffff;
+    --studio-banner: rgba(255,255,255,0.28125);
+    --studio-banner-ink: rgba(44,46,50,0.38);
     --studio-banner-border: rgba(255,255,255,0.14);
     --detail-banner-height: 88px;
   }
@@ -501,11 +578,9 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   }
   .detail-overlay-inner {
     width: 100%;
-    background: var(--studio-banner);
+    background: linear-gradient(var(--studio-banner-ink), var(--studio-banner-ink)), var(--studio-banner);
     padding: 7px 14px;
     border-radius: 0;
-    backdrop-filter: blur(3px) saturate(122%);
-    -webkit-backdrop-filter: blur(3px) saturate(122%);
     min-height: var(--detail-banner-height);
     display: flex;
     flex-direction: column;
@@ -521,10 +596,10 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 3;
   }
-  .detail-card:hover .detail-overlay-title { color: var(--studio-color); }
+  .detail-card:hover .detail-overlay-title { color: var(--studio-color-soft); }
   .detail-overlay-studio {
     font-size: 11px; font-weight: 600; margin-top: 4px;
-    color: var(--studio-color);
+    color: var(--studio-color-soft);
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     letter-spacing: 0.01em;
     text-shadow: 0 1px 10px rgba(0,0,0,0.3);
@@ -568,7 +643,11 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   .detail-desc::-webkit-scrollbar-thumb { background: rgba(84,84,88,0.28); border-radius: 2px; }
   .detail-desc::-webkit-scrollbar-thumb:hover { background: rgba(84,84,88,0.5); }
   .detail-footer {
-    display: flex; align-items: center; gap: 6px; padding-top: 6px; flex-shrink: 0;
+    display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+    margin: 8px -16px -14px;
+    padding: 10px 16px 14px;
+    background: rgba(0,0,0,0.28);
+    border-top: 1px solid rgba(255,255,255,0.04);
   }
   .detail-genres { display: flex; flex-wrap: wrap; gap: 4px; }
 
@@ -591,7 +670,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   }
 
   /* Preview states */
-  #preview-area { padding: 0 0 4px; }
+  #preview-area { padding: 12px 0 4px; }
   .preview-prompt {
     display: flex;
     flex-direction: column;
@@ -614,7 +693,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     justify-content: center;
     min-height: 180px;
   }
-  .preview-list { padding: 0 28px; }
+  .preview-list { padding: 12px 28px 0; }
   @keyframes spin { to { transform: rotate(360deg); } }
   .spinner {
     width: 22px; height: 22px;
@@ -634,11 +713,13 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     text-decoration: none; color: inherit; cursor: pointer;
     transition: transform 0.18s ease;
     --studio-color: #ffffff;
-    --studio-banner: rgba(255,255,255,0.18);
+    --studio-color-soft: #ffffff;
+    --studio-banner: rgba(255,255,255,0.28125);
+    --studio-banner-ink: rgba(44,46,50,0.38);
   }
   .poster:hover { transform: translateY(-4px); }
   .poster-img {
-    border-radius: 14px;
+    border-radius: 5px;
     overflow: hidden;
     aspect-ratio: 2/3;
     background: var(--card);
@@ -652,7 +733,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     display: block;
     transition: transform 0.22s ease;
   }
-  .poster:hover .poster-img img { transform: scale(1.05); }
+  .poster:hover .poster-img img { transform: none; }
   .poster-genres {
     position: absolute;
     top: 0; left: 0; right: 0;
@@ -702,24 +783,24 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   .genre-soft--sports { background:#2dc65328;color:#2dc653;border:0.5px solid #2dc65355; }
   .genre-soft--supernatural { background:#9d4edd28;color:#9d4edd;border:0.5px solid #9d4edd55; }
   .genre-soft--thriller { background:#d6282828;color:#d62828;border:0.5px solid #d6282855; }
-  .theme-orange { --studio-color:#e85d04; --studio-banner:rgba(232,93,4,0.18); --studio-banner-border:rgba(232,93,4,0.12); }
-  .theme-gold { --studio-color:#f48c06; --studio-banner:rgba(244,140,6,0.18); --studio-banner-border:rgba(244,140,6,0.12); }
-  .theme-lime { --studio-color:#a7c957; --studio-banner:rgba(167,201,87,0.18); --studio-banner-border:rgba(167,201,87,0.12); }
-  .theme-blue { --studio-color:#4895ef; --studio-banner:rgba(72,149,239,0.18); --studio-banner-border:rgba(72,149,239,0.12); }
-  .theme-pink { --studio-color:#f72585; --studio-banner:rgba(247,37,133,0.18); --studio-banner-border:rgba(247,37,133,0.12); }
-  .theme-purple { --studio-color:#7b2fbe; --studio-banner:rgba(123,47,190,0.18); --studio-banner-border:rgba(123,47,190,0.12); }
-  .theme-red { --studio-color:#e63946; --studio-banner:rgba(230,57,70,0.18); --studio-banner-border:rgba(230,57,70,0.12); }
-  .theme-cyan { --studio-color:#48cae4; --studio-banner:rgba(72,202,228,0.18); --studio-banner-border:rgba(72,202,228,0.12); }
-  .theme-green { --studio-color:#52b788; --studio-banner:rgba(82,183,136,0.18); --studio-banner-border:rgba(82,183,136,0.12); }
-  .theme-violet { --studio-color:#9d4edd; --studio-banner:rgba(157,78,221,0.18); --studio-banner-border:rgba(157,78,221,0.12); }
-  .theme-sky { --studio-color:#0077b6; --studio-banner:rgba(0,119,182,0.18); --studio-banner-border:rgba(0,119,182,0.12); }
-  .theme-amber { --studio-color:#f4c430; --studio-banner:rgba(244,196,48,0.18); --studio-banner-border:rgba(244,196,48,0.12); }
-  .theme-coral { --studio-color:#ff7a59; --studio-banner:rgba(255,122,89,0.18); --studio-banner-border:rgba(255,122,89,0.12); }
-  .theme-mint { --studio-color:#26c485; --studio-banner:rgba(38,196,133,0.18); --studio-banner-border:rgba(38,196,133,0.12); }
-  .theme-rose { --studio-color:#ff5d8f; --studio-banner:rgba(255,93,143,0.18); --studio-banner-border:rgba(255,93,143,0.12); }
-  .theme-ocean { --studio-color:#118ab2; --studio-banner:rgba(17,138,178,0.18); --studio-banner-border:rgba(17,138,178,0.12); }
-  .theme-indigo { --studio-color:#3a86ff; --studio-banner:rgba(58,134,255,0.18); --studio-banner-border:rgba(58,134,255,0.12); }
-  .theme-magenta { --studio-color:#ff006e; --studio-banner:rgba(255,0,110,0.18); --studio-banner-border:rgba(255,0,110,0.12); }
+  .theme-orange { --studio-color:#e85d04; --studio-color-soft:#ef8e4f; --studio-banner:rgba(232,93,4,0.28125); --studio-banner-border:rgba(232,93,4,0.12); }
+  .theme-gold { --studio-color:#f48c06; --studio-color-soft:#f8af51; --studio-banner:rgba(244,140,6,0.28125); --studio-banner-border:rgba(244,140,6,0.12); }
+  .theme-lime { --studio-color:#a7c957; --studio-color-soft:#c1d989; --studio-banner:rgba(167,201,87,0.28125); --studio-banner-border:rgba(167,201,87,0.12); }
+  .theme-blue { --studio-color:#4895ef; --studio-color-soft:#7fb5f4; --studio-banner:rgba(72,149,239,0.28125); --studio-banner-border:rgba(72,149,239,0.12); }
+  .theme-pink { --studio-color:#f72585; --studio-color-soft:#f966aa; --studio-banner:rgba(247,37,133,0.28125); --studio-banner-border:rgba(247,37,133,0.12); }
+  .theme-purple { --studio-color:#7b2fbe; --studio-color-soft:#a36dd2; --studio-banner:rgba(123,47,190,0.28125); --studio-banner-border:rgba(123,47,190,0.12); }
+  .theme-red { --studio-color:#e63946; --studio-color-soft:#ee747e; --studio-banner:rgba(230,57,70,0.28125); --studio-banner-border:rgba(230,57,70,0.12); }
+  .theme-cyan { --studio-color:#48cae4; --studio-color-soft:#7fdaec; --studio-banner:rgba(72,202,228,0.28125); --studio-banner-border:rgba(72,202,228,0.12); }
+  .theme-green { --studio-color:#52b788; --studio-color-soft:#86cdac; --studio-banner:rgba(82,183,136,0.28125); --studio-banner-border:rgba(82,183,136,0.12); }
+  .theme-violet { --studio-color:#9d4edd; --studio-color-soft:#ba83e7; --studio-banner:rgba(157,78,221,0.28125); --studio-banner-border:rgba(157,78,221,0.12); }
+  .theme-sky { --studio-color:#0077b6; --studio-color-soft:#4d82cc; --studio-banner:rgba(0,119,182,0.28125); --studio-banner-border:rgba(0,119,182,0.12); }
+  .theme-amber { --studio-color:#f4c430; --studio-color-soft:#f8d66e; --studio-banner:rgba(244,196,48,0.28125); --studio-banner-border:rgba(244,196,48,0.12); }
+  .theme-coral { --studio-color:#ff7a59; --studio-color-soft:#ffa28b; --studio-banner:rgba(255,122,89,0.28125); --studio-banner-border:rgba(255,122,89,0.12); }
+  .theme-mint { --studio-color:#26c485; --studio-color-soft:#67d6aa; --studio-banner:rgba(38,196,133,0.28125); --studio-banner-border:rgba(38,196,133,0.12); }
+  .theme-rose { --studio-color:#ff5d8f; --studio-color-soft:#ff8eb1; --studio-banner:rgba(255,93,143,0.28125); --studio-banner-border:rgba(255,93,143,0.12); }
+  .theme-ocean { --studio-color:#118ab2; --studio-color-soft:#58adc9; --studio-banner:rgba(17,138,178,0.28125); --studio-banner-border:rgba(17,138,178,0.12); }
+  .theme-indigo { --studio-color:#3a86ff; --studio-color-soft:#75aaff; --studio-banner:rgba(58,134,255,0.28125); --studio-banner-border:rgba(58,134,255,0.12); }
+  .theme-magenta { --studio-color:#ff006e; --studio-color-soft:#ff4d9a; --studio-banner:rgba(255,0,110,0.28125); --studio-banner-border:rgba(255,0,110,0.12); }
   .detail-banner-lines-1 { --detail-banner-height: 51px; }
   .detail-banner-lines-2 { --detail-banner-height: 68px; }
   .detail-banner-lines-3 { --detail-banner-height: 85px; }
@@ -752,17 +833,13 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     font-size: 10px;
     font-weight: 700;
     letter-spacing: -0.01em;
-    backdrop-filter: blur(2px);
-    -webkit-backdrop-filter: blur(2px);
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.14);
   }
   .poster-meta {
     position: absolute;
     bottom: 0; left: 0; right: 0;
     padding: 10px 14px;
-    background: var(--studio-banner);
-    backdrop-filter: blur(3px) saturate(122%);
-    -webkit-backdrop-filter: blur(3px) saturate(122%);
+    background: linear-gradient(var(--studio-banner-ink), var(--studio-banner-ink)), var(--studio-banner);
     opacity: 0;
     transition: opacity 0.2s ease;
     pointer-events: none;
@@ -784,15 +861,13 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     letter-spacing: -0.02em;
     transition: color 0.18s ease;
   }
-  .poster:hover .poster-title { color: var(--studio-color); }
+  .poster:hover .poster-title { color: var(--studio-color-soft); }
   .preset-name.ai-title {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
+    display: block;
   }
   .ai-star-icon {
-    width: 14px;
-    height: 14px;
+    width: 15px;
+    height: 15px;
     color: #a78bfa;
     flex-shrink: 0;
     filter: drop-shadow(0 0 8px rgba(167,139,250,0.28));
@@ -826,13 +901,13 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     text-align: right;
     color: #fff;
   }
-  .score-high { color: #2d6a4f; }
-  .score-mid { color: #52b788; }
+  .score-high { color: #4a9f79; }
+  .score-mid { color: #63b68f; }
   .score-low { color: #f48c06; }
   .score-poor { color: #e63946; }
   .score-none { color: var(--text3); }
-  .detail-score-badge.detail-score-high { background: #2d6a4f; }
-  .detail-score-badge.detail-score-mid { background: #52b788; }
+  .detail-score-badge.detail-score-high { background: #4a9f79; }
+  .detail-score-badge.detail-score-mid { background: #63b68f; }
   .detail-score-badge.detail-score-low { background: #f48c06; }
   .detail-score-badge.detail-score-poor { background: #e63946; }
   .detail-score-badge.detail-score-none { background: rgba(255,255,255,0.07); }
@@ -840,6 +915,21 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   .pane-hidden { display: none !important; }
   .pointer-disabled { pointer-events: none !important; }
   .ai-badge {
+    background: rgba(139,92,246,0.12);
+    color: #a78bfa;
+    border-color: rgba(139,92,246,0.3);
+  }
+  .account-source-badge {
+    background: rgba(232,93,4,0.12);
+    color: #f48c06;
+    border-color: rgba(232,93,4,0.3);
+  }
+  .catalog-type-badge.account-type-badge {
+    background: rgba(232,93,4,0.12);
+    color: #f48c06;
+    border-color: rgba(232,93,4,0.3);
+  }
+  .catalog-type-badge.ai-type-badge {
     background: rgba(139,92,246,0.12);
     color: #a78bfa;
     border-color: rgba(139,92,246,0.3);
@@ -881,9 +971,9 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     gap: 8px;
   }
   .preset-card {
-    background: linear-gradient(180deg, rgba(29,29,32,0.98), rgba(20,20,22,0.98));
+    background: rgba(24,24,27,0.98);
     border: 1px solid rgba(255,255,255,0.07);
-    border-radius: 14px;
+    border-radius: 10px;
     padding: 16px 16px;
     cursor: pointer;
     transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
@@ -898,13 +988,13 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, rgba(255,255,255,0.06), transparent 42%);
+    background: none;
     opacity: 0;
     transition: opacity 0.18s ease;
     pointer-events: none;
   }
   .preset-card:hover  {
-    background: linear-gradient(180deg, rgba(36,37,41,0.98), rgba(24,24,27,0.98));
+    background: rgba(31,32,36,0.98);
     transform: translateY(-2px);
     box-shadow: var(--shadow-lg);
     border-color: rgba(255,255,255,0.11);
@@ -912,6 +1002,13 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   .preset-card:hover::before { opacity: 1; }
   .preset-card:active { background: rgba(255,255,255,0.06); }
   .preset-info { flex: 1; min-width: 0; }
+  .preset-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
   .preset-name { font-weight: 700; font-size: 15px; letter-spacing: -0.03em; }
   .preset-desc { font-size: 12px; color: var(--text2); margin-top: 4px; line-height: 1.45; }
   .preset-badge {
@@ -927,7 +1024,11 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     text-transform: uppercase;
     letter-spacing: 0.08em;
   }
-  .preset-card.added .preset-badge { display: block; }
+  .preset-card.added .preset-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
   .preset-chevron {
     color: var(--text3);
     font-size: 16px;
@@ -1024,7 +1125,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     margin: 0 0 7px;
   }
   .import-row { display: flex; gap: 8px; }
-  .import-row input { flex: 1; font-size: 12px; padding: 8px 11px; border-radius: 12px; }
+  .import-row input { flex: 1; font-size: 12px; padding: 8px 11px; border-radius: 8px; }
   #import-feedback {
     font-size: 11px;
     margin-top: 6px;
@@ -1043,7 +1144,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     justify-content: center;
     gap: 6px;
     padding: 10px 16px;
-    border-radius: 14px;
+    border-radius: 6px;
     border: 1px solid transparent;
     font-size: 13px;
     font-weight: 700;
@@ -1057,7 +1158,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   .btn:hover  { opacity: 0.78; }
   .btn:active { transform: scale(0.97); opacity: 1; }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-  .btn-primary { background: linear-gradient(180deg, #ffffff, #dfdfdf); color: #000000; box-shadow: none; }
+  .btn-primary { background: #e7e7e7; color: #000000; box-shadow: none; }
   .btn-ghost   { background: rgba(255,255,255,0.05); color: var(--text); border-color: rgba(255,255,255,0.07); }
   .btn-danger  { background: rgba(220,38,38,0.12); color: #fca5a5; border-color: rgba(248,113,113,0.15); }
   .btn-sm  { padding: 6px 11px; font-size: 11px; }
@@ -1075,20 +1176,20 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   }
   /* ── Subtle scrollbars ───────────────────────── */
   .left-panel::-webkit-scrollbar,
-  .mid-panel::-webkit-scrollbar { width: 3px; }
+  #preview-pane::-webkit-scrollbar { width: 3px; }
   .left-panel::-webkit-scrollbar-track,
-  .mid-panel::-webkit-scrollbar-track { background: transparent; }
+  #preview-pane::-webkit-scrollbar-track { background: transparent; }
   .left-panel::-webkit-scrollbar-thumb,
-  .mid-panel::-webkit-scrollbar-thumb {
+  #preview-pane::-webkit-scrollbar-thumb {
     background: rgba(84,84,88,0.28);
     border-radius: 2px;
   }
   .left-panel::-webkit-scrollbar-thumb:hover,
-  .mid-panel::-webkit-scrollbar-thumb:hover { background: rgba(84,84,88,0.50); }
+  #preview-pane::-webkit-scrollbar-thumb:hover { background: rgba(84,84,88,0.50); }
   .catalog-item {
-    background: linear-gradient(180deg, rgba(28,28,31,0.98), rgba(18,18,20,0.98));
+    background: rgba(23,23,26,0.98);
     border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 14px;
+    border-radius: 8px;
     padding: 16px 16px;
     display: flex;
     align-items: center;
@@ -1099,9 +1200,22 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     box-shadow: var(--shadow-sm);
     isolation: isolate;
   }
-  .catalog-item:hover { background: linear-gradient(180deg, rgba(35,36,40,0.98), rgba(22,22,25,0.98)); border-color: rgba(255,255,255,0.12); box-shadow: var(--shadow-md); }
+  .catalog-item::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    background:
+      radial-gradient(circle at 14% 18%, rgba(255,255,255,0.12), transparent 44%),
+      linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0));
+    opacity: 0;
+    transition: opacity 0.18s ease;
+    pointer-events: none;
+    z-index: -1;
+  }
+  .catalog-item:hover { background: rgba(30,31,35,0.98); border-color: rgba(255,255,255,0.12); box-shadow: var(--shadow-md); }
   .catalog-item.active-preview {
-    background: linear-gradient(180deg, rgba(37,38,42,0.98), rgba(23,24,27,0.98));
+    background: rgba(32,33,37,0.98);
     border-color: rgba(255,255,255,0.14);
     box-shadow: inset 3px 0 0 rgba(255,255,255,0.22), var(--shadow-md);
   }
@@ -1145,7 +1259,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   .remove-btn:hover { background: rgba(220,38,38,0.24); color: #fecaca; transform: translateY(-1px); }
   .catalog-num {
     flex-shrink: 0; width: 34px; height: 34px;
-    border-radius: 12px; background: rgba(255,255,255,0.1);
+    border-radius: 4px; background: rgba(255,255,255,0.1);
     display: flex; align-items: center; justify-content: center;
     font-size: 12px; font-weight: 800; color: rgba(255,255,255,0.98);
     border: 1px solid rgba(255,255,255,0.14);
@@ -1170,7 +1284,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     text-align: center;
     gap: 10px;
     padding: 32px;
-    background: linear-gradient(180deg, rgba(26,26,29,0.96), rgba(17,17,19,0.96));
+    background: rgba(22,22,25,0.96);
     border-radius: 24px;
     border: 1px solid rgba(255,255,255,0.08);
   }
@@ -1180,7 +1294,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   .btn-stremio {
     display: flex; align-items: center; justify-content: center; gap: 7px;
     width: 100%; padding: 9px 12px; border-radius: 16px; border: 1px solid transparent;
-    background: linear-gradient(180deg, #ffffff, #dfdfdf); color: #0a0a0a;
+    background: #e7e7e7; color: #0a0a0a;
     font-size: 12px; font-weight: 700; font-family: inherit;
     cursor: pointer; letter-spacing: -0.1px;
     transition: opacity 0.15s, transform 0.1s, background 0.15s, box-shadow 0.15s;
@@ -1192,22 +1306,22 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   .url-alt-label { font-size: 11px; color: var(--text3); margin: 12px 0 8px; line-height: 1.6; }
   .qr-localhost-notice { font-size: 11px; color: var(--text3); text-align: center; line-height: 1.5; margin-top: 4px; }
   .url-box {
-    background: linear-gradient(180deg, rgba(26,26,29,0.98), rgba(18,18,20,0.98));
-    border-radius: 14px;
+    background: rgba(22,22,25,0.98);
+    border-radius: 8px;
     padding: 11px;
     border: 1px solid rgba(255,255,255,0.08);
     box-shadow: var(--shadow-sm);
   }
   .url-box-row { display: flex; align-items: flex-start; gap: 8px; }
   .url-text {
-    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-family: 'Mona Sans VF', 'Mona Sans', 'Segoe UI', 'Helvetica Neue', sans-serif;
     font-size: 10px; color: var(--text2);
     word-break: break-all; line-height: 1.65;
     max-height: 68px; overflow-y: auto;
     margin-bottom: 8px; cursor: text; user-select: all;
     scrollbar-width: thin; scrollbar-color: var(--sep) transparent;
     padding: 8px 10px;
-    border-radius: 14px;
+    border-radius: 8px;
     background: rgba(255,255,255,0.04);
     border: 1px solid rgba(255,255,255,0.06);
   }
@@ -1226,13 +1340,13 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   .copy-row { display: flex; gap: 6px; }
   .qr-section { margin-top: 0; }
   .qr-wrap {
-    background: linear-gradient(180deg, rgba(26,26,29,0.98), rgba(18,18,20,0.98)); border-radius: 14px; padding: 10px;
+    background: rgba(22,22,25,0.98); border-radius: 8px; padding: 10px;
     display: flex; flex-direction: column; align-items: center; gap: 4px;
     border: 1px solid rgba(255,255,255,0.08);
     box-shadow: var(--shadow-sm);
   }
   #qr-canvas-wrap canvas,
-  #qr-canvas-wrap img { border-radius: 12px; display: block; max-width: 100%; height: auto; }
+  #qr-canvas-wrap img { border-radius: 8px; display: block; max-width: 100%; height: auto; }
   .qr-sub { font-size: 10px; color: var(--text3); text-align: center; line-height: 1.35; }
   .important-note {
     padding: 10px 12px;
@@ -1247,14 +1361,22 @@ CONFIGURE_HTML = """<!DOCTYPE html>
 
   /* ── Drag-over lift ─────────────────────────── */
   .catalog-item.drag-over {
-    transform: translateX(8px) translateY(-3px) scale(1.01);
-    background: var(--card2) !important;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.45);
-    z-index: 1;
+    transform: translateX(10px) translateY(-5px) scale(1.02);
+    background: rgba(38,39,45,0.99) !important;
+    border-color: rgba(255,255,255,0.2);
+    box-shadow: 0 18px 34px rgba(0,0,0,0.36), 0 0 0 1px rgba(255,255,255,0.05);
+    z-index: 2;
     border-radius: var(--radius) !important;
   }
-  .catalog-item.shift-down { transform: translateY(10px); }
-  .catalog-item.shift-up { transform: translateY(-10px); }
+  .catalog-item.drag-over::before { opacity: 1; }
+  .catalog-item.drag-over .catalog-num {
+    transform: scale(1.08);
+    border-color: rgba(255,255,255,0.2);
+    box-shadow: 0 10px 18px rgba(0,0,0,0.26), inset 0 1px 0 rgba(255,255,255,0.12);
+  }
+  .catalog-item.drag-over .catalog-item-name { color: #fff; }
+  .catalog-item.shift-down { transform: translateY(14px) scale(0.985); }
+  .catalog-item.shift-up { transform: translateY(-14px) scale(0.985); }
 
   /* ── Auth header section ─────────────────────────── */
   .header-auth { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
@@ -1316,18 +1438,58 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     border: 1px solid rgba(255,255,255,0.08);
     text-transform: uppercase;
   }
+  .account-badge.account-source-badge {
+    background: rgba(232,93,4,0.12);
+    color: #f48c06;
+    border-color: rgba(232,93,4,0.3);
+  }
+  .account-badge.ai-badge {
+    background: rgba(139,92,246,0.12);
+    color: #a78bfa;
+    border-color: rgba(139,92,246,0.3);
+  }
+  .preset-card.ai-preset-card {
+    padding-top: 18px;
+  }
+  .preset-card.ai-preset-card .preset-info {
+    padding-right: 8px;
+  }
+  .ai-preset-corner-icon {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    opacity: 0.92;
+  }
+  .ai-preset-corner-icon .ai-star-icon {
+    width: 15px;
+    height: 15px;
+  }
+  .ai-preset-actions {
+    margin-left: auto;
+    gap: 12px;
+  }
+  .ai-preset-actions .preset-chevron { margin-left: 2px; }
 
   /* ── AI Recommendations pill ─────────────────────── */
   .preset-card.ai-no-key { border: 0.5px solid rgba(220,38,38,0.45) !important; }
   .preset-card.ai-no-key:hover { border-color: rgba(220,38,38,0.7) !important; }
   .ai-gear-btn {
-    display: none; align-items: center; justify-content: center;
+    display: inline-flex; align-items: center; justify-content: center;
     width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
     border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.05); color: var(--text3);
     cursor: pointer; font-size: 12px; line-height: 1;
-    transition: background 0.15s, color 0.15s;
+    opacity: 0; visibility: hidden; pointer-events: none;
+    transform: scale(0.92);
+    transition: background 0.15s, color 0.15s, opacity 0.15s, transform 0.15s, visibility 0.15s;
   }
-  .preset-card:not(.account-locked):hover .ai-gear-btn { display: flex; }
+  .preset-card:not(.account-locked):hover .ai-gear-btn,
+  .preset-card:not(.account-locked):focus-within .ai-gear-btn {
+    opacity: 1; visibility: visible; pointer-events: auto; transform: scale(1);
+  }
   .ai-gear-btn:hover { background: rgba(255,255,255,0.1); color: var(--text); }
   .ai-connected-tag {
     font-size: 9px; font-weight: 700; padding: 3px 8px;
@@ -1517,16 +1679,19 @@ CONFIGURE_HTML = """<!DOCTYPE html>
             <span class="account-badge">Preset</span><div class="preset-badge">Added</div>
             <span class="preset-chevron">&#8250;</span>
           </div>
-          <div class="preset-card account-locked" id="preset-anilist-ai-recommendations" data-action="add-ai">
+          <div class="preset-card ai-preset-card account-locked" id="preset-anilist-ai-recommendations" data-action="add-ai">
+            <span class="ai-preset-corner-icon" aria-hidden="true"><svg class="ai-star-icon" viewBox="0 0 24 24" fill="none"><path d="M9.2 3.2c.52 2.92 1.5 4.03 2.6 4.83.82.6 1.74.95 4.9 1.6-2.93.52-4.05 1.5-4.85 2.6-.6.82-.95 1.74-1.6 4.9-.52-2.93-1.5-4.05-2.6-4.85-.82-.6-1.74-.95-4.9-1.6 2.93-.52 4.05-1.5 4.85-2.6.6-.82.95-1.74 1.6-4.9Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M18.2 3.4c.24 1.35.7 1.86 1.2 2.23.38.27.8.44 2.26.74-1.35.24-1.87.7-2.24 1.2-.27.38-.44.8-.74 2.26-.24-1.35-.7-1.87-1.2-2.24-.38-.27-.8-.44-2.26-.74 1.35-.24 1.87-.7 2.24-1.2.27-.38.44-.8.74-2.26Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M17.2 14.2c.3 1.68.87 2.33 1.5 2.78.46.34.97.54 2.82.92-1.68.3-2.34.87-2.79 1.5-.34.46-.54.97-.92 2.82-.3-1.68-.87-2.34-1.5-2.79-.46-.34-.97-.54-2.82-.92 1.68-.3 2.34-.87 2.79-1.5.34-.46.54-.97.92-2.82Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span>
             <div class="preset-info">
-              <div class="preset-name ai-title"><svg class="ai-star-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9.2 3.2c.52 2.92 1.5 4.03 2.6 4.83.82.6 1.74.95 4.9 1.6-2.93.52-4.05 1.5-4.85 2.6-.6.82-.95 1.74-1.6 4.9-.52-2.93-1.5-4.05-2.6-4.85-.82-.6-1.74-.95-4.9-1.6 2.93-.52 4.05-1.5 4.85-2.6.6-.82.95-1.74 1.6-4.9Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M18.2 3.4c.24 1.35.7 1.86 1.2 2.23.38.27.8.44 2.26.74-1.35.24-1.87.7-2.24 1.2-.27.38-.44.8-.74 2.26-.24-1.35-.7-1.87-1.2-2.24-.38-.27-.8-.44-2.26-.74 1.35-.24 1.87-.7 2.24-1.2.27-.38.44-.8.74-2.26Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M17.2 14.2c.3 1.68.87 2.33 1.5 2.78.46.34.97.54 2.82.92-1.68.3-2.34.87-2.79 1.5-.34.46-.54.97-.92 2.82-.3-1.68-.87-2.34-1.5-2.79-.46-.34-.97-.54-2.82-.92 1.68-.3 2.34-.87 2.79-1.5.34-.46.54-.97.92-2.82Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>AI Recommendations</div>
+              <div class="preset-name ai-title">AI Recommendations</div>
               <div class="preset-desc">Personalised picks powered by AI</div>
             </div>
-            <span class="account-badge ai-badge">AI</span>
-            <div class="preset-badge">Added</div>
-            <button class="ai-gear-btn" id="ai-gear-btn" data-action="open-ai-modal" title="Configure AI settings">&#9881;</button>
-            <span class="ai-connected-tag ai-connected-hidden" id="ai-connected-tag">Connected</span>
-            <span class="preset-chevron">&#8250;</span>
+            <div class="preset-actions ai-preset-actions">
+              <span class="account-badge ai-badge">AI</span>
+              <div class="preset-badge">Added</div>
+              <span class="ai-connected-tag ai-connected-hidden" id="ai-connected-tag">Connected</span>
+              <button class="ai-gear-btn" id="ai-gear-btn" data-action="open-ai-modal" title="Configure AI settings">&#9881;</button>
+              <span class="preset-chevron">&#8250;</span>
+            </div>
           </div>
         </div>
       </section>
@@ -1538,31 +1703,31 @@ CONFIGURE_HTML = """<!DOCTYPE html>
         <div class="presets-grid" id="account-presets-grid">
           <div class="preset-card account-locked" id="preset-anilist-watching-current" data-action="add-account-preset" data-id="anilist-watching-current" data-name="Currently Watching" data-status="CURRENT">
             <div class="preset-info"><div class="preset-name">Currently Watching</div><div class="preset-desc">Anime you're actively watching</div></div>
-            <span class="account-badge">Account</span><div class="preset-badge">Added</div><span class="preset-chevron">&#8250;</span>
+            <span class="account-badge account-source-badge">Account</span><div class="preset-badge">Added</div><span class="preset-chevron">&#8250;</span>
           </div>
           <div class="preset-card account-locked" id="preset-anilist-watching-planning" data-action="add-account-preset" data-id="anilist-watching-planning" data-name="Plan to Watch" data-status="PLANNING">
             <div class="preset-info"><div class="preset-name">Plan to Watch</div><div class="preset-desc">Your watch list</div></div>
-            <span class="account-badge">Account</span><div class="preset-badge">Added</div><span class="preset-chevron">&#8250;</span>
+            <span class="account-badge account-source-badge">Account</span><div class="preset-badge">Added</div><span class="preset-chevron">&#8250;</span>
           </div>
           <div class="preset-card account-locked" id="preset-anilist-watching-completed" data-action="add-account-preset" data-id="anilist-watching-completed" data-name="Completed" data-status="COMPLETED">
             <div class="preset-info"><div class="preset-name">Completed</div><div class="preset-desc">Anime you've finished</div></div>
-            <span class="account-badge">Account</span><div class="preset-badge">Added</div><span class="preset-chevron">&#8250;</span>
+            <span class="account-badge account-source-badge">Account</span><div class="preset-badge">Added</div><span class="preset-chevron">&#8250;</span>
           </div>
           <div class="preset-card account-locked" id="preset-anilist-watching-paused" data-action="add-account-preset" data-id="anilist-watching-paused" data-name="Paused" data-status="PAUSED">
             <div class="preset-info"><div class="preset-name">Paused</div><div class="preset-desc">On hold</div></div>
-            <span class="account-badge">Account</span><div class="preset-badge">Added</div><span class="preset-chevron">&#8250;</span>
+            <span class="account-badge account-source-badge">Account</span><div class="preset-badge">Added</div><span class="preset-chevron">&#8250;</span>
           </div>
           <div class="preset-card account-locked" id="preset-anilist-watching-dropped" data-action="add-account-preset" data-id="anilist-watching-dropped" data-name="Dropped" data-status="DROPPED">
             <div class="preset-info"><div class="preset-name">Dropped</div><div class="preset-desc">Anime you've stopped watching</div></div>
-            <span class="account-badge">Account</span><div class="preset-badge">Added</div><span class="preset-chevron">&#8250;</span>
+            <span class="account-badge account-source-badge">Account</span><div class="preset-badge">Added</div><span class="preset-chevron">&#8250;</span>
           </div>
           <div class="preset-card account-locked" id="preset-anilist-watching-repeating" data-action="add-account-preset" data-id="anilist-watching-repeating" data-name="Rewatching" data-status="REPEATING">
             <div class="preset-info"><div class="preset-name">Rewatching</div><div class="preset-desc">Currently rewatching</div></div>
-            <span class="account-badge">Account</span><div class="preset-badge">Added</div><span class="preset-chevron">&#8250;</span>
+            <span class="account-badge account-source-badge">Account</span><div class="preset-badge">Added</div><span class="preset-chevron">&#8250;</span>
           </div>
           <div class="preset-card account-locked" id="preset-anilist-favourites" data-action="add-account-preset" data-id="anilist-favourites" data-name="My Favourites" data-status="FAVOURITES">
             <div class="preset-info"><div class="preset-name">My Favourites</div><div class="preset-desc">Your starred anime</div></div>
-            <span class="account-badge">Account</span><div class="preset-badge">Added</div><span class="preset-chevron">&#8250;</span>
+            <span class="account-badge account-source-badge">Account</span><div class="preset-badge">Added</div><span class="preset-chevron">&#8250;</span>
           </div>
         </div>
       </section>
@@ -1585,16 +1750,29 @@ CONFIGURE_HTML = """<!DOCTYPE html>
 
       <!-- Filter bar -->
       <div class="filter-bar">
-        <button class="fb-filter-btn" id="btn-genres" data-action="set-active-filter" data-filter="genres">
-          <span id="lbl-genres">Genres</span>
-          <span class="fb-chevron">&#9660;</span>
-        </button>
         <select id="f-year" class="select-hidden">
           <option value="">Year</option>
           __YEAR_OPTIONS__
         </select>
-        <button class="fb-filter-btn" id="btn-year" data-action="set-active-filter" data-filter="year">
-          <span id="lbl-year">Year</span>
+        <div class="year-dropdown" id="year-dropdown">
+          <button class="fb-filter-btn" id="btn-year" type="button" data-action="toggle-year-menu">
+            <span id="lbl-year">Year</span>
+            <span class="fb-chevron">&#9660;</span>
+          </button>
+          <div class="year-menu" id="year-menu">
+            <button class="year-menu-item" type="button" data-action="set-year-value" data-value="">Any</button>
+          </div>
+        </div>
+        <select id="f-daterange" class="select-hidden">
+          <option value="">Date Range</option>
+          <option value="this-week">This Week</option>
+          <option value="this-month">This Month</option>
+          <option value="last-month">Last Month</option>
+          <option value="this-year">This Year</option>
+          <option value="last-year">Last Year</option>
+        </select>
+        <button class="fb-filter-btn" id="btn-daterange" data-action="set-active-filter" data-filter="daterange">
+          <span id="lbl-daterange">Date Range</span>
           <span class="fb-chevron">&#9660;</span>
         </button>
         <select id="f-season" class="select-hidden">
@@ -1607,6 +1785,16 @@ CONFIGURE_HTML = """<!DOCTYPE html>
         </select>
         <button class="fb-filter-btn" id="btn-season" data-action="set-active-filter" data-filter="season">
           <span id="lbl-season">Season</span>
+          <span class="fb-chevron">&#9660;</span>
+        </button>
+        <select id="f-status" class="select-hidden">
+          <option value="">Status</option>
+          <option value="RELEASING">Airing</option>
+          <option value="FINISHED">Finished</option>
+          <option value="NOT_YET_RELEASED">Upcoming</option>
+        </select>
+        <button class="fb-filter-btn" id="btn-status" data-action="set-active-filter" data-filter="status">
+          <span id="lbl-status">Status</span>
           <span class="fb-chevron">&#9660;</span>
         </button>
         <select id="f-format" class="select-hidden">
@@ -1622,14 +1810,8 @@ CONFIGURE_HTML = """<!DOCTYPE html>
           <span id="lbl-format">Format</span>
           <span class="fb-chevron">&#9660;</span>
         </button>
-        <select id="f-status" class="select-hidden">
-          <option value="">Status</option>
-          <option value="RELEASING">Airing</option>
-          <option value="FINISHED">Finished</option>
-          <option value="NOT_YET_RELEASED">Upcoming</option>
-        </select>
-        <button class="fb-filter-btn" id="btn-status" data-action="set-active-filter" data-filter="status">
-          <span id="lbl-status">Status</span>
+        <button class="fb-filter-btn" id="btn-genres" data-action="set-active-filter" data-filter="genres">
+          <span id="lbl-genres">Genres</span>
           <span class="fb-chevron">&#9660;</span>
         </button>
         <select id="f-sort" class="select-hidden">
@@ -1645,18 +1827,6 @@ CONFIGURE_HTML = """<!DOCTYPE html>
           <input type="range" id="f-score" min="0" max="90" step="10" value="0">
           <span class="fb-slider-val" id="score-val">Any</span>
         </div>
-        <select id="f-daterange" class="select-hidden">
-          <option value="">Date Range</option>
-          <option value="this-week">This Week</option>
-          <option value="this-month">This Month</option>
-          <option value="last-month">Last Month</option>
-          <option value="this-year">This Year</option>
-          <option value="last-year">Last Year</option>
-        </select>
-        <button class="fb-filter-btn" id="btn-daterange" data-action="set-active-filter" data-filter="daterange">
-          <span id="lbl-daterange">Date Range</span>
-          <span class="fb-chevron">&#9660;</span>
-        </button>
         <label class="fb-adult-toggle" id="adult-toggle">
           <input type="checkbox" id="f-adult">
           Adult
@@ -2039,13 +2209,14 @@ function disconnect() {
 
 // ── Source filtering helpers ──────────────────────
 
-// Returns true if any additional filter (genre/format/status/year/season/score)
+// Returns true if any additional filter (genre/format/status/year/season/score/daterange)
 // is active on top of the current source tag.
 function hasActiveAdditionalFilters() {
   const score = parseInt(document.getElementById('f-score').value);
+  const daterange = document.getElementById('f-daterange').value;
   return selectedGenres.length > 0 || selectedFormats.length > 0 ||
          selectedStatuses.length > 0 || selectedYears.length > 0 ||
-         selectedSeasons.length > 0 || score > 0;
+         selectedSeasons.length > 0 || score > 0 || !!daterange;
 }
 
 // Clear additional filter state (genre/format/status/year/season/score/sort/daterange)
@@ -2072,6 +2243,8 @@ function _buildSuggestedName() {
   selectedYears.forEach(y    => parts.push(y));
   selectedSeasons.forEach(s  => parts.push(s === 'CURRENT' ? 'Current Season' : (SEASON_LABELS[s] || s)));
   selectedStatuses.forEach(s => parts.push(STATUS_LABELS[s] || s));
+  const daterange = getSelectedDateRangeValue();
+  if (daterange) parts.push(getDateRangeLabel(daterange));
   const score = parseInt(document.getElementById('f-score').value);
   if (score > 0) parts.push(score + '+ Score');
   return parts.join(' \u00b7 ');
@@ -2082,36 +2255,41 @@ function _buildClientFilters() {
   const f = {};
   const sort  = document.getElementById('f-sort').value;
   const score = parseInt(document.getElementById('f-score').value);
+  const daterange = getSelectedDateRangeValue();
   if (sort && sort !== 'POPULARITY_DESC') f.sort = sort;
   if (selectedGenres.length)   f.genres   = [...selectedGenres];
   if (selectedFormats.length)  f.formats  = [...selectedFormats];
   if (selectedStatuses.length) f.statuses = [...selectedStatuses];
   if (selectedYears.length)    f.years    = [...selectedYears];
   if (selectedSeasons.length)  f.seasons  = [...selectedSeasons];
+  if (daterange)               f.daterange = daterange;
   if (score > 0)               f.minScore = score;
   return f;
 }
 
 // Update the name-input + Add-button visibility based on source/filter state.
-// Shows when: no source (standard custom flow), OR source + additional filters.
-// Hides when: source only, no additional filters (catalog added directly).
+// Keep them visible in "Your Catalogs" so source-backed catalogs can still be named
+// and saved there, but hide them in Preview when a bare source is already active.
 function updateNameInput() {
   const wrap   = document.getElementById('catalog-name-wrap');
   const addBtn = document.getElementById('catalog-add-btn');
   if (!wrap || !addBtn) return;
 
   const hasFilters = hasActiveAdditionalFilters();
-  const hideForSource = activeSource && !hasFilters;
+  const inp = document.getElementById('catalog-name');
+  const hideForSource = activeSource && !hasFilters && currentPane === 'preview';
   wrap.classList.toggle('hidden', hideForSource);
   addBtn.classList.toggle('hidden', hideForSource);
 
   if (activeSource && hasFilters) {
-    const inp       = document.getElementById('catalog-name');
     const suggested = _buildSuggestedName();
     if (!inp.value.trim() || inp.value === _lastSuggestedName) {
       inp.value = suggested;
       _lastSuggestedName = suggested;
     }
+  } else if (activeSource) {
+    if (inp.value === _lastSuggestedName) inp.value = '';
+    _lastSuggestedName = '';
   } else if (!activeSource) {
     _lastSuggestedName = '';
   }
@@ -2125,6 +2303,7 @@ function _filterSourceMedia(media, cf) {
   const statuses = cf ? (cf.statuses || []) : selectedStatuses;
   const years    = cf ? (cf.years    || []) : selectedYears;
   const seasons  = cf ? (cf.seasons  || []) : selectedSeasons;
+  const daterange = cf ? (cf.daterange || '') : getSelectedDateRangeValue();
   const score    = cf ? (cf.minScore || 0)  : parseInt(document.getElementById('f-score').value);
   const sort     = cf ? (cf.sort || 'POPULARITY_DESC') : document.getElementById('f-sort').value;
 
@@ -2137,6 +2316,7 @@ function _filterSourceMedia(media, cf) {
     const resolved = seasons.map(s => s === 'CURRENT' ? getCurrentSeason() : s);
     result = result.filter(m => resolved.includes(m.season));
   }
+  if (daterange) result = result.filter(m => mediaMatchesDateRange(m, daterange));
   if (score > 0) result = result.filter(m => (m.averageScore || 0) >= score);
 
   result = [...result];
@@ -2202,6 +2382,7 @@ async function previewPresetWithCurrentFilters(cat) {
     else delete variables.averageScore_greater;
     if (selectedGenres.length)   variables.genre_in = [...selectedGenres];
     else delete variables.genre_in;
+    applyDateRangeToVariables(variables, getSelectedDateRangeValue());
 
     const media = await fetchPreview(variables);
     renderPreview(media, `${cat.name} \u2014 ${media.length} titles`);
@@ -2513,7 +2694,15 @@ const FILTER_PLACEHOLDERS = {
 
 let activeFbFilter = 'genres';
 
+function clearActiveFilterPane() {
+  document.querySelectorAll('.fb-filter-btn').forEach(b => b.classList.remove('active'));
+  activeFbFilter = '';
+  const pane = document.getElementById('filter-opts-pills');
+  if (pane) pane.innerHTML = '';
+}
+
 function setActiveFilter(id) {
+  closeYearMenu();
   document.querySelectorAll('.fb-filter-btn').forEach(b => b.classList.remove('active'));
   const btn = document.getElementById('btn-' + id);
   if (btn) btn.classList.add('active');
@@ -2528,6 +2717,17 @@ function toggleMultiVal(arr, val) {
 }
 
 function updateFilterBtn(id) {
+  if (id === 'year') {
+    const value = selectedYears.length ? String(selectedYears[0]) : '';
+    const lbl = document.getElementById('lbl-year');
+    if (lbl) lbl.textContent = value || 'Year';
+    const btn = document.getElementById('btn-year');
+    if (btn) btn.classList.toggle('has-value', !!value);
+    const sel = document.getElementById('f-year');
+    if (sel) sel.value = value;
+    renderYearMenu();
+    return;
+  }
   const btn = document.getElementById('btn-' + id);
   const lbl = document.getElementById('lbl-' + id);
   if (!btn || !lbl) return;
@@ -2581,16 +2781,13 @@ function renderFilterOpts(id) {
     return;
   }
 
-  const multiIds = ['year', 'season', 'format', 'status'];
-  const arr = id === 'year'     ? selectedYears
-            : id === 'season'   ? selectedSeasons
+  const multiIds = ['season', 'format', 'status'];
+  const arr = id === 'season'   ? selectedSeasons
             : id === 'format'   ? selectedFormats
             : id === 'status'   ? selectedStatuses
             : null;
 
-  const opts = id === 'year'
-    ? [...document.getElementById('f-year').options].map(o => ({ value: o.value, label: o.value ? o.text : 'Any' }))
-    : FILTER_OPTS[id];
+  const opts = FILTER_OPTS[id];
 
   if (!opts) return;
 
@@ -2640,6 +2837,53 @@ function setFilterValue(id, value, label) {
   scheduleAutoPreview();
 }
 
+function renderYearMenu() {
+  const menu = document.getElementById('year-menu');
+  const sel = document.getElementById('f-year');
+  if (!menu || !sel) return;
+  const current = selectedYears.length ? String(selectedYears[0]) : '';
+  const opts = [...sel.options].map(o => ({ value: String(o.value || ''), label: o.value ? o.text : 'Any' }));
+  menu.innerHTML = opts.map(opt =>
+    `<button class="year-menu-item${opt.value === current ? ' active' : ''}" type="button" data-action="set-year-value" data-value="${escHtml(opt.value)}">${escHtml(opt.label)}</button>`
+  ).join('');
+}
+
+function toggleYearMenu() {
+  const menu = document.getElementById('year-menu');
+  const btn = document.getElementById('btn-year');
+  if (!menu || !btn) return;
+  const isOpen = menu.classList.contains('open');
+  if (isOpen) {
+    closeYearMenu();
+    return;
+  }
+  closeSortMenu();
+  clearActiveFilterPane();
+  renderYearMenu();
+  menu.classList.add('open');
+  btn.classList.add('open', 'active');
+}
+
+function closeYearMenu() {
+  const menu = document.getElementById('year-menu');
+  if (menu) menu.classList.remove('open');
+  const btn = document.getElementById('btn-year');
+  if (btn) btn.classList.remove('open', 'active');
+}
+
+function setYearValue(value) {
+  const normalized = value ? String(value) : '';
+  selectedYears = normalized ? [normalized] : [];
+  const sel = document.getElementById('f-year');
+  if (sel) sel.value = normalized;
+  closeYearMenu();
+  clearActiveFilterPane();
+  syncFilterBtnLabels();
+  renderFilterTags();
+  updateNameInput();
+  scheduleAutoPreview();
+}
+
 function syncFilterBtnLabels() {
   ['genres', 'year', 'season', 'format', 'status'].forEach(id => updateFilterBtn(id));
   // single-select: daterange
@@ -2679,8 +2923,8 @@ const PREVIEW_QUERY = `
   query($sort:[MediaSort],$format_in:[MediaFormat],$season:MediaSeason,$seasonYear:Int,$status_in:[MediaStatus],$genre_in:[String],$averageScore_greater:Int,$startDate_greater:FuzzyDateInt,$startDate_lesser:FuzzyDateInt,$isAdult:Boolean){
     Page(page:1,perPage:50){
       media(type:ANIME,isAdult:$isAdult,sort:$sort,format_in:$format_in,season:$season,seasonYear:$seasonYear,status_in:$status_in,genre_in:$genre_in,averageScore_greater:$averageScore_greater,startDate_greater:$startDate_greater,startDate_lesser:$startDate_lesser){
-        id title{romaji english} coverImage{large} averageScore popularity
-        genres format episodes status season seasonYear description(asHtml:false)
+        id title{romaji english} coverImage{extraLarge large} averageScore popularity
+        genres format episodes status season seasonYear startDate{year month day} description(asHtml:false)
         studios(isMain:true){nodes{name}}
         nextAiringEpisode{episode timeUntilAiring}
       }
@@ -2722,8 +2966,8 @@ const PREVIEW_QUERY_AIRING = `
     Page(page:1,perPage:50){
       airingSchedules(airingAt_greater:$start airingAt_lesser:$end sort:TIME){
         media{
-          id title{romaji english} coverImage{large} averageScore isAdult popularity
-          genres format episodes status season seasonYear description(asHtml:false)
+          id title{romaji english} coverImage{extraLarge large} averageScore isAdult popularity
+          genres format episodes status season seasonYear startDate{year month day} description(asHtml:false)
           studios(isMain:true){nodes{name}}
           nextAiringEpisode{episode timeUntilAiring}
         }
@@ -2811,7 +3055,7 @@ function renderGridView(media) {
     }
     return `<a class="poster ${themeClass} ${metaSub ? 'has-banner' : ''}" href="https://anilist.co/anime/${m.id}" target="_blank" rel="noopener noreferrer">
       <div class="poster-img">
-        <img src="${escHtml(m.coverImage.large)}" alt="${title}" loading="lazy">
+        <img src="${escHtml(m.coverImage.extraLarge || m.coverImage.large)}" alt="${title}" loading="lazy">
         <div class="poster-genres">${genres}</div>
         ${neutralTags ? `<div class="poster-bottom-tags">${neutralTags}</div>` : ''}
         ${metaSub ? `<div class="poster-meta"><div class="poster-meta-row">${escHtml(metaSub)}</div></div>` : ''}
@@ -2845,7 +3089,7 @@ function renderListView(media) {
       return `<span class="genre-badge ${genreBadgeClass(g, 'soft')}" data-genre="${escHtml(g)}">${escHtml(g)}</span>`;
     }).join('');
     return `<a class="list-item" href="https://anilist.co/anime/${m.id}" target="_blank" rel="noopener noreferrer">
-      <div class="list-thumb"><img src="${escHtml(m.coverImage.large)}" alt="${title}" loading="lazy"></div>
+      <div class="list-thumb"><img src="${escHtml(m.coverImage.extraLarge || m.coverImage.large)}" alt="${title}" loading="lazy"></div>
       <div class="list-main">
         <div class="list-title">${title}</div>
         <div class="list-genres">${genres}</div>
@@ -2910,7 +3154,7 @@ function renderDetailView(media) {
       : `<div class="detail-period">${escHtml(period)}</div>`;
     return `<a class="detail-card ${themeClass} ${bannerLineClass}" href="https://anilist.co/anime/${m.id}" target="_blank" rel="noopener noreferrer">
       <div class="detail-poster">
-        <img src="${escHtml(m.coverImage.large)}" alt="${title}" loading="lazy">
+        <img src="${escHtml(m.coverImage.extraLarge || m.coverImage.large)}" alt="${title}" loading="lazy">
         <div class="detail-poster-overlay">
           <div class="detail-overlay-inner">
             <div class="detail-overlay-title">${title}</div>
@@ -2950,6 +3194,7 @@ function toggleSortMenu() {
   const menu = document.getElementById('sort-menu');
   const isOpen = menu.classList.contains('open');
   if (isOpen) { closeSortMenu(); } else {
+    closeYearMenu();
     menu.classList.add('open');
     document.getElementById('sort-btn').classList.add('open');
   }
@@ -2962,6 +3207,7 @@ function closeSortMenu() {
 }
 document.addEventListener('click', e => {
   if (!document.getElementById('sort-dropdown')?.contains(e.target)) closeSortMenu();
+  if (!document.getElementById('year-dropdown')?.contains(e.target)) closeYearMenu();
 });
 
 // ── Pane tab switch (Preview / Catalogs) ──────────
@@ -2973,6 +3219,7 @@ function setPaneTab(tab) {
   document.getElementById('preview-pane').classList.toggle('pane-hidden', tab !== 'preview');
   document.getElementById('catalogs-pane').classList.toggle('catalogs-hidden', tab !== 'catalogs');
   document.getElementById('preview-tab-extras').classList.toggle('pane-hidden', tab !== 'preview');
+  updateNameInput();
 }
 
 // ── Filter tags ───────────────────────────────────
@@ -2987,6 +3234,7 @@ function renderSortBtn() {
 
 function renderFilterTags() {
   const score = parseInt(document.getElementById('f-score').value);
+  const daterange = getSelectedDateRangeValue();
   renderSortBtn();
   syncFilterBtnLabels();
 
@@ -2997,6 +3245,7 @@ function renderFilterTags() {
   selectedSeasons.forEach(s  => tags.push({ key: 'season:'  + s, label: s === 'CURRENT' ? 'Current Season' : (SEASON_LABELS[s] || s) }));
   selectedYears.forEach(y    => tags.push({ key: 'year:'    + y, label: y }));
   selectedStatuses.forEach(s => tags.push({ key: 'status:'  + s, label: STATUS_LABELS[s] || s }));
+  if (daterange) tags.push({ key: 'daterange', label: getDateRangeLabel(daterange) });
   if (score > 0) tags.push({ key: 'score', label: score + '+ score' });
   if (includeAdult) tags.push({ key: 'adult', label: 'Adult' });
   selectedGenres.forEach(g   => tags.push({ key: 'genre:'   + g, label: g }));
@@ -3025,7 +3274,7 @@ function removeFilter(key) {
   else if (key.startsWith('status:'))  { toggleMultiVal(selectedStatuses,key.slice(7)); }
   else if (key.startsWith('year:'))    { toggleMultiVal(selectedYears,   key.slice(5)); }
   else if (key.startsWith('season:'))  { toggleMultiVal(selectedSeasons, key.slice(7)); }
-  document.getElementById('f-daterange').value = '';
+  else if (key === 'daterange')        { document.getElementById('f-daterange').value = ''; }
   syncFilterBtnLabels();
   if (activeFbFilter) renderFilterOpts(activeFbFilter);
   renderFilterTags();
@@ -3082,13 +3331,14 @@ function filtersToVars(filters) {
   if (filters.year)                                 v.seasonYear       = filters.year;
   if (filters.minScore)                             v.averageScore_greater = filters.minScore;
   if (filters.genres && filters.genres.length)      v.genre_in         = filters.genres;
+  applyDateRangeToVariables(v, filters.daterange);
   return v;
 }
 
 // ── Preset form defaults ──────────────────────────
 const PRESET_FORM_DEFAULTS = {
   'anilist-popular-season': { sort: 'POPULARITY_DESC', formats: [], seasons: ['CURRENT'], statuses: ['RELEASING'], score: 0, genres: [] },
-  'anilist-airing-week':    { sort: 'TRENDING_DESC',   formats: [], seasons: [],          daterange: 'this-week', statuses: ['RELEASING'], score: 0, genres: [] },
+  'anilist-airing-week':    { sort: 'TRENDING_DESC',   formats: [], seasons: [],          statuses: ['RELEASING'], score: 0, genres: [] },
   'anilist-trending':       { sort: 'TRENDING_DESC',   formats: [], seasons: [],          statuses: [],           score: 0, genres: [] },
   'anilist-top-rated':      { sort: 'SCORE_DESC',      formats: [], seasons: [],          statuses: [],           score: 0, genres: [] },
 };
@@ -3124,42 +3374,70 @@ function toFuzzyDate(d) {
   return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
 }
 
-// Quick Date Range presets — auto-fill the existing filter fields.
-// No special query logic; "This Week" = status:RELEASING, month-based = season+year.
-// The "Airing This Week" PRESET (not this filter) uses the airingSchedules query.
-function onDateRangeChange(el) {
+function getSelectedDateRangeValue() {
+  return document.getElementById('f-daterange')?.value || '';
+}
+
+function getDateRangeLabel(value) {
+  const opt = (FILTER_OPTS.daterange || []).find(o => o.value === value);
+  return opt ? opt.label : value;
+}
+
+function addDays(d, days) {
+  const next = new Date(d);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function getDateRangeBounds(value) {
+  if (!value) return null;
   const now = new Date();
-  const y = now.getFullYear();
-  const m = now.getMonth() + 1;
-  switch (el.value) {
-    case 'this-week':
-      selectedStatuses = ['RELEASING'];
-      selectedYears = []; selectedSeasons = [];
-      break;
-    case 'this-month':
-      selectedYears   = [String(y)];
-      selectedSeasons = [m <= 3 ? 'WINTER' : m <= 6 ? 'SPRING' : m <= 9 ? 'SUMMER' : 'FALL'];
-      break;
-    case 'last-month': {
-      const lm = m === 1 ? 12 : m - 1;
-      const ly = m === 1 ? y - 1 : y;
-      selectedYears   = [String(ly)];
-      selectedSeasons = [lm <= 3 ? 'WINTER' : lm <= 6 ? 'SPRING' : lm <= 9 ? 'SUMMER' : 'FALL'];
-      break;
+  const year = now.getFullYear();
+  const month = now.getMonth();
+
+  switch (value) {
+    case 'this-week': {
+      const start = getWeekStart();
+      const end = addDays(start, 6);
+      return { start, end };
     }
+    case 'this-month':
+      return { start: new Date(year, month, 1), end: new Date(year, month + 1, 0) };
+    case 'last-month':
+      return { start: new Date(year, month - 1, 1), end: new Date(year, month, 0) };
     case 'this-year':
-      selectedYears   = [String(y)];
-      selectedSeasons = [];
-      break;
+      return { start: new Date(year, 0, 1), end: new Date(year, 11, 31) };
     case 'last-year':
-      selectedYears   = [String(y - 1)];
-      selectedSeasons = [];
-      break;
+      return { start: new Date(year - 1, 0, 1), end: new Date(year - 1, 11, 31) };
     default:
-      break;
+      return null;
   }
-  syncFilterBtnLabels();
-  if (activeFbFilter) renderFilterOpts(activeFbFilter);
+}
+
+function applyDateRangeToVariables(variables, value) {
+  delete variables.startDate_greater;
+  delete variables.startDate_lesser;
+  const bounds = getDateRangeBounds(value);
+  if (!bounds) return;
+  variables.startDate_greater = toFuzzyDate(addDays(bounds.start, -1));
+  variables.startDate_lesser = toFuzzyDate(addDays(bounds.end, 1));
+}
+
+function mediaMatchesDateRange(media, value) {
+  const bounds = getDateRangeBounds(value);
+  if (!bounds) return true;
+  const sd = media.startDate || {};
+  if (!sd.year || !sd.month) return false;
+  const fuzzy = sd.year * 10000 + sd.month * 100 + (sd.day || 1);
+  return fuzzy >= toFuzzyDate(bounds.start) && fuzzy <= toFuzzyDate(bounds.end);
+}
+
+// Relative date filters use real calendar ranges via AniList FuzzyDateInt vars.
+// The "Airing This Week" PRESET is still handled separately via airingSchedules.
+function onDateRangeChange(el) {
+  document.getElementById('f-daterange').value = el.value || '';
+  renderFilterTags();
+  updateNameInput();
   scheduleAutoPreview();
 }
 
@@ -3196,6 +3474,7 @@ async function previewCustom() {
   if (sv.seasonYear)           variables.seasonYear = sv.seasonYear;
   if (score > 0)               variables.averageScore_greater = score;
   if (selectedGenres.length)   variables.genre_in   = [...selectedGenres];
+  applyDateRangeToVariables(variables, getSelectedDateRangeValue());
 
   setPreviewLoading('Loading\u2026');
   try {
@@ -3230,13 +3509,15 @@ function addCustom() {
     return;
   }
 
-  if (activeSource && hasActiveAdditionalFilters()) {
-    // Save a filtered watching/AI catalog — the source type and listStatus are stored,
-    // plus client-side filters so the configure UI preview re-applies them.
+  if (activeSource) {
+    // Save a source-backed catalog. Additional filters are optional; when present
+    // they are stored for the configure UI to replay on top of the source.
     const clientFilters = _buildClientFilters();
-    const id = 'watch-' + Math.random().toString(36).slice(2, 10);
-    const cat = { id, name, type: 'watching' };
+    const idPrefix = activeSource.type === 'ai' ? 'ai' : 'watch';
+    const id = `${idPrefix}-` + Math.random().toString(36).slice(2, 10);
+    const cat = { id, name, type: activeSource.type };
     if (activeSource.listStatus) cat.listStatus = activeSource.listStatus;
+    if (activeSource.type === 'ai' && _orModel) cat.model = _orModel;
     if (Object.keys(clientFilters).length) cat.clientFilters = clientFilters;
     catalogs.push(cat);
 
@@ -3268,6 +3549,8 @@ function addCustom() {
   if (sv.seasonYear)           filters.year     = sv.seasonYear;
   if (score > 0)               filters.minScore = score;
   if (selectedGenres.length)   filters.genres   = [...selectedGenres];
+  const daterange = getSelectedDateRangeValue();
+  if (daterange)               filters.daterange = daterange;
 
   const id = 'custom-' + Math.random().toString(36).slice(2, 10);
   catalogs.push({ id, name, type: 'custom', filters });
@@ -3416,7 +3699,7 @@ function render() {
             ? `<input class="catalog-rename-input" data-rename-id="${c.id}" value="${escHtml(c.name)}">`
             : `<div class="catalog-item-name">${escHtml(c.name)}</div>`
           }
-          <div class="catalog-item-type"><span class="catalog-type-badge">${c.type === 'watching' ? 'Account' : c.type === 'ai' ? 'AI' : c.type === 'custom' ? 'Custom' : 'Preset'}</span></div>
+          <div class="catalog-item-type"><span class="catalog-type-badge${c.type === 'watching' ? ' account-type-badge' : c.type === 'ai' ? ' ai-type-badge' : ''}">${c.type === 'watching' ? 'Account' : c.type === 'ai' ? 'AI' : c.type === 'custom' ? 'Custom' : 'Preset'}</span></div>
         </div>
         <div class="catalog-actions">
           <button class="edit-btn" type="button" data-action="start-rename" data-id="${c.id}">&#9998; Rename</button>
@@ -3811,6 +4094,14 @@ function bindStaticUiEvents() {
       case 'set-active-filter':
         e.preventDefault();
         setActiveFilter(actionEl.dataset.filter);
+        return;
+      case 'toggle-year-menu':
+        e.preventDefault();
+        toggleYearMenu();
+        return;
+      case 'set-year-value':
+        e.preventDefault();
+        setYearValue(actionEl.dataset.value);
         return;
       case 'add-custom':
         e.preventDefault();

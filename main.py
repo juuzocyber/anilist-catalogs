@@ -3,6 +3,7 @@ AniList Catalogs — FastAPI entry point.
 """
 
 import asyncio
+import hashlib
 import logging
 import random
 import re
@@ -43,6 +44,7 @@ _SHARED_HTTP_LIMITS = httpx.Limits(max_connections=100, max_keepalive_connection
 _ANILIST_HTTP_CLIENT_TIMEOUT = httpx.Timeout(10.0)
 _GENERAL_HTTP_CLIENT_TIMEOUT = httpx.Timeout(30.0)
 _FRIBB_WARMUP_TIMEOUT = 8.0
+_RANDOMIZE_BUCKET_SECONDS = 6 * 60 * 60
 _anilist_http_client: httpx.AsyncClient | None = None
 _general_http_client: httpx.AsyncClient | None = None
 
@@ -76,6 +78,32 @@ def _build_manifest(config):
     m["catalogs"] = catalogs
     m["behaviorHints"] = {**m.get("behaviorHints", {}), "configurable": True, "configurationRequired": False}
     return m
+
+
+def _current_randomize_bucket(now: float | None = None) -> int:
+    timestamp = time.time() if now is None else now
+    return int(timestamp // _RANDOMIZE_BUCKET_SECONDS)
+
+
+def _stable_shuffle_metas(
+    metas: list[dict],
+    *,
+    config_token: str,
+    catalog_id: str,
+    page: int,
+    bucket: int | None = None,
+) -> list[dict]:
+    if len(metas) < 2:
+        return list(metas)
+
+    if bucket is None:
+        bucket = _current_randomize_bucket()
+
+    seed_material = f"{config_token}:{catalog_id}:{page}:{bucket}".encode("utf-8")
+    seed = int.from_bytes(hashlib.sha256(seed_material).digest()[:8], "big")
+    shuffled = list(metas)
+    random.Random(seed).shuffle(shuffled)
+    return shuffled
 
 
 def _is_local_host(hostname: str | None) -> bool:
@@ -1027,7 +1055,12 @@ async def catalog_configured(config_segment: str, content_type: str, catalog_id:
         logger.error("Fetch failed for %s: %s", catalog_id, exc)
         raise HTTPException(status_code=502, detail="AniList API error") from exc
     if catalog_config.get("randomize"):
-        metas = random.sample(metas, len(metas))
+        metas = _stable_shuffle_metas(
+            metas,
+            config_token=config_token,
+            catalog_id=catalog_id,
+            page=page,
+        )
     return JSONResponse({"metas": metas})
 
 @app.get("/{config_segment}/meta/{content_type}/{item_id}.json")

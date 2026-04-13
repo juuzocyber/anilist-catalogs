@@ -1255,7 +1255,12 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   .remove-btn { background: rgba(220,38,38,0.14); color: #fca5a5; border-color: rgba(248,113,113,0.14); }
   .edit-btn:hover   { background: rgba(255,255,255,0.1); color: var(--text); transform: translateY(-1px); }
   .shuffle-btn:hover { background: rgba(255,255,255,0.1); color: var(--text); transform: translateY(-1px); }
-  .shuffle-btn.active { background: rgba(255,255,255,0.12); color: var(--text); }
+  .shuffle-btn.active {
+    background: linear-gradient(180deg, rgba(245,246,247,0.2) 0%, rgba(245,246,247,0.14) 100%);
+    color: var(--text);
+    border-color: rgba(245,246,247,0.38);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 0 0 1px rgba(255,255,255,0.08);
+  }
   .remove-btn:hover { background: rgba(220,38,38,0.24); color: #fecaca; transform: translateY(-1px); }
   .catalog-num {
     flex-shrink: 0; width: 34px; height: 34px;
@@ -1741,7 +1746,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4z"/></svg>
           </a>
         </div>
-        <div class="pane-footer-text">Version: v1.4.3 &mdash; Developed by juuzo</div>
+        <div class="pane-footer-text">Version: v1.4.4 &mdash; Developed by juuzo</div>
       </div>
     </div>
 
@@ -3699,6 +3704,7 @@ function toggleRandomize(id) {
 }
 
 const SHUFFLE_ICON = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/></svg>`;
+const SHUFFLE_TOOLTIP = 'Randomize catalog content - reshuffle every 6 hours';
 
 // ── Render ────────────────────────────────────────
 function render() {
@@ -3735,7 +3741,7 @@ function render() {
         </div>
         <div class="catalog-actions">
           <button class="edit-btn" type="button" data-action="start-rename" data-id="${c.id}">&#9998; Rename</button>
-          <button class="shuffle-btn ${c.randomize ? 'active' : ''}" type="button" data-action="toggle-randomize" data-id="${c.id}">${SHUFFLE_ICON} Randomize</button>
+          <button class="shuffle-btn ${c.randomize ? 'active' : ''}" type="button" data-action="toggle-randomize" data-id="${c.id}" title="${SHUFFLE_TOOLTIP}" aria-pressed="${c.randomize ? 'true' : 'false'}">${SHUFFLE_ICON} ${c.randomize ? 'Randomized' : 'Randomize'}</button>
           <button class="remove-btn" type="button" data-action="remove-catalog" data-id="${c.id}">&#128465; Remove</button>
         </div>
       </div>

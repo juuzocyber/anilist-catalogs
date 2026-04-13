@@ -14,6 +14,7 @@ can be stale for entries that were merged/renumbered on AniList.
 ID preference: IMDb > TMDB > AniList fallback.
 """
 
+import asyncio
 import logging
 import time
 
@@ -37,6 +38,43 @@ _s1_by_slug: dict[str, dict] = {}       # anime-planet_id -> S1 entry
 _s1_slugs_sorted: list[str] = []        # S1 slugs sorted longest-first
 _kitsu_to_imdb: dict[int, str] = {}     # kitsu_id -> tt-prefixed imdb id
 _fribb_loaded: float = 0
+_general_http_client: httpx.AsyncClient | None = None
+_fribb_lock: asyncio.Lock | None = None
+
+
+def configure_http_client(client: httpx.AsyncClient | None = None) -> None:
+    global _general_http_client
+    _general_http_client = client
+
+
+def is_fribb_warm() -> bool:
+    return bool(_by_anilist) and (time.monotonic() - _fribb_loaded) < FRIBB_TTL
+
+
+def _get_fribb_lock() -> asyncio.Lock:
+    global _fribb_lock
+    if _fribb_lock is None:
+        _fribb_lock = asyncio.Lock()
+    return _fribb_lock
+
+
+async def _request_with_client(
+    shared_client: httpx.AsyncClient | None,
+    method: str,
+    url: str,
+    *,
+    timeout: float | httpx.Timeout | None = None,
+    **kwargs,
+) -> httpx.Response:
+    if shared_client is not None:
+        return await shared_client.request(method, url, timeout=timeout, **kwargs)
+    async with httpx.AsyncClient() as ephemeral_client:
+        return await ephemeral_client.request(method, url, timeout=timeout, **kwargs)
+
+
+async def warmup_indexes() -> bool:
+    await _ensure_fribb()
+    return is_fribb_warm()
 
 
 def _normalize_imdb(value) -> str | None:
@@ -87,70 +125,83 @@ def _extract_kitsu_imdb_map(payload) -> dict[int, str]:
 async def _ensure_fribb() -> None:
     """Load the Fribb database and Kitsu IMDb supplement if not cached or stale."""
     global _by_anilist, _by_mal, _s1_by_tvdb, _s1_by_slug, _s1_slugs_sorted, _kitsu_to_imdb, _fribb_loaded
-    if _by_anilist and (time.monotonic() - _fribb_loaded) < FRIBB_TTL:
+    if is_fribb_warm():
         return
 
-    try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            fribb_resp = await client.get(FRIBB_URL)
+    async with _get_fribb_lock():
+        if is_fribb_warm():
+            return
+
+        try:
+            fribb_resp = await _request_with_client(
+                _general_http_client,
+                "GET",
+                FRIBB_URL,
+                timeout=30.0,
+            )
             fribb_resp.raise_for_status()
             fribb_data = fribb_resp.json()
 
-            kitsu_resp = await client.get(KITSU_IMDB_URL)
+            kitsu_resp = await _request_with_client(
+                _general_http_client,
+                "GET",
+                KITSU_IMDB_URL,
+                timeout=30.0,
+            )
             kitsu_resp.raise_for_status()
             kitsu_data = kitsu_resp.json()
-    except Exception as exc:
-        logger.warning("Failed to refresh Fribb/Kitsu indexes: %s", exc)
-        return
+        except Exception as exc:
+            logger.warning("Failed to refresh Fribb/Kitsu indexes: %s", exc)
+            return
 
-    by_anilist: dict[int, dict] = {}
-    by_mal: dict[int, dict] = {}
-    s1_by_tvdb: dict[int, dict] = {}
-    s1_by_slug: dict[str, dict] = {}
-    null_season_tv: list[dict] = []  # TV entries with season: null + tvdb_id
+        by_anilist: dict[int, dict] = {}
+        by_mal: dict[int, dict] = {}
+        s1_by_tvdb: dict[int, dict] = {}
+        s1_by_slug: dict[str, dict] = {}
+        null_season_tv: list[dict] = []  # TV entries with season: null + tvdb_id
 
-    for entry in fribb_data:
-        aid = entry.get("anilist_id")
-        if aid:
-            by_anilist[aid] = entry
-        mid = entry.get("mal_id")
-        if mid:
-            by_mal[mid] = entry
-        season = entry.get("season")
-        tvdb_season = (season or {}).get("tvdb")
-        tvdb = entry.get("tvdb_id")
-        if tvdb_season == 1:
-            if tvdb:
+        for entry in fribb_data:
+            aid = entry.get("anilist_id")
+            if aid:
+                by_anilist[aid] = entry
+            mid = entry.get("mal_id")
+            if mid:
+                by_mal[mid] = entry
+            season = entry.get("season")
+            tvdb_season = (season or {}).get("tvdb")
+            tvdb = entry.get("tvdb_id")
+            if tvdb_season == 1:
+                if tvdb:
+                    s1_by_tvdb[tvdb] = entry
+                slug = entry.get("anime-planet_id")
+                if slug and len(slug) >= _MIN_SLUG_LEN:
+                    s1_by_slug[slug] = entry
+            elif season is None and tvdb and entry.get("type") == "TV":
+                null_season_tv.append(entry)
+
+        # Second pass: long-running TV shows (Gintama, One Piece) have season: null.
+        # Treat them as S1 if no explicit season.tvdb == 1 entry claims that tvdb_id.
+        for entry in null_season_tv:
+            tvdb = entry["tvdb_id"]
+            if tvdb not in s1_by_tvdb:
                 s1_by_tvdb[tvdb] = entry
-            slug = entry.get("anime-planet_id")
-            if slug and len(slug) >= _MIN_SLUG_LEN:
-                s1_by_slug[slug] = entry
-        elif season is None and tvdb and entry.get("type") == "TV":
-            null_season_tv.append(entry)
+                slug = entry.get("anime-planet_id")
+                if slug and len(slug) >= _MIN_SLUG_LEN:
+                    s1_by_slug[slug] = entry
 
-    # Second pass: long-running TV shows (Gintama, One Piece) have season: null.
-    # Treat them as S1 if no explicit season.tvdb == 1 entry claims that tvdb_id.
-    for entry in null_season_tv:
-        tvdb = entry["tvdb_id"]
-        if tvdb not in s1_by_tvdb:
-            s1_by_tvdb[tvdb] = entry
-            slug = entry.get("anime-planet_id")
-            if slug and len(slug) >= _MIN_SLUG_LEN:
-                s1_by_slug[slug] = entry
+        kitsu_to_imdb = _extract_kitsu_imdb_map(kitsu_data)
 
-    kitsu_to_imdb = _extract_kitsu_imdb_map(kitsu_data)
-
-    _by_anilist = by_anilist
-    _by_mal = by_mal
-    _s1_by_tvdb = s1_by_tvdb
-    _s1_by_slug = s1_by_slug
-    _s1_slugs_sorted = sorted(s1_by_slug.keys(), key=len, reverse=True)
-    _kitsu_to_imdb = kitsu_to_imdb
-    _fribb_loaded = time.monotonic()
-    logger.info(
-        "Fribb/Kitsu loaded: %d anilist, %d mal, %d S1 tvdb, %d S1 slugs, %d kitsu imdb",
-        len(by_anilist), len(by_mal), len(s1_by_tvdb), len(s1_by_slug), len(kitsu_to_imdb),
-    )
+        _by_anilist = by_anilist
+        _by_mal = by_mal
+        _s1_by_tvdb = s1_by_tvdb
+        _s1_by_slug = s1_by_slug
+        _s1_slugs_sorted = sorted(s1_by_slug.keys(), key=len, reverse=True)
+        _kitsu_to_imdb = kitsu_to_imdb
+        _fribb_loaded = time.monotonic()
+        logger.info(
+            "Fribb/Kitsu loaded: %d anilist, %d mal, %d S1 tvdb, %d S1 slugs, %d kitsu imdb",
+            len(by_anilist), len(by_mal), len(s1_by_tvdb), len(s1_by_slug), len(kitsu_to_imdb),
+        )
 
 
 def _find_entry(anilist_id: int, mal_id: int | None) -> dict | None:

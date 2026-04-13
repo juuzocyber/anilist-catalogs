@@ -14,6 +14,12 @@ import httpx
 
 logger = logging.getLogger(__name__)
 ANILIST_URL = "https://graphql.anilist.co"
+_anilist_http_client: httpx.AsyncClient | None = None
+_general_http_client: httpx.AsyncClient | None = None
+
+
+class AIRecommendationError(Exception):
+    """Raised when upstream AI recommendation generation fails."""
 
 MEDIA_FIELDS = """
     id
@@ -34,6 +40,7 @@ MEDIA_FIELDS = """
     genres
     format
     siteUrl
+    studios(isMain: true) { nodes { name } }
 """
 
 AI_HISTORY_MEDIA_FIELDS = """
@@ -50,6 +57,35 @@ AI_MODEL_CANDIDATE_COUNT = 100
 AI_PROMPT_COMPLETED_LIMIT = 80
 AI_PROMPT_WATCHING_LIMIT = 20
 AI_EXCLUSION_STATUSES = ("COMPLETED", "CURRENT", "PAUSED", "DROPPED", "REPEATING")
+
+
+def configure_http_clients(
+    *,
+    anilist_client: httpx.AsyncClient | None = None,
+    general_client: httpx.AsyncClient | None = None,
+) -> None:
+    """Install shared outbound clients for hot paths.
+
+    When unset, the module falls back to short-lived clients so direct calls
+    outside FastAPI lifespan still work.
+    """
+    global _anilist_http_client, _general_http_client
+    _anilist_http_client = anilist_client
+    _general_http_client = general_client
+
+
+async def _request_with_client(
+    shared_client: httpx.AsyncClient | None,
+    method: str,
+    url: str,
+    *,
+    timeout: float | httpx.Timeout | None = None,
+    **kwargs,
+) -> httpx.Response:
+    if shared_client is not None:
+        return await shared_client.request(method, url, timeout=timeout, **kwargs)
+    async with httpx.AsyncClient() as ephemeral_client:
+        return await ephemeral_client.request(method, url, timeout=timeout, **kwargs)
 
 def _season_now():
     now = datetime.now(timezone.utc)
@@ -164,18 +200,20 @@ async def _gql(query: str, variables: dict, *, token: str | None = None) -> dict
     headers = {"Content-Type": "application/json", "Accept": "application/json"}
     if token:
         headers["Authorization"] = f"Bearer {token}"
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        resp = await client.post(
-            ANILIST_URL,
-            json={"query": query, "variables": variables},
-            headers=headers,
-        )
-        resp.raise_for_status()
-        payload = resp.json()
-        if "errors" in payload:
-            logger.error("AniList GraphQL errors: %s", payload["errors"])
-            raise ValueError(f"AniList error: {payload['errors']}")
-        return payload["data"]
+    resp = await _request_with_client(
+        _anilist_http_client,
+        "POST",
+        ANILIST_URL,
+        timeout=10.0,
+        json={"query": query, "variables": variables},
+        headers=headers,
+    )
+    resp.raise_for_status()
+    payload = resp.json()
+    if "errors" in payload:
+        logger.error("AniList GraphQL errors: %s", payload["errors"])
+        raise ValueError(f"AniList error: {payload['errors']}")
+    return payload["data"]
 
 async def get_popular_season(page: int = 1, per_page: int = 30) -> list[dict]:
     season, year = _season_now()
@@ -501,30 +539,41 @@ async def get_ai_recommendations(
         f"Currently watching (secondary signal): {watching_text}"
     )
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            resp = await client.post(
-                "https://openrouter.ai/api/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {openrouter_key}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": model,
-                    "messages": [
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user",   "content": user_prompt},
-                    ],
-                    "temperature": 0.7,
-                    "max_tokens": 4096,
-                },
-            )
+        resp = await _request_with_client(
+            _general_http_client,
+            "POST",
+            "https://openrouter.ai/api/v1/chat/completions",
+            timeout=30.0,
+            headers={
+                "Authorization": f"Bearer {openrouter_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": model,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user",   "content": user_prompt},
+                ],
+                "temperature": 0.7,
+                "max_tokens": 4096,
+            },
+        )
         if resp.status_code != 200:
-            logger.error("AI recs: OpenRouter returned HTTP %d", resp.status_code)
-            return []
+            detail = None
+            try:
+                payload = resp.json()
+                if isinstance(payload, dict):
+                    detail = payload.get("error", {}).get("message") or payload.get("message")
+            except Exception:
+                detail = None
+            logger.error("AI recs: OpenRouter returned HTTP %d detail=%s", resp.status_code, detail)
+            raise AIRecommendationError(detail or f"OpenRouter returned HTTP {resp.status_code}")
         payload = resp.json()
     except Exception as exc:
+        if isinstance(exc, AIRecommendationError):
+            raise
         logger.error("AI recs: OpenRouter request failed: %s", exc)
-        return []
+        raise AIRecommendationError("Could not reach OpenRouter.")
 
     # 4. Parse JSON array of title strings from the model's response
     try:

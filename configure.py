@@ -1741,7 +1741,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4z"/></svg>
           </a>
         </div>
-        <div class="pane-footer-text">Version: v1.4.2 &mdash; Developed by juuzo</div>
+        <div class="pane-footer-text">Version: v1.4.3 &mdash; Developed by juuzo</div>
       </div>
     </div>
 
@@ -2219,6 +2219,31 @@ function hasActiveAdditionalFilters() {
          selectedSeasons.length > 0 || score > 0 || !!daterange;
 }
 
+function hasStoredClientFilters(cat) {
+  return !!(cat && cat.clientFilters && Object.keys(cat.clientFilters).length);
+}
+
+function getSourceBaseName(source) {
+  if (!source) return '';
+  if (source.sourceName) return source.sourceName;
+  if (source.type === 'ai') return 'AI Recommendations';
+  switch (source.listStatus) {
+    case 'CURRENT': return 'Currently Watching';
+    case 'PLANNING': return 'Plan to Watch';
+    case 'COMPLETED': return 'Completed';
+    case 'PAUSED': return 'Paused';
+    case 'DROPPED': return 'Dropped';
+    case 'REPEATING': return 'Rewatching';
+    case 'FAVOURITES': return 'My Favourites';
+    default: return source.name || '';
+  }
+}
+
+function getSourceDisplayName(source) {
+  if (!source) return '';
+  return source.previewName || source.name || getSourceBaseName(source);
+}
+
 // Clear additional filter state (genre/format/status/year/season/score/sort/daterange)
 // without touching activeSource.
 function _clearAdditionalFilters() {
@@ -2237,7 +2262,7 @@ function _clearAdditionalFilters() {
 
 // Build a human-readable name suggestion from active source + filter tags.
 function _buildSuggestedName() {
-  const parts = [activeSource.name];
+  const parts = [getSourceBaseName(activeSource)];
   selectedGenres.forEach(g  => parts.push(g));
   selectedFormats.forEach(f  => parts.push(FORMAT_LABELS[f] || f));
   selectedYears.forEach(y    => parts.push(y));
@@ -2267,9 +2292,8 @@ function _buildClientFilters() {
   return f;
 }
 
-// Update the name-input + Add-button visibility based on source/filter state.
-// Keep them visible in "Your Catalogs" so source-backed catalogs can still be named
-// and saved there, but hide them in Preview when a bare source is already active.
+// Update the name-input state based on source/filter state.
+// Source-backed catalogs should remain nameable/savable in Preview too.
 function updateNameInput() {
   const wrap   = document.getElementById('catalog-name-wrap');
   const addBtn = document.getElementById('catalog-add-btn');
@@ -2277,9 +2301,8 @@ function updateNameInput() {
 
   const hasFilters = hasActiveAdditionalFilters();
   const inp = document.getElementById('catalog-name');
-  const hideForSource = activeSource && !hasFilters && currentPane === 'preview';
-  wrap.classList.toggle('hidden', hideForSource);
-  addBtn.classList.toggle('hidden', hideForSource);
+  wrap.classList.remove('hidden');
+  addBtn.classList.remove('hidden');
 
   if (activeSource && hasFilters) {
     const suggested = _buildSuggestedName();
@@ -2342,9 +2365,10 @@ function _applySourcePreview() {
   const filtered = _filterSourceMedia(_sourceMedia);
   const count = filtered.length;
   const total = _sourceMedia.length;
+  const label = getSourceDisplayName(activeSource);
   const subtitle = count < total
-    ? `${activeSource.name} \u2014 ${count} of ${total} titles`
-    : `${activeSource.name} \u2014 ${count} titles`;
+    ? `${label} \u2014 ${count} of ${total} titles`
+    : `${label} \u2014 ${count} titles`;
   renderPreview(filtered, subtitle);
 }
 
@@ -2401,12 +2425,12 @@ async function fetchAndShowSource() {
 
   if (activeSource.type === 'watching') {
     if (!_sessionKey) {
-      document.getElementById('preview-sub').textContent = activeSource.name;
+      document.getElementById('preview-sub').textContent = getSourceDisplayName(activeSource);
       document.getElementById('preview-area').innerHTML =
         '<div class="preview-prompt"><div class="preview-prompt-icon">&#128274;</div><div>Account catalog<br><span class="preview-error-detail">Connect your AniList account to preview this list</span></div></div>';
       return;
     }
-    setPreviewLoading(activeSource.name);
+    setPreviewLoading(getSourceDisplayName(activeSource));
     try {
       const res = await fetch('/api/preview-watching', {
         method: 'POST',
@@ -2432,13 +2456,13 @@ async function fetchAndShowSource() {
 
   if (activeSource.type === 'ai') {
     if (!_sessionKey) {
-      document.getElementById('preview-sub').textContent = activeSource.name;
+      document.getElementById('preview-sub').textContent = getSourceDisplayName(activeSource);
       document.getElementById('preview-area').innerHTML =
         '<div class="preview-prompt"><div class="preview-prompt-icon">&#128274;</div><div>Account catalog<br><span class="preview-error-detail">Connect your AniList account to use AI recommendations</span></div></div>';
       return;
     }
     if (!_hasOrKey) {
-      document.getElementById('preview-sub').textContent = activeSource.name;
+      document.getElementById('preview-sub').textContent = getSourceDisplayName(activeSource);
       document.getElementById('preview-area').innerHTML =
         '<div class="preview-prompt"><div class="preview-prompt-icon">&#9881;</div><div>OpenRouter key required<br><span class="preview-error-detail">Click the gear icon on the AI pill to add your key</span></div></div>';
       return;
@@ -2471,7 +2495,7 @@ function addAccountPreset(id, name, listStatus) {
   if (!_sessionKey) return;
   const alreadyAdded = !!catalogs.find(c => c.id === id);
   // Set this as the active source (shows tag in filter bar + enables filtering on top)
-  activeSource = { id, name, listStatus, type: 'watching' };
+  activeSource = { id, name, sourceName: name, previewName: name, listStatus, type: 'watching' };
   _sourceMedia = null;
   _lastSuggestedName = '';
   // Clear any previously active filters — new source starts fresh
@@ -2496,7 +2520,7 @@ function addAiCatalog() {
   if (!_sessionKey) return;
   if (!_hasOrKey) { openAiModal(); return; }
   const alreadyAdded = !!catalogs.find(c => c.id === 'anilist-ai-recommendations');
-  activeSource = { id: 'anilist-ai-recommendations', name: 'AI Recommendations', type: 'ai' };
+  activeSource = { id: 'anilist-ai-recommendations', name: 'AI Recommendations', sourceName: 'AI Recommendations', previewName: 'AI Recommendations', type: 'ai' };
   _sourceMedia = null;
   _lastSuggestedName = '';
   _clearAdditionalFilters();
@@ -2626,7 +2650,7 @@ async function saveOrKeyFromModal() {
       // If model changed and AI catalog is already added, trigger a fresh fetch
       if (modelChanged && catalogs.find(c => c.id === 'anilist-ai-recommendations')) {
         _sourceMedia = null;
-        activeSource = { id: 'anilist-ai-recommendations', name: 'AI Recommendations', type: 'ai' };
+        activeSource = { id: 'anilist-ai-recommendations', name: 'AI Recommendations', sourceName: 'AI Recommendations', previewName: 'AI Recommendations', type: 'ai' };
         renderFilterTags();
         updateNameInput();
         setPaneTab('preview');
@@ -3240,7 +3264,7 @@ function renderFilterTags() {
 
   const tags = [];
   // Source tag always appears first when an account/AI source is active
-  if (activeSource) tags.push({ key: 'source', label: activeSource.name.toLowerCase() });
+  if (activeSource) tags.push({ key: 'source', label: getSourceBaseName(activeSource).toLowerCase() });
   selectedFormats.forEach(f  => tags.push({ key: 'format:'  + f, label: FORMAT_LABELS[f]  || f }));
   selectedSeasons.forEach(s  => tags.push({ key: 'season:'  + s, label: s === 'CURRENT' ? 'Current Season' : (SEASON_LABELS[s] || s) }));
   selectedYears.forEach(y    => tags.push({ key: 'year:'    + y, label: y }));
@@ -3353,7 +3377,7 @@ function loadFiltersIntoForm(f) {
   selectedGenres  = [...(f.genres   || [])];
   selectedFormats = f.formats  ? [...f.formats]  : (f.format  ? [f.format]  : []);
   selectedStatuses= f.statuses ? [...f.statuses] : (f.status  ? [f.status]  : []);
-  selectedYears   = f.year     ? [String(f.year)] : [];
+  selectedYears   = f.years    ? f.years.map(String) : (f.year ? [String(f.year)] : []);
   selectedSeasons = f.seasons  ? [...f.seasons]  : (f.season  ? [f.season]  : []);
   syncFilterBtnLabels();
   if (activeFbFilter) renderFilterOpts(activeFbFilter);
@@ -3516,6 +3540,8 @@ function addCustom() {
     const idPrefix = activeSource.type === 'ai' ? 'ai' : 'watch';
     const id = `${idPrefix}-` + Math.random().toString(36).slice(2, 10);
     const cat = { id, name, type: activeSource.type };
+    const sourceName = getSourceBaseName(activeSource);
+    if (sourceName && sourceName !== name) cat.sourceName = sourceName;
     if (activeSource.listStatus) cat.listStatus = activeSource.listStatus;
     if (activeSource.type === 'ai' && _orModel) cat.model = _orModel;
     if (Object.keys(clientFilters).length) cat.clientFilters = clientFilters;
@@ -3589,13 +3615,19 @@ async function previewCatalog(id) {
     activeSource = {
       id:          cat.id,
       name:        cat.name,
+      sourceName:  cat.sourceName || getSourceBaseName(cat),
+      previewName: cat.name,
       listStatus:  cat.listStatus,
       type:        cat.type,
     };
     _sourceMedia = null;
     _lastSuggestedName = '';
     _clearAdditionalFilters();
-    renderFilterTags();
+    if (hasStoredClientFilters(cat)) {
+      loadFiltersIntoForm(cat.clientFilters);
+    } else {
+      renderFilterTags();
+    }
     updateNameInput();
     setPaneTab('preview');
     render();
@@ -3699,7 +3731,7 @@ function render() {
             ? `<input class="catalog-rename-input" data-rename-id="${c.id}" value="${escHtml(c.name)}">`
             : `<div class="catalog-item-name">${escHtml(c.name)}</div>`
           }
-          <div class="catalog-item-type"><span class="catalog-type-badge${c.type === 'watching' ? ' account-type-badge' : c.type === 'ai' ? ' ai-type-badge' : ''}">${c.type === 'watching' ? 'Account' : c.type === 'ai' ? 'AI' : c.type === 'custom' ? 'Custom' : 'Preset'}</span></div>
+          <div class="catalog-item-type"><span class="catalog-type-badge${hasStoredClientFilters(c) ? '' : c.type === 'watching' ? ' account-type-badge' : c.type === 'ai' ? ' ai-type-badge' : ''}">${hasStoredClientFilters(c) ? 'Custom' : c.type === 'watching' ? 'Account' : c.type === 'ai' ? 'AI' : c.type === 'custom' ? 'Custom' : 'Preset'}</span></div>
         </div>
         <div class="catalog-actions">
           <button class="edit-btn" type="button" data-action="start-rename" data-id="${c.id}">&#9998; Rename</button>
@@ -3850,6 +3882,7 @@ async function importConfig() {
           const cat = { id, name: entry.n || 'AI Recommendations', type: 'ai',
                         model: entry.m || 'meta-llama/llama-3.3-70b-instruct' };
           if (entry.r) cat.randomize = true;
+          if (entry.cf && Object.keys(entry.cf).length) cat.clientFilters = entry.cf;
           return cat;
         } else {
           const cat = { id, name: entry.n || id, type: 'custom', filters: entry.f || {} };
@@ -3905,6 +3938,7 @@ async function updateUrl() {
       const entry = { i: cat.id, n: cat.name, a: true };
       const defaultModel = 'meta-llama/llama-3.3-70b-instruct';
       if (cat.model && cat.model !== defaultModel) entry.m = cat.model;
+      if (cat.clientFilters && Object.keys(cat.clientFilters).length) entry.cf = cat.clientFilters;
       if (cat.randomize) entry.r = true;
       return entry;
     } else {

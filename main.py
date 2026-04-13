@@ -2,12 +2,13 @@
 AniList Catalogs — FastAPI entry point.
 """
 
+import asyncio
 import logging
 import random
 import re
 import secrets
 import time
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 from urllib.parse import urlparse
 
 import httpx
@@ -18,6 +19,7 @@ from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 import anilist
+import id_mapper
 from cache import cache, TTL, SESSION_TTL
 from id_mapper import batch_map_ids, reverse_lookup
 from config import decode_config, DEFAULT_CONFIG, DEFAULT_CONFIG_TOKEN, CURRENT_YEARS
@@ -37,6 +39,12 @@ from settings import (
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger(__name__)
 PER_PAGE = 50
+_SHARED_HTTP_LIMITS = httpx.Limits(max_connections=100, max_keepalive_connections=20)
+_ANILIST_HTTP_CLIENT_TIMEOUT = httpx.Timeout(10.0)
+_GENERAL_HTTP_CLIENT_TIMEOUT = httpx.Timeout(30.0)
+_FRIBB_WARMUP_TIMEOUT = 8.0
+_anilist_http_client: httpx.AsyncClient | None = None
+_general_http_client: httpx.AsyncClient | None = None
 
 PRESET_HANDLERS = {
     "anilist-popular-season": anilist.get_popular_season,
@@ -151,6 +159,164 @@ def _build_configure_csp(nonce: str) -> str:
         "form-action 'self'",
     ])
 
+
+def _build_shared_http_client(*, timeout: httpx.Timeout) -> httpx.AsyncClient:
+    return httpx.AsyncClient(timeout=timeout, limits=_SHARED_HTTP_LIMITS)
+
+
+async def _request_with_general_client(
+    method: str,
+    url: str,
+    *,
+    timeout: float | httpx.Timeout | None = None,
+    **kwargs,
+) -> httpx.Response:
+    if _general_http_client is not None:
+        return await _general_http_client.request(method, url, timeout=timeout, **kwargs)
+    async with httpx.AsyncClient() as ephemeral_client:
+        return await ephemeral_client.request(method, url, timeout=timeout, **kwargs)
+
+
+async def _validate_openrouter_key(raw_key: str) -> tuple[bool, str | None]:
+    """Validate an OpenRouter key against an authenticated endpoint."""
+    try:
+        resp = await _request_with_general_client(
+            "GET",
+            "https://openrouter.ai/api/v1/key",
+            headers={"Authorization": f"Bearer {raw_key}"},
+            timeout=10.0,
+        )
+    except Exception as exc:
+        logger.error("OpenRouter key validation request failed: %s", exc)
+        raise HTTPException(status_code=502, detail="Could not reach OpenRouter to verify the key.") from exc
+
+    if resp.status_code == 200:
+        payload = resp.json()
+        data = payload.get("data") if isinstance(payload, dict) else None
+        if isinstance(data, dict):
+            if data.get("disabled") is True:
+                return False, "Key is disabled."
+            return True, None
+        return False, "OpenRouter returned an unexpected validation response."
+
+    detail = None
+    try:
+        payload = resp.json()
+        if isinstance(payload, dict):
+            detail = payload.get("error", {}).get("message") or payload.get("message")
+    except Exception:
+        detail = None
+
+    if resp.status_code in {401, 403}:
+        return False, detail or "Key rejected by OpenRouter."
+    if resp.status_code == 429:
+        raise HTTPException(status_code=502, detail="OpenRouter rate-limited key validation. Try again in a moment.")
+    raise HTTPException(
+        status_code=502,
+        detail=detail or f"OpenRouter validation failed with HTTP {resp.status_code}.",
+    )
+
+
+def _get_client_filter_date_range_bounds(value: str) -> tuple[int, int] | None:
+    if not value:
+        return None
+
+    now = time.localtime()
+    year = now.tm_year
+    month = now.tm_mon
+
+    def _epoch(y: int, m: int, d: int) -> int:
+        return int(time.mktime((y, m, d, 0, 0, 0, 0, 0, -1)))
+
+    if value == "this-week":
+        current = time.localtime()
+        days_from_monday = 6 if current.tm_wday == 6 else current.tm_wday
+        start = int(time.time()) - days_from_monday * 86400
+        start_tm = time.localtime(start)
+        start_day = _epoch(start_tm.tm_year, start_tm.tm_mon, start_tm.tm_mday)
+        end_day = start_day + (7 * 86400) - 1
+        return start_day, end_day
+    if value == "this-month":
+        start_day = _epoch(year, month, 1)
+        if month == 12:
+            next_month = _epoch(year + 1, 1, 1)
+        else:
+            next_month = _epoch(year, month + 1, 1)
+        return start_day, next_month - 1
+    if value == "last-month":
+        if month == 1:
+            start_day = _epoch(year - 1, 12, 1)
+            next_month = _epoch(year, 1, 1)
+        else:
+            start_day = _epoch(year, month - 1, 1)
+            next_month = _epoch(year, month, 1)
+        return start_day, next_month - 1
+    if value == "this-year":
+        return _epoch(year, 1, 1), _epoch(year + 1, 1, 1) - 1
+    if value == "last-year":
+        return _epoch(year - 1, 1, 1), _epoch(year, 1, 1) - 1
+    return None
+
+
+def _media_matches_client_filter_date_range(media: dict, value: str) -> bool:
+    bounds = _get_client_filter_date_range_bounds(value)
+    if not bounds:
+        return True
+    start_date = media.get("startDate") or {}
+    if not start_date.get("year") or not start_date.get("month"):
+        return False
+    day = start_date.get("day") or 1
+    media_epoch = int(time.mktime((start_date["year"], start_date["month"], day, 0, 0, 0, 0, 0, -1)))
+    return bounds[0] <= media_epoch <= bounds[1]
+
+
+def _apply_client_filters_to_media(media_list: list[dict], client_filters: dict | None) -> list[dict]:
+    if not client_filters:
+        return media_list
+
+    genres = client_filters.get("genres") or []
+    formats = client_filters.get("formats") or []
+    statuses = client_filters.get("statuses") or []
+    years = {str(y) for y in (client_filters.get("years") or [])}
+    seasons = client_filters.get("seasons") or []
+    daterange = client_filters.get("daterange") or ""
+    min_score = client_filters.get("minScore") or 0
+    sort = client_filters.get("sort") or "POPULARITY_DESC"
+
+    result = media_list
+    if genres:
+        result = [m for m in result if all(g in (m.get("genres") or []) for g in genres)]
+    if formats:
+        result = [m for m in result if m.get("format") in formats]
+    if statuses:
+        result = [m for m in result if m.get("status") in statuses]
+    if years:
+        result = [m for m in result if str(m.get("seasonYear") or "") in years]
+    if seasons:
+        current_season, _ = anilist._season_now()
+        resolved = {current_season if s == "CURRENT" else s for s in seasons}
+        result = [m for m in result if m.get("season") in resolved]
+    if daterange:
+        result = [m for m in result if _media_matches_client_filter_date_range(m, daterange)]
+    if min_score:
+        result = [m for m in result if (m.get("averageScore") or 0) >= min_score]
+
+    result = list(result)
+    if sort == "SCORE_DESC":
+        result.sort(key=lambda m: (m.get("averageScore") or 0), reverse=True)
+    elif sort == "START_DATE_DESC":
+        result.sort(
+            key=lambda m: (
+                m.get("seasonYear") or 0,
+                ((m.get("startDate") or {}).get("month") or 0),
+            ),
+            reverse=True,
+        )
+    else:
+        result.sort(key=lambda m: (m.get("popularity") or 0), reverse=True)
+    return result
+
+
 async def _fetch_catalog(
     catalog_id,
     catalog_config,
@@ -158,14 +324,27 @@ async def _fetch_catalog(
     encrypted_token: str | None = None,
     session_key: str | None = None,
 ):
+    started_at = time.perf_counter()
     cache_key = f"catalog:{catalog_id}:page:{page}"
+    fribb_warm_before = id_mapper.is_fribb_warm()
     cached = cache.get(cache_key)
     if cached is not None:
+        total_ms = (time.perf_counter() - started_at) * 1000
+        logger.info(
+            "Catalog timing id=%s page=%s cache_hit=1 fribb_warm=%s total_ms=%.1f metas=%d",
+            catalog_id,
+            page,
+            fribb_warm_before,
+            total_ms,
+            len(cached),
+        )
         return cached
 
     raw_media = None
     ttl = None
     should_cache = True
+    catalog_kind = catalog_config.get("type") or ("preset" if catalog_id in PRESET_HANDLERS else "unknown")
+    upstream_started_at = time.perf_counter()
 
     if catalog_id in PRESET_HANDLERS:
         raw_media = await PRESET_HANDLERS[catalog_id](page=page, per_page=PER_PAGE)
@@ -213,13 +392,21 @@ async def _fetch_catalog(
         should_cache = False  # AI has its own per-session cache
     else:
         raise HTTPException(status_code=404, detail=f"Unknown catalog: {catalog_id}")
+    raw_media = _apply_client_filters_to_media(raw_media, catalog_config.get("clientFilters"))
+    upstream_ms = (time.perf_counter() - upstream_started_at) * 1000
+    raw_count = len(raw_media)
 
     # Batch-map AniList IDs to TMDB/IMDB via Fribb + Kitsu supplement.
     # Sequels (season.tvdb > 1) are replaced with their S1 base anime.
+    id_map_started_at = time.perf_counter()
     id_mapping, replacements = await batch_map_ids(raw_media)
+    id_map_ms = (time.perf_counter() - id_map_started_at) * 1000
+    fribb_warm_after = id_mapper.is_fribb_warm()
 
     # Fetch S1 media from AniList for any sequels that need replacing.
+    s1_fetch_ms = 0.0
     if replacements:
+        s1_fetch_started_at = time.perf_counter()
         s1_ids = {s1_aid for s1_aid, _ in replacements.values()}
         # Remove S1 IDs already present in the catalog (no need to fetch)
         existing_ids = {m["id"] for m in raw_media}
@@ -265,18 +452,40 @@ async def _fetch_catalog(
                 # Fetch failed — keep sequel as anilist: fallback
             result_media.append(m)
         raw_media = result_media
+        s1_fetch_ms = (time.perf_counter() - s1_fetch_started_at) * 1000
 
+    meta_build_started_at = time.perf_counter()
     metas = [
         anilist._media_to_meta(m, id_override=id_mapping.get(m["id"]))
         for m in raw_media
     ]
+    meta_build_ms = (time.perf_counter() - meta_build_started_at) * 1000
 
     if should_cache and ttl:
         cache.set(cache_key, metas, ttl)
+    total_ms = (time.perf_counter() - started_at) * 1000
+    logger.info(
+        "Catalog timing id=%s type=%s page=%s cache_hit=0 fribb_warm_before=%s fribb_warm_after=%s "
+        "upstream_ms=%.1f id_map_ms=%.1f s1_fetch_ms=%.1f meta_build_ms=%.1f total_ms=%.1f raw_items=%d final_items=%d replacements=%d",
+        catalog_id,
+        catalog_kind,
+        page,
+        fribb_warm_before,
+        fribb_warm_after,
+        upstream_ms,
+        id_map_ms,
+        s1_fetch_ms,
+        meta_build_ms,
+        total_ms,
+        raw_count,
+        len(metas),
+        len(replacements),
+    )
     return metas
 
 @asynccontextmanager
 async def lifespan(app):
+    global _anilist_http_client, _general_http_client
     from settings import SECRET_KEY as _sk
     if not _sk:
         raise RuntimeError(
@@ -303,8 +512,41 @@ async def lifespan(app):
                 "AniList OAuth redirect URI is not HTTPS for a non-local deployment: %s",
                 ANILIST_REDIRECT_URI,
             )
-    logger.info("AniList add-on starting on %s:%d — configure at /configure", HOST, PORT)
-    yield
+    _anilist_http_client = _build_shared_http_client(timeout=_ANILIST_HTTP_CLIENT_TIMEOUT)
+    _general_http_client = _build_shared_http_client(timeout=_GENERAL_HTTP_CLIENT_TIMEOUT)
+    anilist.configure_http_clients(
+        anilist_client=_anilist_http_client,
+        general_client=_general_http_client,
+    )
+    id_mapper.configure_http_client(_general_http_client)
+    warmup_task = asyncio.create_task(id_mapper.warmup_indexes())
+    try:
+        try:
+            warm = await asyncio.wait_for(asyncio.shield(warmup_task), timeout=_FRIBB_WARMUP_TIMEOUT)
+            if warm:
+                logger.info("Fribb/Kitsu warmup completed before startup")
+            else:
+                logger.warning("Fribb/Kitsu warmup finished without fresh data; continuing with fallback behavior")
+        except asyncio.TimeoutError:
+            logger.warning(
+                "Fribb/Kitsu warmup still running after %.1fs; continuing startup",
+                _FRIBB_WARMUP_TIMEOUT,
+            )
+        logger.info("AniList add-on starting on %s:%d — configure at /configure", HOST, PORT)
+        yield
+    finally:
+        if not warmup_task.done():
+            warmup_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await warmup_task
+        anilist.configure_http_clients()
+        id_mapper.configure_http_client(None)
+        if _anilist_http_client is not None:
+            await _anilist_http_client.aclose()
+            _anilist_http_client = None
+        if _general_http_client is not None:
+            await _general_http_client.aclose()
+            _general_http_client = None
 
 app = FastAPI(
     title="AniList Catalogs",
@@ -389,13 +631,13 @@ async def anilist_proxy(request: Request):
     if "__schema" in query_text or "__type" in query_text:
         raise HTTPException(status_code=403, detail="Introspection queries are not permitted.")
 
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(
-            "https://graphql.anilist.co",
-            content=body,
-            headers={"Content-Type": "application/json"},
-            timeout=15,
-        )
+    resp = await _request_with_general_client(
+        "POST",
+        "https://graphql.anilist.co",
+        content=body,
+        headers={"Content-Type": "application/json"},
+        timeout=15,
+    )
     return JSONResponse(content=resp.json(), status_code=resp.status_code)
 
 @app.get("/health")
@@ -467,13 +709,13 @@ async def oauth_callback(
     }
 
     try:
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(
-                _ANILIST_TOKEN_URL,
-                json=payload,
-                headers={"Accept": "application/json"},
-                timeout=15,
-            )
+        resp = await _request_with_general_client(
+            "POST",
+            _ANILIST_TOKEN_URL,
+            json=payload,
+            headers={"Accept": "application/json"},
+            timeout=15,
+        )
         if resp.status_code != 200:
             error_code = "auth_failed"
             error_message = None
@@ -637,6 +879,9 @@ async def api_save_openrouter_key(request: Request, body: _SaveOrKeyBody):
         raw_key = body.key.strip()
         if not raw_key:
             raise HTTPException(status_code=400, detail="API key must not be empty.")
+        is_valid, detail = await _validate_openrouter_key(raw_key)
+        if not is_valid:
+            raise HTTPException(status_code=400, detail=detail or "Key rejected by OpenRouter.")
         encrypted_or = encrypt(raw_key)
         or_data = {"encrypted_key": encrypted_or, "model": model}
     else:
@@ -647,6 +892,7 @@ async def api_save_openrouter_key(request: Request, body: _SaveOrKeyBody):
         or_data = {**existing, "model": model}
 
     cache.set(f"session_or:{session_key}", or_data, SESSION_TTL)
+    cache.delete_prefix(f"ai_recs:{session_key}:")
     return {"ok": True}
 
 
@@ -665,19 +911,10 @@ async def api_test_openrouter_key(request: Request, body: _TestOrKeyBody):
     if not raw_key:
         raise HTTPException(status_code=400, detail="Key must not be empty.")
 
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.get(
-                "https://openrouter.ai/api/v1/models",
-                headers={"Authorization": f"Bearer {raw_key}"},
-            )
-        if resp.status_code == 200:
-            return {"valid": True}
-        # 401/403 → invalid key; other errors → surface as invalid too
-        return JSONResponse(status_code=400, content={"valid": False, "detail": "Key rejected by OpenRouter."})
-    except Exception as exc:
-        logger.error("OpenRouter key test failed: %s", exc)
-        raise HTTPException(status_code=502, detail="Could not reach OpenRouter to verify the key.")
+    is_valid, detail = await _validate_openrouter_key(raw_key)
+    if is_valid:
+        return {"valid": True}
+    return JSONResponse(status_code=400, content={"valid": False, "detail": detail or "Key rejected by OpenRouter."})
 
 
 @app.post("/api/preview-ai")
@@ -714,6 +951,9 @@ async def api_preview_ai(request: Request, body: _SessionBody):
     try:
         viewer = await anilist.get_viewer(raw_token)
         raw_media = await anilist.get_ai_recommendations(raw_token, viewer["id"], or_key, model)
+    except anilist.AIRecommendationError as exc:
+        logger.error("preview_ai failed: %s", exc)
+        raise HTTPException(status_code=502, detail=str(exc) or "AI recommendation request failed.")
     except Exception as exc:
         logger.error("preview_ai failed: %s", exc)
         raise HTTPException(status_code=502, detail="AI recommendation request failed.")

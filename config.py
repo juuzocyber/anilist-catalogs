@@ -105,6 +105,8 @@ def encode_config(config: dict) -> str:
             default_model = "meta-llama/llama-3.3-70b-instruct"
             if cat.get("model") and cat["model"] != default_model:
                 entry["m"] = cat["model"]
+            if cat.get("clientFilters"):
+                entry["cf"] = cat["clientFilters"]
         else:
             entry = {"i": cat_id, "n": cat.get("name", cat_id), "f": cat.get("filters", {})}
             if cat.get("randomize"):
@@ -164,6 +166,8 @@ def decode_config(token: str) -> dict:
                         "type": "ai",
                         "model": entry.get("m", "meta-llama/llama-3.3-70b-instruct"),
                     }
+                    if entry.get("cf"):
+                        cat["clientFilters"] = entry["cf"]
                 else:
                     cat = {
                         "id": cat_id,

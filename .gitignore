@@ -3,6 +3,14 @@
 .env.local
 .env.*.local
 
+# ── Local runtime state ───────────────────────────
+data/
+*.db
+*.sqlite
+*.sqlite3
+*.log
+uvicorn-*.log
+
 # ── Python ────────────────────────────────────────
 __pycache__/
 *.pyc

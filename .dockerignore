@@ -9,6 +9,14 @@ __pycache__
 *.pyc
 *.pyo
 
+# Local runtime state
+data/
+*.db
+*.sqlite
+*.sqlite3
+*.log
+uvicorn-*.log
+
 # Version control
 .git
 .github

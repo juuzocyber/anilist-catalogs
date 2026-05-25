@@ -28,6 +28,8 @@ COPY *.py ./
 # Static runtime assets served by FastAPI (for example the vendored QR script).
 COPY static ./static
 
+RUN mkdir -p /app/data
+
 # Hand ownership to appuser
 RUN chown -R appuser:appuser /app
 

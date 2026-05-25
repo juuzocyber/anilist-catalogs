@@ -130,6 +130,206 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     padding-left: 12px;
     border-left: 1px solid var(--sep);
   }
+  .header-search {
+    flex: 1 1 640px;
+    max-width: 860px;
+    min-width: 360px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 20;
+  }
+  .header-search-shell { position: relative; display: flex; flex-direction: column; gap: 7px; }
+  .header-search-row { display: flex; align-items: center; gap: 10px; }
+  .header-search-input-wrap {
+    flex: 1;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.04);
+  }
+  .header-search-input-wrap:focus-within {
+    border-color: rgba(255,255,255,0.22);
+    background: rgba(255,255,255,0.055);
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.04);
+  }
+  .header-search-icon {
+    color: var(--text3);
+    flex-shrink: 0;
+    opacity: 0.9;
+  }
+  #header-search-input {
+    flex: 1;
+    height: 100%;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--text);
+    font-size: 13px;
+    outline: none;
+  }
+  #header-search-input:focus {
+    border: none;
+    background: transparent;
+  }
+  .search-mode-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    border-radius: var(--pill);
+    border: 1px solid var(--sep);
+    background: rgba(255,255,255,0.03);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    flex-shrink: 0;
+  }
+  .search-mode-btn {
+    border: none;
+    border-radius: var(--pill);
+    padding: 7px 16px;
+    background: transparent;
+    color: var(--text3);
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .search-mode-btn:hover:not(:disabled) { color: var(--text2); }
+  .search-mode-btn.active {
+    background: rgba(255,255,255,0.1);
+    color: var(--text);
+    box-shadow: 0 10px 22px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+  .search-mode-btn:disabled,
+  .search-mode-btn.locked {
+    color: var(--text4);
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+  .search-smart-hint {
+    min-height: 14px;
+    padding-left: 14px;
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 0.02em;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    pointer-events: none;
+  }
+  .search-smart-hint.visible { opacity: 1; }
+  .header-search-dropdown {
+    position: absolute;
+    top: calc(100% + 9px);
+    left: 0;
+    right: 0;
+    display: none;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(18,19,22,0.98);
+    box-shadow: 0 18px 34px rgba(0,0,0,0.34);
+    overflow: hidden;
+  }
+  .header-search-dropdown.open { display: block; }
+  .search-dropdown-state {
+    padding: 15px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    color: var(--text2);
+    font-size: 12px;
+    line-height: 1.45;
+  }
+  .search-dropdown-state strong {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .search-result-list { max-height: 420px; overflow-y: auto; }
+  .search-result-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    padding: 10px 12px;
+    border-top: 1px solid rgba(255,255,255,0.04);
+    background: transparent;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .search-result-row:first-child { border-top: none; }
+  .search-result-row.active {
+    background: linear-gradient(90deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
+    border-top-color: rgba(255,255,255,0.08);
+  }
+  .search-result-main {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 11px;
+    align-items: center;
+    background: transparent;
+    border: none;
+    color: inherit;
+    text-align: left;
+    padding: 0;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .search-result-main:hover .search-result-title { color: #fff; }
+  .search-result-thumb {
+    width: 44px;
+    height: 60px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 10px 18px rgba(0,0,0,0.22);
+  }
+  .search-result-thumb img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+  }
+  .search-result-copy { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+  .search-result-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .search-result-meta {
+    font-size: 11px;
+    color: var(--text3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .search-result-add-btn {
+    align-self: center;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.04);
+    color: var(--text2);
+    font-size: 11px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .search-result-add-btn:hover {
+    background: rgba(255,255,255,0.08);
+    color: var(--text);
+    border-color: rgba(255,255,255,0.15);
+  }
 
   main {
     display: grid;
@@ -482,9 +682,41 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     color: var(--text);
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
   }
+  .poster-style-picker {
+    display: flex; align-items: center; gap: 2px;
+    height: 30px; padding: 2px;
+    border-radius: 9px; border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.035);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+  .poster-style-btn {
+    height: 24px; min-width: 34px; padding: 0 8px;
+    border: 0; border-radius: 7px;
+    background: transparent; color: var(--text3);
+    cursor: pointer; font-size: 10px; font-weight: 700; font-family: inherit;
+    line-height: 1; white-space: nowrap;
+    transition: background 0.15s, color 0.15s, transform 0.15s, box-shadow 0.15s;
+  }
+  .poster-style-btn:hover { color: var(--text2); background: rgba(255,255,255,0.065); transform: translateY(-1px); }
+  .poster-style-btn.active {
+    color: var(--text);
+    background: rgba(255,255,255,0.10);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+  }
 
   /* ── List view ───────────────────────────────── */
   .preview-list { display: flex; flex-direction: column; }
+  .poster-lab-card .poster-img { aspect-ratio: 2 / 3; }
+  .poster-lab-card .poster-img img { object-position: center; }
+  .poster-lab-card .poster-title,
+  .poster-lab-card .poster-score { margin-top: 8px; }
+  .poster-lab-card {
+    box-shadow: none;
+    border-color: rgba(255,255,255,0.10);
+  }
+  .poster-lab-card:hover {
+    box-shadow: none;
+  }
   .list-item {
     display: grid;
     grid-template-columns: 44px 1fr 90px 120px 140px;
@@ -943,6 +1175,137 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     justify-content: space-between;
     min-height: 20px;
   }
+  .catalog-recipe-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 14px;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.035);
+  }
+  .catalog-recipe-copy { min-width: 0; }
+  .catalog-recipe-title {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .catalog-recipe-sub {
+    margin-top: 4px;
+    font-size: 11px;
+    color: var(--text3);
+    line-height: 1.35;
+  }
+  .smart-row-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 10px;
+    padding: 12px 14px;
+    border: 1px solid rgba(139,92,246,0.20);
+    border-radius: 8px;
+    background: rgba(139,92,246,0.055);
+    position: relative;
+    transition: opacity 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  }
+  .smart-row-bar.smart-auth-missing {
+    opacity: 0.52;
+  }
+  .smart-row-bar.smart-key-missing {
+    border-color: rgba(220,38,38,0.48);
+    box-shadow: inset 0 0 0 1px rgba(220,38,38,0.12);
+  }
+  .smart-row-bar.smart-key-missing:hover {
+    border-color: rgba(220,38,38,0.72);
+  }
+  .smart-row-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .smart-settings-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .smart-row-note,
+  .smart-missing-note {
+    position: absolute;
+    z-index: 130;
+    max-width: min(280px, calc(100vw - 64px));
+    padding: 8px 10px;
+    border: 1px solid rgba(248,113,113,0.26);
+    border-radius: 8px;
+    background: rgba(24,24,27,0.98);
+    color: #fecaca;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.35;
+    box-shadow: var(--shadow-lg);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.14s ease, transform 0.14s ease, visibility 0.14s ease;
+  }
+  .smart-row-note {
+    width: max-content;
+    max-width: min(260px, calc(100vw - 64px));
+    right: calc(100% + 10px);
+    top: 50%;
+    text-align: left;
+    word-break: normal;
+    overflow-wrap: break-word;
+    transform: translateY(-50%) scale(0.98);
+  }
+  .smart-missing-note {
+    right: 14px;
+    top: calc(100% + 8px);
+    transform: translateY(-3px);
+  }
+  .smart-row-bar.smart-has-note:hover .smart-row-note,
+  .smart-row-bar.smart-has-note:focus-within .smart-row-note {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(-50%) scale(1);
+  }
+  .catalog-item.smart-has-note:hover .smart-missing-note,
+  .catalog-item.smart-has-note:focus-within .smart-missing-note {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+  .smart-settings-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.05);
+    color: var(--text2);
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .smart-settings-btn:hover { background: rgba(255,255,255,0.09); color: var(--text); }
+  @media (max-width: 760px) {
+    .smart-row-note {
+      right: auto;
+      left: 0;
+      top: calc(100% + 8px);
+      transform: translateY(-3px);
+    }
+    .smart-row-bar.smart-has-note:hover .smart-row-note,
+    .smart-row-bar.smart-has-note:focus-within .smart-row-note {
+      transform: translateY(0);
+    }
+  }
   .qr-section-tight { margin-top: 0; }
   .stack-end { margin-top: auto; }
   .divider-tight { margin: 12px 0; }
@@ -1104,14 +1467,27 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   .catalogs-side-col {
     flex: 0 0 340px; border-left: 1px solid var(--sep);
     padding: 12px 16px; display: flex; flex-direction: column; gap: 0;
-    overflow-y: hidden; background: linear-gradient(180deg, rgba(14,14,16,0.96), rgba(8,8,9,0.98));
+    min-height: 0;
+    overflow: hidden;
+    --install-qr-size: 180px;
+    background: linear-gradient(180deg, rgba(14,14,16,0.96), rgba(8,8,9,0.98));
   }
+  .catalogs-side-col.compact {
+    padding-top: 10px;
+    padding-bottom: 10px;
+    --install-qr-size: 148px;
+  }
+  .catalogs-side-col.compact .side-module { margin-bottom: 8px; }
+  .catalogs-side-col.compact .qr-wrap { padding: 8px; }
+  .catalogs-side-col.compact .qr-sub { font-size: 9px; line-height: 1.28; }
+  .catalogs-side-col.compact .url-text { max-height: 54px; }
   .catalogs-side-col .divider { margin: 6px 0; }
   .side-module {
     display: flex;
     flex-direction: column;
     gap: 8px;
     margin-bottom: 10px;
+    flex-shrink: 0;
   }
   .side-module:last-child { margin-bottom: 0; }
   .side-module.tight { gap: 5px; }
@@ -1136,6 +1512,311 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   #import-feedback.visible { display: block; }
   #import-feedback.ok { color: var(--text2); }
   #import-feedback.err { color: #e85d04; }
+  .recipe-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .recipe-mini-note { font-size: 10px; color: var(--text3); line-height: 1.45; }
+  .recipe-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.62);
+    backdrop-filter: blur(14px);
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .recipe-modal-overlay.open { display: flex; }
+  .recipe-modal {
+    width: min(720px, calc(100vw - 40px));
+    max-height: min(780px, calc(100vh - 40px));
+    overflow: hidden;
+    background: rgba(20,21,24,0.98);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    flex-direction: column;
+  }
+  .recipe-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--sep);
+  }
+  .recipe-modal-title { font-size: 14px; font-weight: 800; color: var(--text); letter-spacing: -0.02em; }
+  .recipe-modal-close {
+    border: none; background: transparent; color: var(--text3);
+    cursor: pointer; padding: 4px 8px; border-radius: 6px;
+  }
+  .recipe-modal-close:hover { color: var(--text); background: var(--fill); }
+  .recipe-modal-body { padding: 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+  .recipe-form-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  .recipe-label { font-size: 10px; font-weight: 800; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; }
+  .recipe-input, .recipe-textarea {
+    background: var(--card);
+    border: 1px solid var(--sep);
+    border-radius: 8px;
+    color: var(--text);
+    font: inherit;
+    font-size: 12px;
+    padding: 9px 11px;
+    outline: none;
+  }
+  .recipe-textarea { resize: vertical; min-height: 68px; line-height: 1.45; }
+  .recipe-input:focus, .recipe-textarea:focus { border-color: rgba(255,255,255,0.34); background: var(--card2); }
+  .recipe-summary {
+    background: rgba(255,255,255,0.045);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .recipe-summary-title { font-size: 18px; font-weight: 800; color: var(--text); letter-spacing: -0.04em; }
+  .recipe-summary-desc { font-size: 12px; color: var(--text2); line-height: 1.45; }
+  .recipe-chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .recipe-chip {
+    font-size: 10px; font-weight: 800; color: var(--text2);
+    padding: 4px 8px; border-radius: 10px;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+    letter-spacing: 0.03em;
+  }
+  .recipe-list { display: flex; flex-direction: column; gap: 8px; }
+  .recipe-list-item {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 10px 11px; border-radius: 8px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+  }
+  .recipe-list-copy { min-width: 0; flex: 1; }
+  .recipe-list-name { font-size: 12px; font-weight: 700; color: var(--text); }
+  .recipe-list-meta { font-size: 10px; color: var(--text3); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .recipe-list-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .recipe-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .recipe-section-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .recipe-section-title {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .recipe-section-sub {
+    font-size: 11px;
+    color: var(--text3);
+    line-height: 1.45;
+  }
+  .recipe-preview-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  .recipe-preview-toolbar {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .recipe-preview-select-wrap {
+    min-width: min(260px, 100%);
+  }
+  .recipe-preview-select {
+    min-width: 220px;
+  }
+  .recipe-preview-selected {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text2);
+  }
+  .recipe-preview-feedback {
+    min-height: 16px;
+    font-size: 11px;
+    color: var(--text3);
+    line-height: 1.45;
+  }
+  .recipe-preview-feedback.ok { color: var(--text); }
+  .recipe-preview-feedback.err { color: #fca5a5; }
+  .recipe-inline-preview {
+    display: block;
+    border-top: none;
+    padding-top: 0;
+  }
+  .recipe-inline-preview .smart-preview-empty {
+    min-height: 126px;
+  }
+  .recipe-gallery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .recipe-card {
+    display: flex; flex-direction: column; gap: 9px; min-height: 148px;
+    background: rgba(255,255,255,0.045);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px; padding: 12px;
+  }
+  .recipe-card-title { font-size: 14px; font-weight: 800; color: var(--text); letter-spacing: -0.03em; }
+  .recipe-card-desc { font-size: 11px; color: var(--text2); line-height: 1.45; flex: 1; }
+  .recipe-card-actions { display: flex; gap: 8px; }
+  .recipe-empty { font-size: 12px; color: var(--text2); line-height: 1.5; }
+  .recipe-feedback { font-size: 11px; color: var(--text2); line-height: 1.5; min-height: 16px; }
+  .recipe-feedback.ok { color: var(--text); }
+  .recipe-feedback.err { color: #fca5a5; }
+  .recipe-modal-footer {
+    display: flex; align-items: center; justify-content: flex-end; gap: 10px;
+    padding: 14px 18px; border-top: 1px solid var(--sep);
+  }
+  .smart-modal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 1000;
+    background: rgba(0,0,0,0.72); backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    align-items: center; justify-content: center;
+  }
+  .smart-modal-overlay.open { display: flex; }
+  .smart-modal {
+    width: 760px; max-width: calc(100vw - 32px); max-height: calc(100vh - 36px);
+    background: var(--card); border: 1px solid var(--sep);
+    border-radius: 8px; box-shadow: 0 24px 70px rgba(0,0,0,0.75);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .smart-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 18px; border-bottom: 1px solid var(--sep);
+  }
+  .smart-modal-title { font-size: 14px; font-weight: 800; color: var(--text); }
+  .smart-modal-close {
+    background: none; border: none; color: var(--text3); cursor: pointer;
+    font-size: 16px; padding: 2px 6px; border-radius: 6px; font-family: inherit;
+  }
+  .smart-modal-close:hover { color: var(--text); background: var(--fill); }
+  .smart-modal-body { padding: 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+  .smart-locked {
+    border: 1px solid rgba(248,113,113,0.18); background: rgba(248,113,113,0.07);
+    border-radius: 8px; padding: 14px; font-size: 12px; color: var(--text2); line-height: 1.5;
+  }
+  .smart-template-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .smart-template {
+    min-height: 86px; text-align: left; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.045); color: var(--text); padding: 10px;
+    cursor: pointer; font-family: inherit; display: flex; flex-direction: column; gap: 5px;
+  }
+  .smart-template.active { border-color: rgba(255,255,255,0.28); background: rgba(255,255,255,0.09); }
+  .smart-template strong { font-size: 12px; }
+  .smart-template span { font-size: 10px; color: var(--text3); line-height: 1.35; }
+  .smart-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .smart-field-full { grid-column: 1 / -1; }
+  .smart-label { display: flex; flex-direction: column; gap: 6px; font-size: 10px; font-weight: 800; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; }
+  .smart-input, .smart-select {
+    height: 36px; border-radius: 6px; padding: 0 10px; font-size: 12px;
+    border: 1px solid rgba(255,255,255,0.09); background: var(--card2);
+    color: var(--text); font-family: inherit;
+  }
+  .smart-format-row { display: flex; flex-wrap: wrap; gap: 7px; }
+  .smart-check {
+    display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 9px;
+    border-radius: 999px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+    color: var(--text2); font-size: 11px; font-weight: 700; letter-spacing: 0; text-transform: none;
+  }
+  .smart-check input { margin: 0; }
+  .smart-preview-feedback { min-height: 16px; font-size: 11px; color: var(--text3); line-height: 1.45; }
+  .smart-preview-feedback.ok { color: var(--text); }
+  .smart-preview-feedback.err { color: #fca5a5; }
+  .smart-inline-preview {
+    display: none;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    padding-top: 14px;
+    min-height: 0;
+  }
+  .smart-inline-preview.visible {
+    display: block;
+  }
+  .smart-preview-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  .smart-preview-title {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .smart-preview-count {
+    font-size: 10px;
+    color: var(--text3);
+    white-space: nowrap;
+  }
+  .smart-preview-strip {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 118px;
+    gap: 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 2px 2px 10px;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+  }
+  .smart-preview-card {
+    display: block;
+    color: var(--text);
+    text-decoration: none;
+    min-width: 0;
+  }
+  .smart-preview-poster {
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    border-radius: 7px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.09);
+  }
+  .smart-preview-poster img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+  }
+  .smart-preview-name {
+    margin-top: 7px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--text2);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .smart-preview-empty {
+    min-height: 104px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px dashed rgba(255,255,255,0.12);
+    border-radius: 8px;
+    color: var(--text3);
+    font-size: 12px;
+    text-align: center;
+    padding: 14px;
+  }
+  .smart-modal-footer {
+    display: flex; align-items: center; justify-content: flex-end; gap: 10px;
+    padding: 14px 18px; border-top: 1px solid var(--sep);
+  }
 
   /* ── Buttons ─────────────────────────────────── */
   .btn {
@@ -1218,6 +1899,26 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     background: rgba(32,33,37,0.98);
     border-color: rgba(255,255,255,0.14);
     box-shadow: inset 3px 0 0 rgba(255,255,255,0.22), var(--shadow-md);
+  }
+  .catalog-item.smart-auth-missing {
+    opacity: 0.46;
+    cursor: not-allowed;
+  }
+  .catalog-item.smart-auth-missing:hover,
+  .catalog-item.smart-auth-missing:focus-within {
+    opacity: 0.58;
+  }
+  .catalog-item.smart-key-missing {
+    border-color: rgba(220,38,38,0.48);
+    box-shadow: inset 0 0 0 1px rgba(220,38,38,0.10), var(--shadow-sm);
+  }
+  .catalog-item.smart-key-missing:hover,
+  .catalog-item.smart-key-missing:focus-within {
+    border-color: rgba(220,38,38,0.72);
+  }
+  .catalog-item.smart-key-missing.active-preview {
+    border-color: rgba(220,38,38,0.68);
+    box-shadow: inset 3px 0 0 rgba(220,38,38,0.44), var(--shadow-md);
   }
   .catalog-item.dragging { opacity: 0.35; }
   .catalog-item .drag-handle { color: var(--text3); cursor: grab; font-size: 13px; flex-shrink: 0; line-height: 1; }
@@ -1350,6 +2051,12 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     border: 1px solid rgba(255,255,255,0.08);
     box-shadow: var(--shadow-sm);
   }
+  #qr-canvas-wrap {
+    width: min(var(--install-qr-size), 100%);
+    max-width: 100%;
+    margin: 2px auto;
+    flex-shrink: 0;
+  }
   #qr-canvas-wrap canvas,
   #qr-canvas-wrap img { border-radius: 8px; display: block; max-width: 100%; height: auto; }
   .qr-sub { font-size: 10px; color: var(--text3); text-align: center; line-height: 1.35; }
@@ -1384,7 +2091,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
   .catalog-item.shift-up { transform: translateY(-14px) scale(0.985); }
 
   /* ── Auth header section ─────────────────────────── */
-  .header-auth { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .header-auth { margin-left: 0; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
   .btn-connect {
     display: flex; align-items: center; gap: 6px;
     padding: 9px 16px; border-radius: var(--pill); border: 1px solid rgba(255,255,255,0.09);
@@ -1585,8 +2292,307 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     color: var(--text3);
     margin-top: 6px;
   }
+  .search-prototype-preview {
+    margin: 18px 28px 26px;
+    border-radius: 22px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.025);
+    box-shadow: 0 18px 36px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.04);
+    overflow: hidden;
+  }
+  .search-prototype-hero {
+    display: grid;
+    grid-template-columns: 156px minmax(0, 1fr);
+    gap: 18px;
+    padding: 22px;
+    align-items: start;
+  }
+  .search-prototype-poster {
+    width: 156px;
+    aspect-ratio: 2/3;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.05);
+    box-shadow: 0 20px 34px rgba(0,0,0,0.3);
+  }
+  .search-prototype-poster img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+  }
+  .search-prototype-copy { min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+  .search-prototype-topline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+  .search-prototype-mode,
+  .search-prototype-local,
+  .search-prototype-base {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 9px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    background: rgba(255,255,255,0.05);
+    color: var(--text2);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .search-prototype-mode {
+    background: rgba(255,255,255,0.05);
+  }
+  .search-prototype-mode.smart {
+    background: rgba(255,255,255,0.05);
+    color: var(--text2);
+    border-color: rgba(255,255,255,0.08);
+  }
+  .search-prototype-mode.metadata {
+    background: rgba(255,255,255,0.05);
+    color: var(--text2);
+    border-color: rgba(255,255,255,0.08);
+  }
+  .search-prototype-local {
+    background: rgba(255,255,255,0.05);
+    color: var(--text3);
+    border-color: rgba(255,255,255,0.08);
+  }
+  .search-prototype-base {
+    color: var(--text3);
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 700;
+  }
+  .search-prototype-title {
+    font-size: 27px;
+    font-weight: 800;
+    letter-spacing: -0.05em;
+    color: #fff;
+    line-height: 1.05;
+  }
+  .search-prototype-row-name {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 11px 13px;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .search-prototype-row-name strong {
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--text3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .search-prototype-row-name span {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .search-prototype-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .search-prototype-block {
+    padding: 13px 14px;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.035);
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .search-prototype-block strong {
+    display: block;
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--text3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .search-prototype-chip-row { display: flex; flex-wrap: wrap; gap: 7px; }
+  .search-prototype-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text2);
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .search-prototype-note {
+    font-size: 12px;
+    color: var(--text2);
+    line-height: 1.6;
+  }
+  .search-prototype-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0 22px 22px;
+  }
+  .search-prototype-actions .btn {
+    min-width: 140px;
+    justify-content: center;
+  }
   .ai-modal-save:hover { opacity: 0.85; }
   .ai-modal-save:disabled { opacity: 0.4; cursor: not-allowed; }
+  .prototype-install-note {
+    display: none;
+    font-size: 11px;
+    line-height: 1.5;
+    color: #fbbf24;
+    padding: 10px 11px;
+    border-radius: 10px;
+    border: 1px solid rgba(251,191,36,0.22);
+    background: rgba(251,191,36,0.08);
+  }
+  .prototype-install-note.visible { display: block; }
+  .search-modal-overlay {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    z-index: 1100;
+    background: rgba(0,0,0,0.66);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  .search-modal-overlay.open { display: flex; }
+  .search-modal {
+    width: min(680px, calc(100vw - 36px));
+    max-height: min(760px, calc(100vh - 36px));
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    background: rgba(20,21,24,0.98);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 18px;
+    box-shadow: 0 28px 62px rgba(0,0,0,0.48);
+  }
+  .search-modal-header,
+  .search-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--sep);
+  }
+  .search-modal-footer {
+    justify-content: flex-end;
+    border-bottom: none;
+    border-top: 1px solid var(--sep);
+  }
+  .search-modal-title {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.03em;
+  }
+  .search-modal-sub {
+    margin-top: 4px;
+    font-size: 11px;
+    color: var(--text3);
+  }
+  .search-modal-close {
+    border: none;
+    background: transparent;
+    color: var(--text3);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 8px;
+    font-family: inherit;
+  }
+  .search-modal-close:hover { color: var(--text); background: var(--fill); }
+  .search-modal-body {
+    padding: 18px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .search-modal-note,
+  .search-modal-empty {
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text2);
+    padding: 13px 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.045);
+  }
+  .search-modal-list { display: flex; flex-direction: column; gap: 9px; }
+  .search-modal-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 12px 13px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.04);
+  }
+  .search-modal-item-copy { min-width: 0; }
+  .search-modal-item-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .search-modal-item-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 5px;
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .search-modal-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+    flex-shrink: 0;
+  }
+  .search-modal-btn {
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.09);
+    background: rgba(255,255,255,0.04);
+    color: var(--text2);
+    font-size: 11px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .search-modal-btn:hover {
+    background: rgba(255,255,255,0.08);
+    color: var(--text);
+    border-color: rgba(255,255,255,0.16);
+  }
+  .search-modal-btn.overwrite:hover {
+    color: #fca5a5;
+    border-color: rgba(248,113,113,0.28);
+    background: rgba(248,113,113,0.08);
+  }
 
   @media (max-width: 1024px) {
     main { grid-template-columns: 326px 1fr; }
@@ -1594,12 +2600,28 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     .preview-grid { grid-template-columns: repeat(auto-fill, minmax(188px, 1fr)); }
     .poster { width: 188px; }
     .detail-grid { grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); }
+    .header-search {
+      flex-basis: 540px;
+      max-width: 760px;
+      min-width: 260px;
+      margin: 0 auto;
+    }
   }
   @media (max-width: 768px) {
     main { grid-template-columns: 1fr; }
     .mid-panel { border-top: 1px solid var(--sep); }
-    header { padding: 14px 20px; }
+    header { padding: 14px 20px; flex-wrap: wrap; align-items: flex-start; }
     .header-sub { display: none; }
+    .header-search {
+      order: 3;
+      flex: 1 0 100%;
+      min-width: 0;
+      max-width: none;
+      margin: 12px 0 0;
+    }
+    .header-search-row { flex-direction: column; align-items: stretch; }
+    .search-mode-switch { align-self: flex-start; }
+    .header-auth { margin-left: auto; margin-top: 10px; }
     .filter-bar,
     .options-panel,
     .pane-tabbar,
@@ -1614,6 +2636,8 @@ CONFIGURE_HTML = """<!DOCTYPE html>
       flex: 0 0 auto;
       border-left: none;
       border-top: 1px solid var(--sep);
+      overflow: visible;
+      --install-qr-size: 180px;
     }
     .detail-grid { grid-template-columns: 1fr; }
     .detail-card { height: auto; min-height: 270px; }
@@ -1622,7 +2646,39 @@ CONFIGURE_HTML = """<!DOCTYPE html>
     .list-item { grid-template-columns: 44px 1fr; gap: 14px; }
     .list-score, .list-meta-col { display: none; }
     .pane-tab-extras { justify-content: flex-start; }
-    .view-controls { width: 100%; justify-content: space-between; }
+    .view-controls { width: 100%; justify-content: space-between; flex-wrap: wrap; }
+    .poster-style-picker { order: 3; width: 100%; overflow-x: auto; }
+    .poster-style-btn { flex: 1 0 auto; }
+    .catalog-recipe-bar { align-items: stretch; flex-direction: column; }
+    .smart-row-bar { align-items: stretch; flex-direction: column; }
+    .smart-row-actions { flex-wrap: wrap; }
+    .smart-template-grid, .smart-form-grid { grid-template-columns: 1fr; }
+    .recipe-gallery { grid-template-columns: 1fr; }
+    .recipe-modal-footer { flex-wrap: wrap; }
+    .search-prototype-preview { margin-left: 18px; margin-right: 18px; }
+    .search-prototype-hero { grid-template-columns: 1fr; }
+    .search-prototype-poster { width: 152px; }
+    .search-prototype-meta-grid { grid-template-columns: 1fr; }
+    .search-modal-item { flex-direction: column; align-items: stretch; }
+    .search-modal-actions { justify-content: stretch; }
+    .search-modal-btn { flex: 1; }
+  }
+  @media (max-height: 880px) and (min-width: 769px) {
+    .catalogs-side-col { --install-qr-size: 156px; }
+    .qr-wrap { padding: 9px; }
+    .url-text { max-height: 60px; }
+  }
+  @media (max-height: 760px) and (min-width: 769px) {
+    .catalogs-side-col {
+      padding-top: 10px;
+      padding-bottom: 10px;
+      --install-qr-size: 132px;
+    }
+    .side-module { margin-bottom: 8px; }
+    .side-or { margin-bottom: 5px; }
+    .qr-wrap { padding: 8px; }
+    .qr-sub { font-size: 9px; line-height: 1.28; }
+    .url-text { max-height: 52px; }
   }
 </style>
 <script src="/static/qrcode.min.js"></script>
@@ -1640,6 +2696,25 @@ CONFIGURE_HTML = """<!DOCTYPE html>
       <h1>AniList Catalogs</h1>
     </div>
     <span class="header-sub">Configure</span>
+    <div class="header-search" id="header-search">
+      <div class="header-search-shell">
+        <div class="header-search-row">
+          <div class="header-search-input-wrap">
+            <svg class="header-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="7"></circle>
+              <line x1="20" y1="20" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="header-search-input" placeholder="Search anime to build a catalog..." autocomplete="off" spellcheck="false">
+          </div>
+          <div class="search-mode-switch" role="group" aria-label="Search mode">
+            <button class="search-mode-btn active" type="button" id="search-mode-metadata" data-action="set-search-mode" data-mode="metadata">Basic</button>
+            <button class="search-mode-btn locked" type="button" id="search-mode-smart" data-action="set-search-mode" data-mode="smart">Smart</button>
+          </div>
+        </div>
+        <div class="search-smart-hint visible" id="search-smart-hint">Connect AniList + OpenRouter to unlock Smart search</div>
+        <div class="header-search-dropdown" id="header-search-dropdown"></div>
+      </div>
+    </div>
     <div class="header-auth" id="header-auth"></div>
   </header>
 
@@ -1683,20 +2758,6 @@ CONFIGURE_HTML = """<!DOCTYPE html>
             </div>
             <span class="account-badge">Preset</span><div class="preset-badge">Added</div>
             <span class="preset-chevron">&#8250;</span>
-          </div>
-          <div class="preset-card ai-preset-card account-locked" id="preset-anilist-ai-recommendations" data-action="add-ai">
-            <span class="ai-preset-corner-icon" aria-hidden="true"><svg class="ai-star-icon" viewBox="0 0 24 24" fill="none"><path d="M9.2 3.2c.52 2.92 1.5 4.03 2.6 4.83.82.6 1.74.95 4.9 1.6-2.93.52-4.05 1.5-4.85 2.6-.6.82-.95 1.74-1.6 4.9-.52-2.93-1.5-4.05-2.6-4.85-.82-.6-1.74-.95-4.9-1.6 2.93-.52 4.05-1.5 4.85-2.6.6-.82.95-1.74 1.6-4.9Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M18.2 3.4c.24 1.35.7 1.86 1.2 2.23.38.27.8.44 2.26.74-1.35.24-1.87.7-2.24 1.2-.27.38-.44.8-.74 2.26-.24-1.35-.7-1.87-1.2-2.24-.38-.27-.8-.44-2.26-.74 1.35-.24 1.87-.7 2.24-1.2.27-.38.44-.8.74-2.26Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M17.2 14.2c.3 1.68.87 2.33 1.5 2.78.46.34.97.54 2.82.92-1.68.3-2.34.87-2.79 1.5-.34.46-.54.97-.92 2.82-.3-1.68-.87-2.34-1.5-2.79-.46-.34-.97-.54-2.82-.92 1.68-.3 2.34-.87 2.79-1.5.34-.46.54-.97.92-2.82Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span>
-            <div class="preset-info">
-              <div class="preset-name ai-title">AI Recommendations</div>
-              <div class="preset-desc">Personalised picks powered by AI</div>
-            </div>
-            <div class="preset-actions ai-preset-actions">
-              <span class="account-badge ai-badge">AI</span>
-              <div class="preset-badge">Added</div>
-              <span class="ai-connected-tag ai-connected-hidden" id="ai-connected-tag">Connected</span>
-              <button class="ai-gear-btn" id="ai-gear-btn" data-action="open-ai-modal" title="Configure AI settings">&#9881;</button>
-              <span class="preset-chevron">&#8250;</span>
-            </div>
           </div>
         </div>
       </section>
@@ -1746,7 +2807,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4z"/></svg>
           </a>
         </div>
-        <div class="pane-footer-text">Version: v1.4.4 &mdash; Developed by juuzo</div>
+        <div class="pane-footer-text">Version: v1.6.0 &mdash; Developed by juuzo</div>
       </div>
     </div>
 
@@ -1757,7 +2818,54 @@ CONFIGURE_HTML = """<!DOCTYPE html>
       <div class="filter-bar">
         <select id="f-year" class="select-hidden">
           <option value="">Year</option>
-          __YEAR_OPTIONS__
+          <option value="2027">2027</option>
+<option value="2026">2026</option>
+<option value="2025">2025</option>
+<option value="2024">2024</option>
+<option value="2023">2023</option>
+<option value="2022">2022</option>
+<option value="2021">2021</option>
+<option value="2020">2020</option>
+<option value="2019">2019</option>
+<option value="2018">2018</option>
+<option value="2017">2017</option>
+<option value="2016">2016</option>
+<option value="2015">2015</option>
+<option value="2014">2014</option>
+<option value="2013">2013</option>
+<option value="2012">2012</option>
+<option value="2011">2011</option>
+<option value="2010">2010</option>
+<option value="2009">2009</option>
+<option value="2008">2008</option>
+<option value="2007">2007</option>
+<option value="2006">2006</option>
+<option value="2005">2005</option>
+<option value="2004">2004</option>
+<option value="2003">2003</option>
+<option value="2002">2002</option>
+<option value="2001">2001</option>
+<option value="2000">2000</option>
+<option value="1999">1999</option>
+<option value="1998">1998</option>
+<option value="1997">1997</option>
+<option value="1996">1996</option>
+<option value="1995">1995</option>
+<option value="1994">1994</option>
+<option value="1993">1993</option>
+<option value="1992">1992</option>
+<option value="1991">1991</option>
+<option value="1990">1990</option>
+<option value="1989">1989</option>
+<option value="1988">1988</option>
+<option value="1987">1987</option>
+<option value="1986">1986</option>
+<option value="1985">1985</option>
+<option value="1984">1984</option>
+<option value="1983">1983</option>
+<option value="1982">1982</option>
+<option value="1981">1981</option>
+<option value="1980">1980</option>
         </select>
         <div class="year-dropdown" id="year-dropdown">
           <button class="fb-filter-btn" id="btn-year" type="button" data-action="toggle-year-menu">
@@ -1881,6 +2989,13 @@ CONFIGURE_HTML = """<!DOCTYPE html>
               </div>
             </div>
             <span class="view-sep">|</span>
+            <div class="poster-style-picker" id="poster-style-picker" role="group" aria-label="Poster style">
+              <button class="poster-style-btn active" type="button" data-action="set-poster-style" data-style="off" title="Standard posters">Off</button>
+              <button class="poster-style-btn" type="button" data-action="set-poster-style" data-style="clean" title="Both Rank and Rating poster overlays">Both</button>
+              <button class="poster-style-btn" type="button" data-action="set-poster-style" data-style="rank" title="Top rank banner posters">Rank</button>
+              <button class="poster-style-btn" type="button" data-action="set-poster-style" data-style="rating" title="Bottom genre and rating banner posters">Rating</button>
+            </div>
+            <span class="view-sep">|</span>
             <div class="view-toggle">
               <button class="view-btn active" id="view-btn-grid" data-action="set-view" data-view="grid" title="Grid view">
                 <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="0" y="0" width="6" height="6" rx="1.5"/><rect x="8" y="0" width="6" height="6" rx="1.5"/><rect x="0" y="8" width="6" height="6" rx="1.5"/><rect x="8" y="8" width="6" height="6" rx="1.5"/></svg>
@@ -1909,6 +3024,29 @@ CONFIGURE_HTML = """<!DOCTYPE html>
       <!-- Catalogs pane (hidden by default) -->
       <div id="catalogs-pane" class="catalogs-hidden">
         <div class="catalogs-list-col">
+          <div class="catalog-recipe-bar">
+            <div class="catalog-recipe-copy">
+              <div class="catalog-recipe-title">Recipes</div>
+              <div class="catalog-recipe-sub">Share and import public catalog bundles without account or AI auth keys.</div>
+            </div>
+            <div class="recipe-actions">
+              <button class="btn btn-ghost btn-sm" data-action="open-share-recipe">Share Recipe</button>
+              <button class="btn btn-ghost btn-sm" data-action="browse-recipes">Browse Recipes</button>
+            </div>
+          </div>
+          <div class="smart-row-bar" id="smart-row-bar">
+            <div class="catalog-recipe-copy">
+              <div class="catalog-recipe-title">Smart Rows</div>
+              <div class="catalog-recipe-sub">Build seed-based AI catalogs from a title, your 10/10s, or completed hidden gems.</div>
+            </div>
+            <div class="smart-row-actions">
+              <div class="smart-settings-wrap">
+                <button class="smart-settings-btn" data-action="open-ai-modal" title="OpenRouter settings" aria-label="OpenRouter settings">&#9881;</button>
+                <div class="smart-row-note" id="smart-row-note"></div>
+              </div>
+              <button class="btn btn-primary btn-sm" data-action="open-smart-builder">Build Catalog</button>
+            </div>
+          </div>
           <div class="catalog-meta-row">
             <div class="panel-sub-inline">Drag to reorder &middot; click to preview</div>
             <span class="catalog-count-badge hidden" id="catalog-count-badge"></span>
@@ -1922,6 +3060,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
               Add to Stremio
             </button>
+            <div class="prototype-install-note" id="prototype-install-note">Search prototype rows are not included in this install URL yet.</div>
           </div>
           <div class="side-or">OR</div>
           <div class="side-module">
@@ -1931,7 +3070,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
                 <button class="btn btn-ghost btn-sm btn-full" id="copy-url-btn" data-action="copy-url">Copy URL</button>
                 <div class="url-warn-icon" id="token-warning">
                   &#9888;
-                  <div class="url-warn-tooltip">This URL contains a session key for your AniList account. Keep it private and do not share it. If it expires, just reconnect AniList.</div>
+                  <div class="url-warn-tooltip">This URL contains a private auth key for your AniList account. Keep it private and do not share it. It stays valid until you disconnect AniList.</div>
                 </div>
               </div>
             </div>
@@ -1951,7 +3090,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
             <div class="side-module tight">
               <div class="section-title">Import Config</div>
               <div class="import-row">
-                <input type="text" id="import-url" placeholder="Paste manifest URL…">
+                <input type="text" id="import-url" placeholder="Paste manifest or recipe URL...">
                 <button class="btn btn-primary btn-sm" id="import-btn" data-action="import-config">Import</button>
               </div>
               <div id="import-feedback"></div>
@@ -1969,6 +3108,24 @@ CONFIGURE_HTML = """<!DOCTYPE html>
 const GENRES = ["Action","Adventure","Comedy","Drama","Ecchi","Fantasy","Horror","Mahou Shoujo","Mecha","Music","Mystery","Psychological","Romance","Sci-Fi","Slice of Life","Sports","Supernatural","Thriller"];
 const BASE_URL = window.location.origin;
 const ANILIST_MARK = '<span class="al-logo-badge" aria-hidden="true"><svg viewBox="0 0 24 24" role="img" focusable="false" aria-hidden="true"><path fill="#02A9FF" d="M15.533 15.51V5.725c0-.561-.31-.87-.871-.87h-1.915c-.562 0-.871.309-.871.87v4.646c0 .131 1.261.739 1.294.868.961 3.754.209 6.758-.702 6.898 1.489.074 1.652.79.543.3.17-2.003.832-1.999 2.735-.073.016.016.39.8.414.8h4.496c.561 0 .871-.309.871-.87v-1.914c0-.562-.31-.871-.871-.871h-5.123Z"></path><path fill="#FFFFFF" d="M8.071 4.855 3.04 19.164h3.908l.852-2.475h4.257l.832 2.475h3.889L11.766 4.855H8.071Zm.619 8.664 1.22-3.963 1.336 3.963H8.69Z"></path></svg></span>';
+const POSTER_LAB_VERSION = 'v9';
+const POSTER_STYLE_DEFAULT = 'clean';
+const POSTER_STYLES = new Set(['off', 'clean', 'rank', 'rating']);
+const POSTER_LAB_SEASONAL_STATUSES = new Set(['RELEASING', 'NOT_YET_RELEASED']);
+const POSTER_LAB_RETURNING_RELATIONS = new Set(['PREQUEL']);
+const POSTER_LAB_SPINOFF_RELATIONS = new Set(['PARENT']);
+const POSTER_LAB_SOURCE_LABELS = {
+  MANGA: 'Manga Adaptation',
+  LIGHT_NOVEL: 'LN Adaptation',
+  VIDEO_GAME: 'Game Adaptation',
+};
+const POSTER_LAB_ORIGINAL_SOURCE = 'ORIGINAL';
+const POSTER_LAB_ANIME_SOURCE = 'ANIME';
+const POSTER_LAB_MOVIE_PREMIERE_DAYS = 45;
+const POSTER_LAB_RECENT_ADAPTATION_DAYS = 90;
+const POSTER_LAB_AIRS_THIS_WEEK_SECONDS = 7 * 24 * 60 * 60;
+const POSTER_LAB_TRENDING_TOP_N = 10;
+const POSTER_LAB_TOP_RANK_PRIORITY_LIMIT = 100;
 
 const GENRE_COLORS = {
   'Action':'#e85d04','Adventure':'#f48c06','Comedy':'#a7c957','Drama':'#4895ef',
@@ -2012,17 +3169,56 @@ const FORMAT_LABELS = { TV:'TV Show', TV_SHORT:'TV Short', MOVIE:'Movie', OVA:'O
 const SEASON_LABELS = { WINTER:'Winter', SPRING:'Spring', SUMMER:'Summer', FALL:'Fall' };
 const STATUS_LABELS = { RELEASING:'Airing', FINISHED:'Finished', NOT_YET_RELEASED:'Upcoming', CANCELLED:'Cancelled' };
 let currentView = 'grid';
+let posterStyle = 'off';
+let _posterLabTopLabelMap = new Map();
 
 // ── Auth state ────────────────────────────────────
 const _urlParams = new URLSearchParams(window.location.search);
 const _hashParams = new URLSearchParams(window.location.hash.startsWith('#') ? window.location.hash.slice(1) : '');
-// Session key: a short 12-char token handed back by the OAuth callback.
+// Auth key: a short token handed back by the OAuth callback.
 // The actual encrypted AniList token lives server-side; only this key travels
 // in the manifest URL (as "{config_token}~{session_key}").
 let _sessionKey = _hashParams.get('s') || _urlParams.get('s') || null;
 // OpenRouter state — populated from /api/me response on load.
 let _hasOrKey = false;
 let _orModel  = 'meta-llama/llama-3.3-70b-instruct';
+const SMART_DEFAULTS = {
+  title_seed: {
+    label: 'More like a title',
+    description: 'Use one anime as the main signal.',
+    name: 'More like ',
+    options: { formats: [], minScore: 70, popularityBias: 'balanced' },
+  },
+  top_rated: {
+    label: 'More like my 10/10s',
+    description: 'Use your highest-rated completed anime.',
+    name: 'More like my 10/10s',
+    options: { formats: [], minScore: 70, popularityBias: 'balanced' },
+  },
+  hidden_completed: {
+    label: 'Hidden gems from completed',
+    description: 'Find less obvious picks from your completed taste.',
+    name: 'Hidden gems from Completed',
+    options: { formats: [], minScore: 70, popularityBias: 'hidden' },
+  },
+};
+let smartBuilderMode = 'title_seed';
+let smartBuilderPreviewCatalog = null;
+let smartBuilderPreviewMedia = [];
+const SEARCH_MIN_CHARS = 3;
+const SEARCH_RESULT_LIMIT = 8;
+const SEARCH_DEBOUNCE_MS = 300;
+let searchMode = 'metadata';
+let searchQuery = '';
+let searchResults = [];
+let searchLoading = false;
+let searchOpen = false;
+let searchActiveIndex = -1;
+let searchLookupToken = 0;
+let searchLookupTimer = null;
+let searchAbortController = null;
+let activePrototypePreview = null;
+let searchModalDraft = null;
 // Clean the ?s= handoff param from the configure page URL immediately — it
 // doesn't belong in the browser history and the key is now held in memory.
 if (_sessionKey) {
@@ -2035,7 +3231,7 @@ if (_sessionKey) {
 // ── Pre-login catalog preservation ───────────────
 // When the user clicks "Connect AniList", the page navigates away and back.
 // We save the current catalogs to localStorage before leaving so they can be
-// restored on return (identified by the presence of the ?s= session key).
+// restored on return (identified by the presence of the ?s= auth key).
 const _PENDING_CATALOGS_KEY = 'anilist_catalogs_pending';
 let _pendingCatalogs = null;
 if (_sessionKey) {
@@ -2076,6 +3272,172 @@ function getCurrentSeason() {
 
 function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function cloneJson(value) {
+  return value == null ? value : JSON.parse(JSON.stringify(value));
+}
+
+function freshCatalogId(prefix = 'custom') {
+  return `${prefix}-` + Math.random().toString(36).slice(2, 10);
+}
+
+function compactMediaRef(ref) {
+  if (!ref || typeof ref !== 'object') return null;
+  const id = parseInt(ref.id, 10) || 0;
+  const title = String(ref.title || '').trim();
+  if (!id && !title) return null;
+  const entry = {};
+  if (id > 0) entry.i = id;
+  if (title) entry.t = title.slice(0, 160);
+  return Object.keys(entry).length ? entry : null;
+}
+
+function expandMediaRef(entry) {
+  if (!entry || typeof entry !== 'object') return null;
+  const id = parseInt(entry.i, 10) || 0;
+  const title = String(entry.t || '').trim();
+  if (!id && !title) return null;
+  const ref = {};
+  if (id > 0) ref.id = id;
+  if (title) ref.title = title.slice(0, 160);
+  return ref;
+}
+
+function sanitizeCatalogSnapshot(cat) {
+  const snapshot = cloneJson(cat);
+  if (!snapshot || typeof snapshot !== 'object') return null;
+  delete snapshot.uiPrototype;
+  delete snapshot.uiDraft;
+  delete snapshot.uiPrototypeMode;
+  delete snapshot.uiPrototypeLocalOnly;
+  delete snapshot.uiPreviewOnly;
+  delete snapshot.uiSelectedTitle;
+  delete snapshot.uiBaseCatalogSnapshot;
+  delete snapshot.uiDerivedMetadata;
+  delete snapshot.uiCatalogDraft;
+  return snapshot;
+}
+
+function catalogRequiresAuth(cat, depth = 0) {
+  if (!cat || typeof cat !== 'object' || depth >= 5) return false;
+  if (cat.type === 'watching' || cat.type === 'ai') return true;
+  return catalogRequiresAuth(cat.baseCatalog, depth + 1);
+}
+
+function compactCatalogEntry(cat) {
+  if (!cat || typeof cat !== 'object') return { i: '', n: '', f: {} };
+  if (PRESET_IDS.has(cat.id)) {
+    const entry = { i: cat.id };
+    if (cat.name && cat.name !== PRESET_DEFAULT_NAMES[cat.id]) entry.n = cat.name;
+    if (cat.randomize) entry.r = true;
+    return entry;
+  }
+  if (cat.type === 'watching') {
+    const entry = { i: cat.id, n: cat.name || cat.id, w: true };
+    if (cat.listStatus) entry.s = cat.listStatus;
+    if (cat.clientFilters && Object.keys(cat.clientFilters).length) entry.cf = cat.clientFilters;
+    if (cat.sourceName) entry.sn = String(cat.sourceName).slice(0, 120);
+    if (cat.randomize) entry.r = true;
+    return entry;
+  }
+  if (cat.type === 'ai') {
+    const entry = { i: cat.id, n: cat.name || cat.id, a: true };
+    const defaultModel = 'meta-llama/llama-3.3-70b-instruct';
+    if (cat.model && cat.model !== defaultModel) entry.m = cat.model;
+    if (cat.aiMode) entry.am = cat.aiMode;
+    if (cat.seedMediaId) entry.sid = cat.seedMediaId;
+    if (cat.seedTitle) entry.st = cat.seedTitle;
+    if (cat.smartOptions) entry.so = cat.smartOptions;
+    if (cat.clientFilters && Object.keys(cat.clientFilters).length) entry.cf = cat.clientFilters;
+    if (cat.sourceName) entry.sn = String(cat.sourceName).slice(0, 120);
+    if (cat.randomize) entry.r = true;
+    return entry;
+  }
+  const entry = { i: cat.id, n: cat.name || cat.id, f: cat.filters || {} };
+  if (cat.clientFilters && Object.keys(cat.clientFilters).length) entry.cf = cat.clientFilters;
+  if (cat.baseCatalog) entry.bc = compactCatalogEntry(cat.baseCatalog);
+  if (Array.isArray(cat.includedMedia) && cat.includedMedia.length) {
+    const included = cat.includedMedia.map(compactMediaRef).filter(Boolean);
+    if (included.length) entry.im = included;
+  }
+  const seed = compactMediaRef(cat.searchSeed);
+  if (seed) entry.ss = seed;
+  if (cat.randomize) entry.r = true;
+  return entry;
+}
+
+function expandCatalogEntry(entry) {
+  if (!entry || typeof entry !== 'object') return null;
+  const id = entry.i || '';
+  if (PRESET_IDS.has(id)) {
+    const cat = { id, name: entry.n || PRESET_DEFAULT_NAMES[id], type: 'preset' };
+    if (entry.r) cat.randomize = true;
+    return cat;
+  }
+  if (entry.w) {
+    const cat = { id, name: entry.n || id, type: 'watching' };
+    if (entry.s) cat.listStatus = entry.s;
+    if (entry.cf && Object.keys(entry.cf).length) cat.clientFilters = entry.cf;
+    if (entry.sn) cat.sourceName = entry.sn;
+    if (entry.r) cat.randomize = true;
+    return cat;
+  }
+  if (entry.a) {
+    const cat = { id, name: entry.n || 'AI Recommendations', type: 'ai', model: entry.m || 'meta-llama/llama-3.3-70b-instruct' };
+    if (entry.am) cat.aiMode = entry.am;
+    if (entry.sid) cat.seedMediaId = entry.sid;
+    if (entry.st) cat.seedTitle = entry.st;
+    if (entry.so) cat.smartOptions = entry.so;
+    if (entry.cf && Object.keys(entry.cf).length) cat.clientFilters = entry.cf;
+    if (entry.sn) cat.sourceName = entry.sn;
+    if (entry.r) cat.randomize = true;
+    return cat;
+  }
+  const cat = { id, name: entry.n || id, type: 'custom', filters: entry.f || {} };
+  if (entry.cf && Object.keys(entry.cf).length) cat.clientFilters = entry.cf;
+  if (entry.bc) {
+    const baseCatalog = expandCatalogEntry(entry.bc);
+    if (baseCatalog) cat.baseCatalog = baseCatalog;
+  }
+  if (Array.isArray(entry.im) && entry.im.length) {
+    const included = entry.im.map(expandMediaRef).filter(Boolean);
+    if (included.length) cat.includedMedia = included;
+  }
+  if (entry.ss) {
+    const seed = expandMediaRef(entry.ss);
+    if (seed) cat.searchSeed = seed;
+  }
+  if (entry.r) cat.randomize = true;
+  return cat;
+}
+
+function normalizePosterStyle(value, fallback = POSTER_STYLE_DEFAULT) {
+  const style = String(value || '').toLowerCase();
+  return POSTER_STYLES.has(style) ? style : fallback;
+}
+
+function posterStyleLabel(value) {
+  const style = normalizePosterStyle(value);
+  return {
+    clean: 'Both',
+    rank: 'Rank',
+    rating: 'Rating',
+  }[style] || 'Both';
+}
+
+function isPosterLabEnabled() {
+  return posterStyle !== 'off';
+}
+
+function getSmartRequirementState() {
+  const needsAniList = !_sessionKey;
+  const needsOpenRouter = !_sessionKey || !_hasOrKey;
+  let note = '';
+  if (needsAniList && needsOpenRouter) note = 'Needs AniList login and OpenRouter key';
+  else if (needsOpenRouter) note = 'Needs OpenRouter key';
+  else if (needsAniList) note = 'Needs AniList login';
+  return { needsAniList, needsOpenRouter, note };
 }
 
 function slugifyGenre(genre) {
@@ -2158,6 +3520,7 @@ function renderAuthUI(user) {
       'Connect AniList</a>';
   }
   updateAccountPills();
+  updateSmartRowsStatus();
   render();
 }
 
@@ -2170,15 +3533,20 @@ function updateAccountPills() {
       card.classList.toggle('pointer-disabled', locked);
     }
   });
-  // AI pill: locked when not authenticated, red outline when authenticated but no OR key
-  const aiCard = document.getElementById('preset-anilist-ai-recommendations');
-  if (aiCard) {
-    aiCard.classList.toggle('account-locked', locked);
-    aiCard.classList.toggle('pointer-disabled', locked);
-    aiCard.classList.toggle('ai-no-key', !locked && !_hasOrKey);
-    const connTag = document.getElementById('ai-connected-tag');
-    setHidden(connTag, locked || !_hasOrKey);
+}
+
+function updateSmartRowsStatus() {
+  const bar = document.getElementById('smart-row-bar');
+  const note = document.getElementById('smart-row-note');
+  if (!bar && !note) return;
+  const state = getSmartRequirementState();
+  if (bar) {
+    bar.classList.toggle('smart-auth-missing', state.needsAniList);
+    bar.classList.toggle('smart-key-missing', state.needsOpenRouter);
+    bar.classList.toggle('smart-has-note', !!state.note);
+    bar.removeAttribute('title');
   }
+  if (note) note.textContent = state.note;
 }
 
 function saveConfigBeforeLogin() {
@@ -2216,6 +3584,472 @@ function disconnect() {
 
 // Returns true if any additional filter (genre/format/status/year/season/score/daterange)
 // is active on top of the current source tag.
+function freshPrototypeId() {
+  return 'ui-prototype-' + Math.random().toString(36).slice(2, 10);
+}
+
+function isUiPrototype(cat) {
+  return !!(cat && cat.uiPrototype);
+}
+
+function supportedCatalogs(sourceCatalogs = catalogs) {
+  return sourceCatalogs.filter(cat => cat && !isUiPrototype(cat) && (_sessionKey || !catalogRequiresAuth(cat)));
+}
+
+function catalogTypeBadgeLabel(cat) {
+  if (isUiPrototype(cat) || hasStoredClientFilters(cat)) return 'Custom';
+  if (cat?.type === 'watching') return 'Account';
+  if (cat?.type === 'ai') return 'AI';
+  if (cat?.type === 'custom') return 'Custom';
+  return 'Preset';
+}
+
+function catalogTypeBadgeClass(cat) {
+  if (isUiPrototype(cat) || hasStoredClientFilters(cat)) return '';
+  if (cat?.type === 'watching') return ' account-type-badge';
+  if (cat?.type === 'ai') return ' ai-type-badge';
+  return '';
+}
+
+function snapshotSearchItem(item) {
+  return {
+    id: item?.id || 0,
+    title: item?.title || 'Selected Anime',
+    coverImage: item?.coverImage || '',
+    genres: [...(item?.genres || [])],
+    format: item?.format || '',
+    seasonYear: item?.seasonYear || null,
+  };
+}
+
+function getResolvedSearchMode() {
+  const state = getSmartRequirementState();
+  if (searchMode === 'smart' && !state.needsAniList && !state.needsOpenRouter) return 'smart';
+  return 'metadata';
+}
+
+function searchResultMetaText(item) {
+  return [...(item.genres || []).slice(0, 2), FORMAT_LABELS[item.format] || item.format, item.seasonYear].filter(Boolean).join(' · ');
+}
+
+function buildSearchMetadataFilters(selected) {
+  const filters = { sort: 'POPULARITY_DESC' };
+  const genres = [...new Set((selected?.genres || []).filter(Boolean))].slice(0, 2);
+  if (genres.length) filters.genres = genres;
+  if (selected?.format) filters.formats = [selected.format];
+  return filters;
+}
+
+function buildPrototypeCatalogDraft(item, mode = getResolvedSearchMode()) {
+  const selected = item?.uiSelectedTitle ? snapshotSearchItem(item.uiSelectedTitle) : snapshotSearchItem(item);
+  const safeMode = mode === 'smart' ? 'smart' : 'metadata';
+  const title = selected.title || 'Selected Anime';
+  const draftName = safeMode === 'smart' ? `More like ${title}` : `Inspired by ${title}`;
+  const catalogDraft = safeMode === 'smart'
+    ? {
+        id: freshCatalogId('ai'),
+        name: draftName,
+        type: 'ai',
+        model: _orModel || 'meta-llama/llama-3.3-70b-instruct',
+        aiMode: 'title_seed',
+        seedMediaId: selected.id || undefined,
+        seedTitle: title,
+        smartOptions: cloneJson(SMART_DEFAULTS.title_seed.options),
+      }
+    : {
+        id: freshCatalogId('custom'),
+        name: draftName,
+        type: 'custom',
+        filters: buildSearchMetadataFilters(selected),
+        searchSeed: { id: selected.id || undefined, title },
+      };
+  return {
+    id: freshPrototypeId(),
+    name: draftName,
+    uiDraft: true,
+    uiPrototypeMode: safeMode,
+    uiSelectedTitle: selected,
+    uiBaseCatalogSnapshot: null,
+    uiDerivedMetadata: {
+      genres: [...((catalogDraft.filters?.genres) || selected.genres || [])],
+      format: (catalogDraft.filters?.formats?.[0]) || selected.format || '',
+      seasonYear: (catalogDraft.filters?.years?.[0]) || selected.seasonYear || null,
+    },
+    uiCatalogDraft: catalogDraft,
+  };
+}
+
+function buildInjectedCatalogFromSearch(baseCatalog, item, { preserveName = false } = {}) {
+  const selected = item?.uiSelectedTitle ? snapshotSearchItem(item.uiSelectedTitle) : snapshotSearchItem(item);
+  const baseSnapshot = sanitizeCatalogSnapshot(baseCatalog);
+  const title = selected.title || 'Selected Anime';
+  return {
+    id: preserveName ? (baseSnapshot?.id || freshCatalogId('custom')) : freshCatalogId('custom'),
+    name: preserveName ? (baseCatalog?.name || title) : `${baseCatalog?.name || 'Catalog'} + ${title}`,
+    type: 'custom',
+    baseCatalog: baseSnapshot,
+    includedMedia: [{ id: selected.id || 0, title }],
+    randomize: !!baseCatalog?.randomize,
+  };
+}
+
+function getPrototypeTags(prototype) {
+  const tags = [];
+  if (prototype?.uiBaseCatalogSnapshot?.name) tags.push({ label: prototype.uiBaseCatalogSnapshot.name });
+  if (prototype?.uiSelectedTitle?.title) {
+    tags.push({
+      label: prototype.uiSelectedTitle.title,
+      key: prototype?.uiDraft && prototype?.uiPrototypeMode === 'metadata' ? 'prototype-title' : '',
+    });
+  }
+  return tags;
+}
+
+function renderDefaultPreviewPrompt() {
+  document.getElementById('preview-sub').textContent = 'Set filters or click a catalog to preview';
+  document.getElementById('preview-area').innerHTML = '<div class="preview-prompt"><div class="preview-prompt-icon">&#127916;</div><div>Set filters or click a catalog<br>to preview matching titles</div></div>';
+}
+
+function renderSearchPrototypePreview(prototype) {
+  const area = document.getElementById('preview-area');
+  const selected = prototype?.uiSelectedTitle || {};
+  const title = escHtml(selected.title || 'Selected Anime');
+  const poster = escHtml(selected.coverImage || '');
+  const mode = prototype?.uiPrototypeMode === 'smart' ? 'smart' : 'metadata';
+  const modeLabel = mode === 'smart' ? 'Smart Seed Draft' : 'Basic Draft';
+  const modeNote = mode === 'smart'
+    ? 'This preview only shows the future seed-based row shell. AI recommendation logic is not connected yet.'
+    : 'This preview only shows the future metadata-based row shell. Genre and format matching are not connected yet.';
+  const baseName = prototype?.uiBaseCatalogSnapshot?.name ? escHtml(prototype.uiBaseCatalogSnapshot.name) : '';
+  const chips = [...(prototype?.uiDerivedMetadata?.genres || []), prototype?.uiDerivedMetadata?.format ? (FORMAT_LABELS[prototype.uiDerivedMetadata.format] || prototype.uiDerivedMetadata.format) : '']
+    .filter(Boolean)
+    .map(label => `<span class="search-prototype-chip">${escHtml(label)}</span>`)
+    .join('');
+  document.getElementById('preview-sub').textContent = mode === 'smart' ? 'Smart search draft' : 'Basic search draft';
+  area.innerHTML = `
+    <div class="search-prototype-preview">
+      <div class="search-prototype-hero">
+        <div class="search-prototype-poster"><img src="${poster}" alt="${title}" loading="lazy"></div>
+        <div class="search-prototype-copy">
+          <div class="search-prototype-topline">
+            <span class="search-prototype-mode ${mode}">${modeLabel}</span>
+            <span class="search-prototype-local">Local-only prototype</span>
+            ${baseName ? `<span class="search-prototype-base">Base catalog: ${baseName}</span>` : ''}
+          </div>
+          <div class="search-prototype-title">${title}</div>
+          <div class="search-prototype-row-name">
+            <strong>Suggested row name</strong>
+            <span>${escHtml(prototype?.name || '')}</span>
+          </div>
+          <div class="search-prototype-meta-grid">
+            <div class="search-prototype-block">
+              <strong>Selected anime</strong>
+              <div class="search-prototype-note">${title}${selected.seasonYear ? ` · ${escHtml(selected.seasonYear)}` : ''}</div>
+            </div>
+            <div class="search-prototype-block">
+              <strong>${mode === 'smart' ? 'Future seed metadata' : 'Derived metadata'}</strong>
+              <div class="search-prototype-chip-row">${chips || '<span class="search-prototype-note">No metadata captured.</span>'}</div>
+            </div>
+          </div>
+          <div class="search-prototype-note">${modeNote}</div>
+        </div>
+      </div>
+      <div class="search-prototype-actions">
+        <button class="btn btn-primary btn-sm" type="button" data-action="open-search-add-modal-from-preview">Add to Catalog</button>
+        <button class="btn btn-ghost btn-sm" type="button" data-action="dismiss-search-prototype-preview">Close Preview</button>
+      </div>
+    </div>`;
+}
+
+function openPrototypePreview(prototype, { selectedId = null } = {}) {
+  activePrototypePreview = cloneJson(prototype);
+  previewingId = selectedId;
+  if (currentPane === 'catalogs') setPaneTab('preview');
+  render();
+  renderFilterTags();
+  renderSearchPrototypePreview(activePrototypePreview);
+}
+
+function clearPrototypePreview({ keepPreviewingId = false } = {}) {
+  activePrototypePreview = null;
+  if (!keepPreviewingId) previewingId = null;
+  renderFilterTags();
+}
+
+function dismissPrototypePreview() {
+  clearPrototypePreview();
+  render();
+  renderDefaultPreviewPrompt();
+}
+
+function getSearchResultById(resultId) {
+  return searchResults.find(item => String(item.id) === String(resultId)) || null;
+}
+
+function renderSearchDropdown() {
+  const dropdown = document.getElementById('header-search-dropdown');
+  if (!dropdown) return;
+  dropdown.classList.toggle('open', searchOpen);
+  if (!searchOpen) {
+    dropdown.innerHTML = '';
+    return;
+  }
+  const query = String(searchQuery || '').trim();
+  if (query.length < SEARCH_MIN_CHARS) {
+    dropdown.innerHTML = `<div class="search-dropdown-state"><strong>Search Anime</strong><span>Type at least ${SEARCH_MIN_CHARS} characters to search AniList.</span></div>`;
+    return;
+  }
+  if (searchLoading) {
+    dropdown.innerHTML = '<div class="search-dropdown-state"><strong>Searching</strong><span>Looking up matching anime titles on AniList.</span></div>';
+    return;
+  }
+  if (!searchResults.length) {
+    dropdown.innerHTML = '<div class="search-dropdown-state"><strong>No Matches</strong><span>Try a broader title or a different spelling.</span></div>';
+    return;
+  }
+  dropdown.innerHTML = '<div class="search-result-list">' + searchResults.map((item, idx) => `
+    <div class="search-result-row ${idx === searchActiveIndex ? 'active' : ''}">
+      <button class="search-result-main" type="button" data-action="search-result-preview" data-result-id="${escHtml(item.id)}">
+        <div class="search-result-thumb"><img src="${escHtml(item.coverImage)}" alt="${escHtml(item.title)}" loading="lazy"></div>
+        <div class="search-result-copy">
+          <div class="search-result-title">${escHtml(item.title)}</div>
+          <div class="search-result-meta">${escHtml(searchResultMetaText(item))}</div>
+        </div>
+      </button>
+      <button class="search-result-add-btn" type="button" data-action="search-result-add" data-result-id="${escHtml(item.id)}">Add to Catalog</button>
+    </div>
+  `).join('') + '</div>';
+}
+
+function renderSearchUi() {
+  const metadataBtn = document.getElementById('search-mode-metadata');
+  const smartBtn = document.getElementById('search-mode-smart');
+  const hint = document.getElementById('search-smart-hint');
+  if (!metadataBtn || !smartBtn || !hint) return;
+  const state = getSmartRequirementState();
+  const smartUnlocked = !state.needsAniList && !state.needsOpenRouter;
+  if (!smartUnlocked && searchMode === 'smart') searchMode = 'metadata';
+  metadataBtn.classList.toggle('active', searchMode === 'metadata');
+  smartBtn.classList.toggle('active', searchMode === 'smart' && smartUnlocked);
+  smartBtn.disabled = !smartUnlocked;
+  smartBtn.classList.toggle('locked', !smartUnlocked);
+  hint.textContent = smartUnlocked ? '' : 'Connect AniList + OpenRouter to unlock Smart search';
+  hint.classList.toggle('visible', !smartUnlocked);
+  renderSearchDropdown();
+}
+
+function closeSearchDropdown() {
+  searchOpen = false;
+  searchActiveIndex = -1;
+  renderSearchDropdown();
+}
+
+function scheduleSearchLookup(rawValue) {
+  searchQuery = rawValue;
+  searchOpen = true;
+  clearTimeout(searchLookupTimer);
+  if (searchAbortController) {
+    searchAbortController.abort();
+    searchAbortController = null;
+  }
+  const query = String(rawValue || '').trim();
+  if (query.length < SEARCH_MIN_CHARS) {
+    searchLoading = false;
+    searchResults = [];
+    searchActiveIndex = -1;
+    renderSearchUi();
+    return;
+  }
+  searchLoading = true;
+  renderSearchUi();
+  const token = ++searchLookupToken;
+  searchLookupTimer = setTimeout(async () => {
+    if (token !== searchLookupToken) return;
+    const controller = new AbortController();
+    searchAbortController = controller;
+    try {
+      const res = await fetch(`/api/search-anime?q=${encodeURIComponent(query)}`, {
+        signal: controller.signal,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.detail || `HTTP ${res.status}`);
+      }
+      const json = await res.json();
+      if (token !== searchLookupToken) return;
+      searchResults = Array.isArray(json.media) ? json.media : [];
+      searchLoading = false;
+      searchActiveIndex = searchResults.length ? 0 : -1;
+      renderSearchDropdown();
+    } catch (err) {
+      if (err?.name === 'AbortError') return;
+      console.error('[search] lookup failed:', err);
+      if (token !== searchLookupToken) return;
+      searchResults = [];
+      searchLoading = false;
+      searchActiveIndex = -1;
+      renderSearchDropdown();
+    } finally {
+      if (searchAbortController === controller) searchAbortController = null;
+    }
+  }, SEARCH_DEBOUNCE_MS);
+}
+
+async function previewSearchResult(item) {
+  if (!item) return;
+  const draft = buildPrototypeCatalogDraft(item, getResolvedSearchMode());
+  activePrototypePreview = cloneJson(draft);
+  previewingId = null;
+  closeSearchDropdown();
+  if (currentPane === 'catalogs') setPaneTab('preview');
+
+  if (draft.uiCatalogDraft?.type === 'ai') {
+    activeSource = {
+      ...cloneJson(draft.uiCatalogDraft),
+      sourceName: draft.uiSelectedTitle?.title || draft.uiCatalogDraft.seedTitle || draft.name,
+      previewName: draft.name,
+      type: 'ai',
+    };
+    _sourceMedia = null;
+    _clearAdditionalFilters();
+    renderFilterTags();
+    updateNameInput();
+    render();
+    await fetchAndShowSource();
+    return;
+  }
+
+  activeSource = null;
+  _sourceMedia = null;
+  _clearAdditionalFilters();
+  loadFiltersIntoForm(draft.uiCatalogDraft?.filters || {});
+  renderFilterTags();
+  updateNameInput();
+  render();
+  await previewActiveSearchDraft();
+}
+
+function handleSearchKeydown(event) {
+  const query = String(searchQuery || '').trim();
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    closeSearchDropdown();
+    return;
+  }
+  if (query.length < SEARCH_MIN_CHARS || searchLoading || !searchResults.length) return;
+  if (event.key === 'ArrowDown') {
+    event.preventDefault();
+    searchActiveIndex = (searchActiveIndex + 1 + searchResults.length) % searchResults.length;
+    renderSearchDropdown();
+    return;
+  }
+  if (event.key === 'ArrowUp') {
+    event.preventDefault();
+    searchActiveIndex = (searchActiveIndex - 1 + searchResults.length) % searchResults.length;
+    renderSearchDropdown();
+    return;
+  }
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    previewSearchResult(searchResults[searchActiveIndex] || searchResults[0]);
+  }
+}
+
+function setSearchCatalogModalOpen(open) {
+  const overlay = document.getElementById('search-modal-overlay');
+  if (!overlay) return;
+  overlay.classList.toggle('open', !!open);
+  if (open) setTimeout(() => overlay.querySelector('button')?.focus(), 0);
+}
+
+function renderSearchCatalogModal() {
+  const titleEl = document.getElementById('search-modal-title');
+  const subEl = document.getElementById('search-modal-sub');
+  const bodyEl = document.getElementById('search-modal-body');
+  if (!titleEl || !subEl || !bodyEl || !searchModalDraft) return;
+  titleEl.textContent = 'Add Search Result';
+  subEl.textContent = `${searchModalDraft.uiSelectedTitle?.title || 'Selected anime'} · Single entry`;
+  const available = supportedCatalogs(catalogs).filter(cat => cat && cat.id !== searchModalDraft.id);
+  if (!available.length) {
+    bodyEl.innerHTML = '<div class="search-modal-empty">No existing catalogs yet. Add a preset, account row, or custom row first, then use this action to inject a single anime into it.</div>';
+    return;
+  }
+  bodyEl.innerHTML = `
+    <div class="search-modal-note">Choose any existing row below. Create Copy makes a new Custom row based on that catalog plus this anime. Overwrite replaces the selected row in place and converts it to a Custom row.</div>
+    <div class="search-modal-list">
+      ${available.map(cat => `
+        <div class="search-modal-item">
+          <div class="search-modal-item-copy">
+            <div class="search-modal-item-name">${escHtml(cat.name)}</div>
+            <div class="search-modal-item-meta">
+              <span class="catalog-type-badge${catalogTypeBadgeClass(cat)}">${catalogTypeBadgeLabel(cat)}</span>
+              <span>${catalogRequiresAuth(cat) ? 'Auth-backed' : 'Public-safe'}</span>
+            </div>
+          </div>
+          <div class="search-modal-actions">
+            <button class="search-modal-btn" type="button" data-action="search-modal-create-copy" data-target-id="${escHtml(cat.id)}">Create Copy</button>
+            <button class="search-modal-btn overwrite" type="button" data-action="search-modal-overwrite" data-target-id="${escHtml(cat.id)}">Overwrite</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>`;
+}
+
+function openSearchCatalogModal(draft) {
+  const selected = draft?.uiSelectedTitle ? snapshotSearchItem(draft.uiSelectedTitle) : snapshotSearchItem(draft);
+  searchModalDraft = {
+    id: draft?.id || 'search-modal-draft',
+    uiSelectedTitle: selected,
+  };
+  closeSearchDropdown();
+  renderSearchCatalogModal();
+  setSearchCatalogModalOpen(true);
+}
+
+function closeSearchCatalogModal() {
+  searchModalDraft = null;
+  setSearchCatalogModalOpen(false);
+}
+
+function applySearchDraftToCatalog(targetId, strategy) {
+  if (!searchModalDraft) return;
+  const targetIndex = catalogs.findIndex(cat => cat.id === targetId);
+  if (targetIndex === -1) return;
+  const target = catalogs[targetIndex];
+  const next = buildInjectedCatalogFromSearch(target, searchModalDraft.uiSelectedTitle, {
+    preserveName: strategy === 'overwrite',
+  });
+  if (strategy === 'overwrite') {
+    catalogs.splice(targetIndex, 1, next);
+    closeSearchCatalogModal();
+    render();
+    previewCatalog(next.id);
+    return;
+  }
+  catalogs.push(next);
+  closeSearchCatalogModal();
+  render();
+  previewCatalog(next.id);
+}
+
+function updatePrototypeInstallNote() {
+  const note = document.getElementById('prototype-install-note');
+  if (!note) return;
+  const hasPrototypeRows = catalogs.some(isUiPrototype);
+  const hasAuthOmissions = !_sessionKey && catalogs.some(cat => cat && !isUiPrototype(cat) && catalogRequiresAuth(cat));
+  if (hasPrototypeRows) {
+    note.textContent = 'Search prototype rows are not included in this install URL yet.';
+    note.classList.add('visible');
+    return;
+  }
+  if (hasAuthOmissions) {
+    note.textContent = 'Reconnect AniList to include account-backed custom rows in this install URL.';
+    note.classList.add('visible');
+    return;
+  }
+  note.classList.remove('visible');
+}
+
 function hasActiveAdditionalFilters() {
   const score = parseInt(document.getElementById('f-score').value);
   const daterange = document.getElementById('f-daterange').value;
@@ -2231,6 +4065,7 @@ function hasStoredClientFilters(cat) {
 function getSourceBaseName(source) {
   if (!source) return '';
   if (source.sourceName) return source.sourceName;
+  if (source.type === 'ai' && source.aiMode) return source.name || 'Smart Row';
   if (source.type === 'ai') return 'AI Recommendations';
   switch (source.listStatus) {
     case 'CURRENT': return 'Currently Watching';
@@ -2267,6 +4102,19 @@ function _clearAdditionalFilters() {
 
 // Build a human-readable name suggestion from active source + filter tags.
 function _buildSuggestedName() {
+  if (activeSource?.type === 'ai' && activeSource.aiMode === 'title_seed' && activeSource.seedTitle) {
+    const parts = [`More like ${activeSource.seedTitle}`];
+    selectedGenres.forEach(g  => parts.push(g));
+    selectedFormats.forEach(f  => parts.push(FORMAT_LABELS[f] || f));
+    selectedYears.forEach(y    => parts.push(y));
+    selectedSeasons.forEach(s  => parts.push(s === 'CURRENT' ? 'Current Season' : (SEASON_LABELS[s] || s)));
+    selectedStatuses.forEach(s => parts.push(STATUS_LABELS[s] || s));
+    const daterange = getSelectedDateRangeValue();
+    if (daterange) parts.push(getDateRangeLabel(daterange));
+    const score = parseInt(document.getElementById('f-score').value);
+    if (score > 0) parts.push(score + '+ Score');
+    return parts.join(' · ');
+  }
   const parts = [getSourceBaseName(activeSource)];
   selectedGenres.forEach(g  => parts.push(g));
   selectedFormats.forEach(f  => parts.push(FORMAT_LABELS[f] || f));
@@ -2277,7 +4125,7 @@ function _buildSuggestedName() {
   if (daterange) parts.push(getDateRangeLabel(daterange));
   const score = parseInt(document.getElementById('f-score').value);
   if (score > 0) parts.push(score + '+ Score');
-  return parts.join(' \u00b7 ');
+  return parts.join(' · ');
 }
 
 // Build a clientFilters object from the current DOM filter state.
@@ -2309,7 +4157,13 @@ function updateNameInput() {
   wrap.classList.remove('hidden');
   addBtn.classList.remove('hidden');
 
-  if (activeSource && hasFilters) {
+  if (activePrototypePreview?.uiDraft) {
+    const suggested = activePrototypePreview.name || activePrototypePreview.uiCatalogDraft?.name || '';
+    if (suggested && (!inp.value.trim() || inp.value === _lastSuggestedName)) {
+      inp.value = suggested;
+      _lastSuggestedName = suggested;
+    }
+  } else if (activeSource && (hasFilters || (activeSource.type === 'ai' && activeSource.aiMode === 'title_seed' && activeSource.seedTitle))) {
     const suggested = _buildSuggestedName();
     if (!inp.value.trim() || inp.value === _lastSuggestedName) {
       inp.value = suggested;
@@ -2372,8 +4226,8 @@ function _applySourcePreview() {
   const total = _sourceMedia.length;
   const label = getSourceDisplayName(activeSource);
   const subtitle = count < total
-    ? `${label} \u2014 ${count} of ${total} titles`
-    : `${label} \u2014 ${count} titles`;
+    ? `${label} — ${count} of ${total} titles`
+    : `${label} — ${count} titles`;
   renderPreview(filtered, subtitle);
 }
 
@@ -2384,8 +4238,8 @@ async function previewPresetWithCurrentFilters(cat) {
       const media = await fetchAiringWeekPreview();
       const filtered = _filterSourceMedia(media);
       const subtitle = filtered.length < media.length
-        ? `${cat.name} \u2014 ${filtered.length} of ${media.length} titles`
-        : `${cat.name} \u2014 ${filtered.length} titles`;
+        ? `${cat.name} — ${filtered.length} of ${media.length} titles`
+        : `${cat.name} — ${filtered.length} titles`;
       renderPreview(filtered, subtitle);
       return;
     }
@@ -2414,7 +4268,7 @@ async function previewPresetWithCurrentFilters(cat) {
     applyDateRangeToVariables(variables, getSelectedDateRangeValue());
 
     const media = await fetchPreview(variables);
-    renderPreview(media, `${cat.name} \u2014 ${media.length} titles`);
+    renderPreview(media, `${cat.name} — ${media.length} titles`);
   } catch (e) {
     console.error('[preset preview] Error:', e);
     document.getElementById('preview-sub').textContent = 'Failed to load preview';
@@ -2469,15 +4323,15 @@ async function fetchAndShowSource() {
     if (!_hasOrKey) {
       document.getElementById('preview-sub').textContent = getSourceDisplayName(activeSource);
       document.getElementById('preview-area').innerHTML =
-        '<div class="preview-prompt"><div class="preview-prompt-icon">&#9881;</div><div>OpenRouter key required<br><span class="preview-error-detail">Click the gear icon on the AI pill to add your key</span></div></div>';
+        '<div class="preview-prompt"><div class="preview-prompt-icon">&#9881;</div><div>OpenRouter key required<br><span class="preview-error-detail">Use Smart Rows settings to add your key</span></div></div>';
       return;
     }
-    setPreviewLoading('AI is thinking\u2026 (this may take a moment)');
+    setPreviewLoading('AI is thinking… (this may take a moment)');
     try {
       const res = await fetch('/api/preview-ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session: _sessionKey }),
+        body: JSON.stringify({ session: _sessionKey, catalog: activeSource }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => null);
@@ -2497,6 +4351,7 @@ async function fetchAndShowSource() {
 }
 
 function addAccountPreset(id, name, listStatus) {
+  if (activePrototypePreview) clearPrototypePreview();
   if (!_sessionKey) return;
   const alreadyAdded = !!catalogs.find(c => c.id === id);
   // Set this as the active source (shows tag in filter bar + enables filtering on top)
@@ -2521,33 +4376,13 @@ function addAccountPreset(id, name, listStatus) {
   }
 }
 
-function addAiCatalog() {
-  if (!_sessionKey) return;
-  if (!_hasOrKey) { openAiModal(); return; }
-  const alreadyAdded = !!catalogs.find(c => c.id === 'anilist-ai-recommendations');
-  activeSource = { id: 'anilist-ai-recommendations', name: 'AI Recommendations', sourceName: 'AI Recommendations', previewName: 'AI Recommendations', type: 'ai' };
-  _sourceMedia = null;
-  _lastSuggestedName = '';
-  _clearAdditionalFilters();
-  if (!alreadyAdded) {
-    catalogs.push({ id: 'anilist-ai-recommendations', name: 'AI Recommendations', type: 'ai', model: _orModel });
-    render();
-    renderFilterTags();
-    updateNameInput();
-    setPaneTab('catalogs');
-    fetchAndShowSource();
-  } else {
-    renderFilterTags();
-    updateNameInput();
-    setPaneTab('preview');
-    render();
-    fetchAndShowSource();
-  }
-}
-
 // ── AI Settings Modal ─────────────────────────────
 function openAiModal() {
-  if (!_sessionKey) return;
+  if (!_sessionKey) {
+    saveConfigBeforeLogin();
+    window.location.href = '/oauth/login';
+    return;
+  }
   const overlay = document.getElementById('ai-modal-overlay');
   if (!overlay) return;
   // Populate model selector
@@ -2597,7 +4432,7 @@ async function testOrKey() {
     if (fb) { fb.textContent = 'Enter an API key first.'; fb.className = 'ai-key-feedback err'; }
     return;
   }
-  if (btn) { btn.disabled = true; btn.textContent = 'Testing\u2026'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Testing…'; }
   if (fb) { fb.textContent = ''; fb.className = 'ai-key-feedback'; }
   try {
     const res = await fetch('/api/test-openrouter-key', {
@@ -2607,12 +4442,12 @@ async function testOrKey() {
     });
     const data = await res.json().catch(() => ({}));
     if (res.ok && data.valid) {
-      if (fb) { fb.textContent = '\u2713 Key is valid.'; fb.className = 'ai-key-feedback ok'; }
+      if (fb) { fb.textContent = '✓ Key is valid.'; fb.className = 'ai-key-feedback ok'; }
     } else {
-      if (fb) { fb.textContent = '\u2717 ' + (data.detail || 'Invalid key.'); fb.className = 'ai-key-feedback err'; }
+      if (fb) { fb.textContent = '✗ ' + (data.detail || 'Invalid key.'); fb.className = 'ai-key-feedback err'; }
     }
   } catch(e) {
-    if (fb) { fb.textContent = '\u2717 Network error.'; fb.className = 'ai-key-feedback err'; }
+    if (fb) { fb.textContent = '✗ Network error.'; fb.className = 'ai-key-feedback err'; }
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = 'Test'; }
   }
@@ -2635,7 +4470,7 @@ async function saveOrKeyFromModal() {
     if (fb) { fb.textContent = 'Enter an API key.'; fb.className = 'ai-key-feedback err'; }
     return;
   }
-  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving\u2026'; }
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
   try {
     const res = await fetch('/api/save-openrouter-key', {
       method: 'POST',
@@ -2650,22 +4485,22 @@ async function saveOrKeyFromModal() {
       // Update any existing AI catalog entries with the new model
       catalogs.forEach(c => { if (c.type === 'ai') c.model = model; });
       updateAccountPills();
+      updateSmartRowsStatus();
       render();
       closeAiModal();
-      // If model changed and AI catalog is already added, trigger a fresh fetch
-      if (modelChanged && catalogs.find(c => c.id === 'anilist-ai-recommendations')) {
+      // If a Smart Row is being previewed, switching models should refresh it.
+      if (modelChanged && activeSource?.type === 'ai') {
         _sourceMedia = null;
-        activeSource = { id: 'anilist-ai-recommendations', name: 'AI Recommendations', sourceName: 'AI Recommendations', previewName: 'AI Recommendations', type: 'ai' };
         renderFilterTags();
         updateNameInput();
         setPaneTab('preview');
         fetchAndShowSource();
       }
     } else {
-      if (fb) { fb.textContent = '\u2717 ' + (data.detail || 'Failed to save.'); fb.className = 'ai-key-feedback err'; }
+      if (fb) { fb.textContent = '✗ ' + (data.detail || 'Failed to save.'); fb.className = 'ai-key-feedback err'; }
     }
   } catch(e) {
-    if (fb) { fb.textContent = '\u2717 Network error.'; fb.className = 'ai-key-feedback err'; }
+    if (fb) { fb.textContent = '✗ Network error.'; fb.className = 'ai-key-feedback err'; }
   } finally {
     if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save'; }
   }
@@ -2674,6 +4509,228 @@ async function saveOrKeyFromModal() {
 // ── Filter bar helpers ────────────────────────────
 
 // ── Inline filter panel helpers ────────────────────
+// Smart Row builder
+function setSmartModalOpen(open) {
+  const overlay = document.getElementById('smart-modal-overlay');
+  if (!overlay) return;
+  overlay.classList.toggle('open', !!open);
+  if (open) setTimeout(() => overlay.querySelector('button, input, select')?.focus(), 0);
+}
+
+function closeSmartBuilder() {
+  setSmartModalOpen(false);
+}
+
+function resetSmartBuilderPreview() {
+  smartBuilderPreviewCatalog = null;
+  smartBuilderPreviewMedia = [];
+  const preview = document.getElementById('smart-inline-preview');
+  if (preview) {
+    preview.classList.remove('visible');
+    preview.innerHTML = '';
+  }
+  const feedback = document.getElementById('smart-preview-feedback');
+  if (feedback) { feedback.textContent = ''; feedback.className = 'smart-preview-feedback'; }
+  updateSmartSaveState();
+}
+
+function defaultSmartRowName(mode, seedTitle = '') {
+  if (mode === 'title_seed') return seedTitle ? `More like ${seedTitle}` : 'More like this anime';
+  return SMART_DEFAULTS[mode]?.name || 'Smart Row';
+}
+
+function setSmartTemplate(mode) {
+  if (!SMART_DEFAULTS[mode]) return;
+  smartBuilderMode = mode;
+  const modeSelect = document.getElementById('smart-seed-mode');
+  if (modeSelect) modeSelect.value = mode;
+  const titleWrap = document.getElementById('smart-title-wrap');
+  if (titleWrap) titleWrap.classList.toggle('hidden', mode !== 'title_seed');
+  const defaults = SMART_DEFAULTS[mode];
+  const rowName = document.getElementById('smart-row-name');
+  const seedTitle = document.getElementById('smart-seed-title')?.value.trim() || '';
+  if (rowName && (!rowName.value.trim() || rowName.dataset.autoname === '1')) {
+    rowName.value = defaultSmartRowName(mode, seedTitle);
+    rowName.dataset.autoname = '1';
+  }
+  const minScore = document.getElementById('smart-min-score');
+  if (minScore) minScore.value = String(defaults.options.minScore || 0);
+  const popularity = document.getElementById('smart-popularity');
+  if (popularity) popularity.value = defaults.options.popularityBias || 'balanced';
+  document.querySelectorAll('.smart-template').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.mode === mode);
+  });
+  resetSmartBuilderPreview();
+}
+
+function parseSeedInput(raw) {
+  const text = (raw || '').trim();
+  if (!text) return { title: '', id: null };
+  const urlMatch = text.match(/anilist\\.co\\/anime\\/(\\d+)/i);
+  if (urlMatch) return { title: text.replace(/^https?:\\/\\//i, ''), id: parseInt(urlMatch[1], 10) };
+  if (/^\\d+$/.test(text)) return { title: text, id: parseInt(text, 10) };
+  return { title: text, id: null };
+}
+
+function buildSmartCatalogFromForm() {
+  const mode = document.getElementById('smart-seed-mode')?.value || smartBuilderMode;
+  const seed = parseSeedInput(document.getElementById('smart-seed-title')?.value || '');
+  const formats = Array.from(document.querySelectorAll('[data-smart-format]:checked')).map(input => input.value);
+  const minScore = parseInt(document.getElementById('smart-min-score')?.value || '0', 10) || 0;
+  const popularityBias = document.getElementById('smart-popularity')?.value || 'balanced';
+  const rowNameInput = document.getElementById('smart-row-name');
+  const name = (rowNameInput?.value || '').trim() || defaultSmartRowName(mode, seed.title);
+  const catalog = {
+    id: 'ai-' + Math.random().toString(36).slice(2, 10),
+    name,
+    type: 'ai',
+    model: _orModel,
+    aiMode: mode,
+    smartOptions: { formats, minScore, popularityBias },
+  };
+  if (mode === 'title_seed') {
+    if (seed.id) catalog.seedMediaId = seed.id;
+    catalog.seedTitle = seed.title;
+  }
+  return catalog;
+}
+
+function updateSmartSaveState() {
+  const saveBtn = document.getElementById('smart-save-btn');
+  if (saveBtn) saveBtn.disabled = !smartBuilderPreviewCatalog;
+}
+
+function renderSmartInlinePreview(media, catalog) {
+  const preview = document.getElementById('smart-inline-preview');
+  renderInlinePreviewInto(preview, media, catalog, { emptyMessage: 'No titles came back for this Smart Row.' });
+}
+
+function renderSmartInlinePreviewStatus(message) {
+  const preview = document.getElementById('smart-inline-preview');
+  renderInlinePreviewStatusInto(preview, message);
+}
+
+function renderSmartBuilder() {
+  const body = document.getElementById('smart-modal-body');
+  const footer = document.getElementById('smart-modal-footer');
+  if (!body || !footer) return;
+  smartBuilderPreviewCatalog = null;
+  smartBuilderPreviewMedia = [];
+
+  if (!_sessionKey || !_hasOrKey) {
+    body.innerHTML = `<div class="smart-locked">
+      Smart Rows need AniList auth and a saved OpenRouter key before they can generate catalogs.
+      ${!_sessionKey ? 'Connect AniList first, then add your OpenRouter key.' : 'Open settings to add your OpenRouter key.'}
+    </div>`;
+    footer.innerHTML = '<button class="btn btn-ghost" data-action="close-smart-builder">Close</button><button class="btn btn-primary" data-action="open-ai-modal">Open Settings</button>';
+    return;
+  }
+
+  body.innerHTML = `
+    <div class="smart-template-grid">
+      ${Object.entries(SMART_DEFAULTS).map(([mode, item]) => `
+        <button class="smart-template ${mode === smartBuilderMode ? 'active' : ''}" type="button" data-action="smart-template" data-mode="${mode}">
+          <strong>${escHtml(item.label)}</strong>
+          <span>${escHtml(item.description)}</span>
+        </button>
+      `).join('')}
+    </div>
+    <div class="smart-form-grid">
+      <label class="smart-label">Seed Type
+        <select class="smart-select" id="smart-seed-mode">
+          <option value="title_seed">More like a title</option>
+          <option value="top_rated">More like my 10/10s</option>
+          <option value="hidden_completed">Hidden gems from completed</option>
+        </select>
+      </label>
+      <label class="smart-label">Popularity
+        <select class="smart-select" id="smart-popularity">
+          <option value="balanced">Balanced</option>
+          <option value="hidden">Hidden gems</option>
+          <option value="mainstream">Mainstream</option>
+        </select>
+      </label>
+      <label class="smart-label smart-field-full" id="smart-title-wrap">Title, AniList ID, or AniList URL
+        <input class="smart-input" id="smart-seed-title" placeholder="Frieren: Beyond Journey's End">
+      </label>
+      <label class="smart-label">Minimum Score
+        <select class="smart-select" id="smart-min-score">
+          <option value="0">Any</option>
+          <option value="60">60+</option>
+          <option value="70">70+</option>
+          <option value="75">75+</option>
+          <option value="80">80+</option>
+        </select>
+      </label>
+      <label class="smart-label">Row Name
+        <input class="smart-input" id="smart-row-name" data-autoname="1">
+      </label>
+      <div class="smart-label smart-field-full">Formats
+        <div class="smart-format-row">
+          ${['TV','MOVIE','OVA','ONA','TV_SHORT','SPECIAL'].map(fmt => `
+            <label class="smart-check"><input type="checkbox" data-smart-format value="${fmt}">${escHtml(FORMAT_LABELS[fmt] || fmt)}</label>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="smart-preview-feedback" id="smart-preview-feedback"></div>
+    <div class="smart-inline-preview" id="smart-inline-preview"></div>`;
+  footer.innerHTML = '<button class="btn btn-ghost" data-action="close-smart-builder">Cancel</button><button class="btn btn-ghost" data-action="smart-preview">Preview</button><button class="btn btn-primary" id="smart-save-btn" data-action="smart-save" disabled>Save Row</button>';
+  setSmartTemplate(smartBuilderMode);
+}
+
+function openSmartBuilder() {
+  renderSmartBuilder();
+  setSmartModalOpen(true);
+}
+
+async function previewSmartRow() {
+  if (!_sessionKey || !_hasOrKey) {
+    openAiModal();
+    return;
+  }
+  const feedback = document.getElementById('smart-preview-feedback');
+  const previewBtn = document.querySelector('[data-action="smart-preview"]');
+  const catalog = buildSmartCatalogFromForm();
+  if (catalog.aiMode === 'title_seed' && !catalog.seedTitle && !catalog.seedMediaId) {
+    if (feedback) { feedback.textContent = 'Enter a title, AniList ID, or AniList URL.'; feedback.className = 'smart-preview-feedback err'; }
+    renderSmartInlinePreviewStatus('Preview results will appear here after you enter a seed.');
+    return;
+  }
+  if (previewBtn) { previewBtn.disabled = true; previewBtn.textContent = 'Generating...'; }
+  if (feedback) { feedback.textContent = 'Generating Smart Row...'; feedback.className = 'smart-preview-feedback'; }
+  renderSmartInlinePreviewStatus('Generating preview...');
+  try {
+    const res = await fetch('/api/preview-ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session: _sessionKey, catalog }),
+    });
+    const json = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(json?.detail || `HTTP ${res.status}`);
+    smartBuilderPreviewCatalog = catalog;
+    smartBuilderPreviewMedia = json.media || [];
+    renderSmartInlinePreview(smartBuilderPreviewMedia, catalog);
+    if (feedback) { feedback.textContent = `Preview ready with ${smartBuilderPreviewMedia.length} titles.`; feedback.className = 'smart-preview-feedback ok'; }
+  } catch(e) {
+    smartBuilderPreviewCatalog = null;
+    smartBuilderPreviewMedia = [];
+    renderSmartInlinePreviewStatus('Preview failed. Adjust the row and try again.');
+    if (feedback) { feedback.textContent = e instanceof Error ? e.message : String(e); feedback.className = 'smart-preview-feedback err'; }
+  } finally {
+    if (previewBtn) { previewBtn.disabled = false; previewBtn.textContent = 'Preview'; }
+    updateSmartSaveState();
+  }
+}
+
+function saveSmartRow() {
+  if (!smartBuilderPreviewCatalog) return;
+  catalogs.push(JSON.parse(JSON.stringify(smartBuilderPreviewCatalog)));
+  closeSmartBuilder();
+  setPaneTab('catalogs');
+  render();
+}
+
 const FILTER_OPTS = {
   year: null, // built from hidden select options at runtime
   season: [
@@ -2949,11 +5006,13 @@ const PRESET_VARS = {
 
 // ── AniList preview fetch ─────────────────────────
 const PREVIEW_QUERY = `
-  query($sort:[MediaSort],$format_in:[MediaFormat],$season:MediaSeason,$seasonYear:Int,$status_in:[MediaStatus],$genre_in:[String],$averageScore_greater:Int,$startDate_greater:FuzzyDateInt,$startDate_lesser:FuzzyDateInt,$isAdult:Boolean){
+  query($sort:[MediaSort],$format_in:[MediaFormat],$season:MediaSeason,$seasonYear:Int,$status_in:[MediaStatus],$genre_in:[String],$averageScore_greater:Int,$startDate_greater:FuzzyDateInt,$startDate_lesser:FuzzyDateInt,$isAdult:Boolean,$id_in:[Int]){
     Page(page:1,perPage:50){
-      media(type:ANIME,isAdult:$isAdult,sort:$sort,format_in:$format_in,season:$season,seasonYear:$seasonYear,status_in:$status_in,genre_in:$genre_in,averageScore_greater:$averageScore_greater,startDate_greater:$startDate_greater,startDate_lesser:$startDate_lesser){
-        id title{romaji english} coverImage{extraLarge large} averageScore popularity
+      media(type:ANIME,isAdult:$isAdult,sort:$sort,format_in:$format_in,season:$season,seasonYear:$seasonYear,status_in:$status_in,genre_in:$genre_in,averageScore_greater:$averageScore_greater,startDate_greater:$startDate_greater,startDate_lesser:$startDate_lesser,id_in:$id_in){
+        id title{romaji english} coverImage{extraLarge large color} averageScore popularity trending source(version:2)
         genres format episodes status season seasonYear startDate{year month day} description(asHtml:false)
+        rankings{rank type allTime context}
+        relations{edges{relationType(version:2) node{type}}}
         studios(isMain:true){nodes{name}}
         nextAiringEpisode{episode timeUntilAiring}
       }
@@ -2995,8 +5054,10 @@ const PREVIEW_QUERY_AIRING = `
     Page(page:1,perPage:50){
       airingSchedules(airingAt_greater:$start airingAt_lesser:$end sort:TIME){
         media{
-          id title{romaji english} coverImage{extraLarge large} averageScore isAdult popularity
+          id title{romaji english} coverImage{extraLarge large color} averageScore isAdult popularity trending source(version:2)
           genres format episodes status season seasonYear startDate{year month day} description(asHtml:false)
+          rankings{rank type allTime context}
+          relations{edges{relationType(version:2) node{type}}}
           studios(isMain:true){nodes{name}}
           nextAiringEpisode{episode timeUntilAiring}
         }
@@ -3044,13 +5105,242 @@ async function fetchAiringWeekPreview() {
   return media;
 }
 
+async function fetchPreviewByIds(ids) {
+  const uniqueIds = [...new Set((ids || []).map(id => parseInt(id, 10)).filter(id => id > 0))];
+  if (!uniqueIds.length) return [];
+  return await fetchPreview({ id_in: uniqueIds, isAdult: false, sort: ['POPULARITY_DESC'] });
+}
+
+function mergePreviewMedia(primaryMedia, secondaryMedia) {
+  const merged = [];
+  const seen = new Set();
+  [...(primaryMedia || []), ...(secondaryMedia || [])].forEach(media => {
+    if (!media?.id || seen.has(media.id)) return;
+    seen.add(media.id);
+    merged.push(media);
+  });
+  return merged;
+}
+
+async function fetchCatalogPreviewMedia(cat) {
+  if (!cat) return [];
+  if (PRESET_IDS.has(cat.id) || cat.type === 'preset') {
+    if (cat.id === 'anilist-airing-week') return await fetchAiringWeekPreview();
+    return await fetchPreview({ ...(PRESET_VARS[cat.id] ? PRESET_VARS[cat.id]() : {}), isAdult: false });
+  }
+  if (cat.type === 'watching') {
+    if (!_sessionKey) throw new Error('Connect your AniList account to preview this catalog.');
+    const res = await fetch('/api/preview-watching', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session: _sessionKey, list_status: cat.listStatus }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new Error(err?.detail || `HTTP ${res.status}`);
+    }
+    const json = await res.json();
+    return Array.isArray(json.media) ? json.media : [];
+  }
+  if (cat.type === 'ai') {
+    if (!_sessionKey) throw new Error('Connect your AniList account to preview this Smart search.');
+    if (!_hasOrKey) throw new Error('Add an OpenRouter key to preview this Smart search.');
+    const res = await fetch('/api/preview-ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session: _sessionKey, catalog: cat }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new Error(err?.detail || `HTTP ${res.status}`);
+    }
+    const json = await res.json();
+    return Array.isArray(json.media) ? json.media : [];
+  }
+  if (cat.type === 'custom' && cat.baseCatalog) {
+    const baseMedia = await fetchCatalogPreviewMedia(cat.baseCatalog);
+    const extraMedia = await fetchPreviewByIds((cat.includedMedia || []).map(ref => ref?.id));
+    const combined = mergePreviewMedia(extraMedia, baseMedia);
+    return cat.clientFilters ? _filterSourceMedia(combined, cat.clientFilters) : combined;
+  }
+  if (cat.type === 'custom') {
+    const media = await fetchPreview({ ...filtersToVars(cat.filters || {}), isAdult: false });
+    return cat.clientFilters ? _filterSourceMedia(media, cat.clientFilters) : media;
+  }
+  return [];
+}
+
 function setPreviewLoading(subtitle) {
-  document.getElementById('preview-sub').textContent = subtitle || 'Loading\u2026';
+  document.getElementById('preview-sub').textContent = subtitle || 'Loading…';
   document.getElementById('preview-area').innerHTML = '<div class="preview-loading"><div class="spinner"></div></div>';
+}
+
+function posterLabSeasonForDate(now = new Date()) {
+  const month = now.getUTCMonth() + 1;
+  const year = now.getUTCFullYear();
+  if (month <= 3) return { season: 'WINTER', year };
+  if (month <= 6) return { season: 'SPRING', year };
+  if (month <= 9) return { season: 'SUMMER', year };
+  return { season: 'FALL', year };
+}
+
+function posterLabStartDate(m) {
+  const start = m && m.startDate ? m.startDate : {};
+  if (!Number.isInteger(start.year) || !Number.isInteger(start.month) || !Number.isInteger(start.day)) return null;
+  const dt = new Date(Date.UTC(start.year, start.month - 1, start.day));
+  return Number.isNaN(dt.getTime()) ? null : dt;
+}
+
+function posterLabRelationTypes(m) {
+  const relationTypes = new Set();
+  const edges = (((m || {}).relations || {}).edges);
+  if (!Array.isArray(edges)) return relationTypes;
+  for (const edge of edges) {
+    const nodeType = String(edge && edge.node && edge.node.type || '').toUpperCase();
+    if (nodeType !== 'ANIME') continue;
+    const relationType = String(edge && edge.relationType || '').toUpperCase();
+    if (relationType) relationTypes.add(relationType);
+  }
+  return relationTypes;
+}
+
+function posterLabRankInfo(m) {
+  const rankings = Array.isArray(m.rankings) ? m.rankings : [];
+  const candidates = [];
+  const popular = rankings.find(r => r && String(r.type || '').toUpperCase() === 'POPULAR' && r.allTime === true && Number.isInteger(r.rank) && r.rank <= 200);
+  if (popular) candidates.push({ rank: popular.rank, label: 'Most Popular' });
+  const rated = rankings.find(r => r && String(r.type || '').toUpperCase() === 'RATED' && r.allTime === true && Number.isInteger(r.rank) && r.rank <= 200);
+  if (rated) candidates.push({ rank: rated.rank, label: 'Highest Rated' });
+  if (candidates.length) {
+    candidates.sort((a, b) => a.rank - b.rank);
+    return { rank: candidates[0].rank, label: `#${candidates[0].rank} ${candidates[0].label}` };
+  }
+  return { rank: null, label: '' };
+}
+
+function posterLabRankFallbackLabel(m) {
+  return posterLabRankInfo(m).label;
+}
+
+function posterLabTrendingIds(media) {
+  const items = Array.isArray(media) ? media : [];
+  const ranked = [];
+  items.forEach((m, index) => {
+    if (!m || !Number.isInteger(m.id) || !Number.isInteger(m.trending) || m.trending <= 0) return;
+    ranked.push({ id: m.id, trending: m.trending, index });
+  });
+  ranked.sort((a, b) => (b.trending - a.trending) || (a.index - b.index));
+  return new Set(ranked.slice(0, POSTER_LAB_TRENDING_TOP_N).map(item => item.id));
+}
+
+function posterLabTopLabel(m, media = null, trendingIds = null, now = new Date()) {
+  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const current = posterLabSeasonForDate(now);
+  const season = String(m && m.season || '').toUpperCase();
+  const seasonYear = m ? m.seasonYear : null;
+  const status = String(m && m.status || '').toUpperCase();
+  const format = String(m && m.format || '').toUpperCase();
+  const source = String(m && m.source || '').toUpperCase();
+  const relationTypes = posterLabRelationTypes(m);
+  const startDate = posterLabStartDate(m);
+  const rankInfo = posterLabRankInfo(m);
+  const startDeltaDays = startDate ? Math.round((startDate.getTime() - today.getTime()) / 86400000) : null;
+  const startAgeDays = startDate ? Math.round((today.getTime() - startDate.getTime()) / 86400000) : null;
+  const isCurrentSeasonRelease = (
+    season === current.season &&
+    seasonYear === current.year &&
+    POSTER_LAB_SEASONAL_STATUSES.has(status)
+  );
+
+  if (rankInfo.rank !== null && rankInfo.rank <= POSTER_LAB_TOP_RANK_PRIORITY_LIMIT) {
+    return rankInfo.label;
+  }
+
+  if (isCurrentSeasonRelease && [...relationTypes].some(type => POSTER_LAB_RETURNING_RELATIONS.has(type))) {
+    return 'Returning Series';
+  }
+  if ([...relationTypes].some(type => POSTER_LAB_SPINOFF_RELATIONS.has(type))) {
+    return 'Spin-off';
+  }
+  if (isCurrentSeasonRelease) {
+    return 'New Season';
+  }
+  if (format === 'MOVIE' && startDeltaDays !== null && Math.abs(startDeltaDays) <= POSTER_LAB_MOVIE_PREMIERE_DAYS) {
+    return 'Movie Premiere';
+  }
+  if (POSTER_LAB_SOURCE_LABELS[source]) {
+    return POSTER_LAB_SOURCE_LABELS[source];
+  }
+  if (
+    source &&
+    source !== POSTER_LAB_ORIGINAL_SOURCE &&
+    source !== POSTER_LAB_ANIME_SOURCE &&
+    startAgeDays !== null &&
+    startAgeDays >= 0 &&
+    startAgeDays <= POSTER_LAB_RECENT_ADAPTATION_DAYS
+  ) {
+    return 'Recently Adapted';
+  }
+  if (source === POSTER_LAB_ORIGINAL_SOURCE) {
+    return 'Original Anime';
+  }
+
+  const timeUntilAiring = m && m.nextAiringEpisode ? m.nextAiringEpisode.timeUntilAiring : null;
+  if (
+    status === 'RELEASING' &&
+    Number.isInteger(timeUntilAiring) &&
+    timeUntilAiring >= 0 &&
+    timeUntilAiring <= POSTER_LAB_AIRS_THIS_WEEK_SECONDS
+  ) {
+    return 'Airs This Week';
+  }
+
+  const effectiveTrendingIds = trendingIds || (Array.isArray(media) ? posterLabTrendingIds(media) : new Set());
+  if (Number.isInteger(m && m.id) && effectiveTrendingIds.has(m.id)) {
+    return 'Trending Now';
+  }
+
+  return rankInfo.label;
+}
+
+function buildPosterLabTopLabelMap(media) {
+  const items = Array.isArray(media) ? media : [];
+  const trendingIds = posterLabTrendingIds(items);
+  const now = new Date();
+  const labels = new Map();
+  for (const item of items) {
+    if (!item || !Number.isInteger(item.id)) continue;
+    const label = posterLabTopLabel(item, items, trendingIds, now);
+    if (label) labels.set(item.id, label);
+  }
+  return labels;
+}
+
+function posterLabBottomLabel(m) {
+  const genre = Array.isArray(m.genres) && m.genres.length ? m.genres[0] : '';
+  const score = m.averageScore ? (m.averageScore / 10).toFixed(1) : '';
+  if (genre && score) return `${genre}|${score}`;
+  return genre || score || '';
+}
+
+function buildPosterLabImageUrl(m) {
+  const cover = m.coverImage || {};
+  const src = cover.extraLarge || cover.large;
+  if (!src) return '';
+  const params = new URLSearchParams({
+    src,
+    top: _posterLabTopLabelMap.get(m.id) || '',
+    bottom: posterLabBottomLabel(m),
+    badge: cover.color || '',
+    style: normalizePosterStyle(posterStyle),
+    v: POSTER_LAB_VERSION,
+  });
+  return `${BASE_URL}/poster-lab/render.png?${params.toString()}`;
 }
 
 function renderPreview(media, subtitle) {
   _lastMedia = media; _lastSubtitle = subtitle;
+  _posterLabTopLabelMap = buildPosterLabTopLabelMap(media);
   document.getElementById('preview-sub').textContent = subtitle;
   const area = document.getElementById('preview-area');
   if (!media || !media.length) {
@@ -3067,6 +5357,19 @@ function renderGridView(media) {
     const studio = ((m.studios && m.studios.nodes && m.studios.nodes[0]) || {}).name || '';
     const themeClass = studioThemeClass(studio);
     const scoreCls = scoreClass(m.averageScore || 0);
+    const fallbackPoster = (m.coverImage || {}).extraLarge || (m.coverImage || {}).large || '';
+    if (isPosterLabEnabled()) {
+      const posterUrl = buildPosterLabImageUrl(m) || fallbackPoster;
+      return `<a class="poster poster-lab-card" href="https://anilist.co/anime/${m.id}" target="_blank" rel="noopener noreferrer">
+        <div class="poster-img">
+          <img src="${escHtml(posterUrl)}" alt="${title}" loading="lazy" onerror="this.onerror=null;this.src='${escHtml(fallbackPoster)}';">
+        </div>
+        <div class="poster-title">${title}</div>
+        <div class="poster-score">
+          ${score ? `${ANILIST_MARK.replace('al-logo-badge', 'al-logo-badge poster-anilist-logo')}<span class="poster-score-value ${scoreCls}">${score}</span>` : ''}
+        </div>
+      </a>`;
+    }
     const genres = (m.genres || []).slice(0, 3).map(g => {
       return `<span class="genre-badge ${genreBadgeClass(g, 'hard')}" data-genre="${escHtml(g)}">${escHtml(g)}</span>`;
     }).join('');
@@ -3084,7 +5387,7 @@ function renderGridView(media) {
     }
     return `<a class="poster ${themeClass} ${metaSub ? 'has-banner' : ''}" href="https://anilist.co/anime/${m.id}" target="_blank" rel="noopener noreferrer">
       <div class="poster-img">
-        <img src="${escHtml(m.coverImage.extraLarge || m.coverImage.large)}" alt="${title}" loading="lazy">
+        <img src="${escHtml(fallbackPoster)}" alt="${title}" loading="lazy">
         <div class="poster-genres">${genres}</div>
         ${neutralTags ? `<div class="poster-bottom-tags">${neutralTags}</div>` : ''}
         ${metaSub ? `<div class="poster-meta"><div class="poster-meta-row">${escHtml(metaSub)}</div></div>` : ''}
@@ -3106,7 +5409,7 @@ function renderListView(media) {
   }
   return '<div class="preview-list">' + media.map(m => {
     const title   = escHtml(m.title.english || m.title.romaji || '');
-    const score   = m.averageScore ? m.averageScore + '%' : '\u2014';
+    const score   = m.averageScore ? m.averageScore + '%' : '—';
     const scoreCls = scoreClass(m.averageScore || 0);
     const users   = m.popularity ? (m.popularity >= 1000 ? (m.popularity / 1000).toFixed(0) + 'K' : m.popularity) + ' users' : '';
     const format  = escHtml(FORMAT_LABELS[m.format] || m.format || '');
@@ -3151,6 +5454,29 @@ function setView(v) {
   if (_lastMedia) renderPreview(_lastMedia, _lastSubtitle);
 }
 
+function syncPosterLabToggle() {
+  document.querySelectorAll('.poster-style-btn[data-style]').forEach(btn => {
+    const active = btn.dataset.style === posterStyle;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
+}
+
+function setPosterStyle(style) {
+  posterStyle = normalizePosterStyle(style, 'off');
+  syncPosterLabToggle();
+  if (isPosterLabEnabled() && currentView !== 'grid') {
+    setView('grid');
+  } else if (_lastMedia) {
+    renderPreview(_lastMedia, _lastSubtitle);
+  }
+  updateUrl();
+}
+
+function setPosterLabEnabled(enabled) {
+  setPosterStyle(enabled ? POSTER_STYLE_DEFAULT : 'off');
+}
+
 function renderDetailView(media) {
   function airingStr(nae) {
     if (!nae) return null;
@@ -3167,7 +5493,7 @@ function renderDetailView(media) {
     const scoreCls = scoreClass(score);
     const fmt     = FORMAT_LABELS[m.format] || m.format || '';
     const eps     = m.episodes ? m.episodes + (m.episodes !== 1 ? ' episodes' : ' episode') : '';
-    const meta    = [fmt, eps].filter(Boolean).join(' \u00b7 ');
+    const meta    = [fmt, eps].filter(Boolean).join(' · ');
     const period  = [SEASON_LABELS[m.season], m.seasonYear].filter(Boolean).join(' ');
     const airing  = airingStr(m.nextAiringEpisode);
     const studio  = ((m.studios && m.studios.nodes && m.studios.nodes[0]) || {}).name || '';
@@ -3243,12 +5569,15 @@ document.addEventListener('click', e => {
 let currentPane = 'preview';
 function setPaneTab(tab) {
   currentPane = tab;
-  document.getElementById('tab-preview').classList.toggle('active', tab === 'preview');
-  document.getElementById('tab-catalogs').classList.toggle('active', tab === 'catalogs');
-  document.getElementById('preview-pane').classList.toggle('pane-hidden', tab !== 'preview');
-  document.getElementById('catalogs-pane').classList.toggle('catalogs-hidden', tab !== 'catalogs');
-  document.getElementById('preview-tab-extras').classList.toggle('pane-hidden', tab !== 'preview');
+  const isPreview = tab === 'preview';
+  const isCatalogs = tab === 'catalogs';
+  document.getElementById('tab-preview').classList.toggle('active', isPreview);
+  document.getElementById('tab-catalogs').classList.toggle('active', isCatalogs);
+  document.getElementById('preview-pane').classList.toggle('pane-hidden', !isPreview);
+  document.getElementById('catalogs-pane').classList.toggle('catalogs-hidden', !isCatalogs);
+  document.getElementById('preview-tab-extras').classList.toggle('pane-hidden', !isPreview);
   updateNameInput();
+  scheduleFitCatalogsSidePane();
 }
 
 // ── Filter tags ───────────────────────────────────
@@ -3266,10 +5595,10 @@ function renderFilterTags() {
   const daterange = getSelectedDateRangeValue();
   renderSortBtn();
   syncFilterBtnLabels();
-
+  const contextTags = activePrototypePreview ? getPrototypeTags(activePrototypePreview) : [];
   const tags = [];
   // Source tag always appears first when an account/AI source is active
-  if (activeSource) tags.push({ key: 'source', label: getSourceBaseName(activeSource).toLowerCase() });
+  if (activeSource && !activePrototypePreview?.uiBaseCatalogSnapshot) tags.push({ key: 'source', label: getSourceBaseName(activeSource) });
   selectedFormats.forEach(f  => tags.push({ key: 'format:'  + f, label: FORMAT_LABELS[f]  || f }));
   selectedSeasons.forEach(s  => tags.push({ key: 'season:'  + s, label: s === 'CURRENT' ? 'Current Season' : (SEASON_LABELS[s] || s) }));
   selectedYears.forEach(y    => tags.push({ key: 'year:'    + y, label: y }));
@@ -3280,7 +5609,9 @@ function renderFilterTags() {
   selectedGenres.forEach(g   => tags.push({ key: 'genre:'   + g, label: g }));
 
   const container = document.getElementById('filter-tags');
-  container.innerHTML = tags.map(t =>
+  container.innerHTML = contextTags.map(tag =>
+    `<span class="filter-tag">${escHtml(tag.label)}${tag.key ? `<button class="filter-tag-x" type="button" data-action="remove-filter" data-key="${escHtml(tag.key)}">&#10005;</button>` : ''}</span>`
+  ).join('') + tags.map(t =>
     `<span class="filter-tag">${escHtml(t.label)}<button class="filter-tag-x" type="button" data-action="remove-filter" data-key="${escHtml(t.key)}">&#10005;</button></span>`
   ).join('') + (tags.length ? '<button class="filter-tag-clear" type="button" data-action="clear-all-filters">Clear All &#10005;</button>' : '');
 }
@@ -3292,6 +5623,15 @@ function removeFilter(key) {
     _sourceMedia = null;
     _lastSuggestedName = '';
     renderFilterTags();
+    updateNameInput();
+    scheduleAutoPreview();
+    return;
+  }
+  if (key === 'prototype-title') {
+    if (activePrototypePreview?.uiDraft && activePrototypePreview?.uiPrototypeMode === 'metadata') {
+      clearPrototypePreview({ keepPreviewingId: true });
+      _lastSuggestedName = '';
+    }
     updateNameInput();
     scheduleAutoPreview();
     return;
@@ -3323,6 +5663,7 @@ function clearAllFilters() {
   activeSource = null;
   _sourceMedia = null;
   _lastSuggestedName = '';
+  activePrototypePreview = null;
   document.getElementById('f-sort').value = 'POPULARITY_DESC';
   document.getElementById('f-daterange').value = '';
   document.getElementById('f-score').value   = 0;
@@ -3351,13 +5692,15 @@ function resolveSeasonVars(season, year) {
 function filtersToVars(filters) {
   if (!filters) return {};
   const v = {};
+  const year = Array.isArray(filters.years) && filters.years.length === 1 ? filters.years[0] : filters.year;
+  const season = Array.isArray(filters.seasons) && filters.seasons.length === 1 ? filters.seasons[0] : filters.season;
   if (filters.sort)                                 v.sort             = [filters.sort];
   if (filters.formats  && filters.formats.length)   v.format_in        = filters.formats;
   else if (filters.format)                          v.format_in        = [filters.format];
   if (filters.statuses && filters.statuses.length)  v.status_in        = filters.statuses;
   else if (filters.status)                          v.status_in        = [filters.status];
-  if (filters.season)                               v.season           = filters.season;
-  if (filters.year)                                 v.seasonYear       = filters.year;
+  if (season)                                       v.season           = season;
+  if (year)                                         v.seasonYear       = parseInt(year, 10);
   if (filters.minScore)                             v.averageScore_greater = filters.minScore;
   if (filters.genres && filters.genres.length)      v.genre_in         = filters.genres;
   applyDateRangeToVariables(v, filters.daterange);
@@ -3472,6 +5815,7 @@ function onDateRangeChange(el) {
 
 // ── Preset add / preview ──────────────────────────
 async function addPreset(id, name) {
+  if (activePrototypePreview) clearPrototypePreview();
   // Clicking a preset pill clears any active source tag
   activeSource = null;
   _sourceMedia = null;
@@ -3488,26 +5832,45 @@ async function addPreset(id, name) {
 }
 
 // ── Custom preview ────────────────────────────────
-async function previewCustom() {
-  const sort  = document.getElementById('f-sort').value;
+function buildCurrentCustomFiltersFromForm() {
+  const filters = {};
+  const sort = document.getElementById('f-sort').value;
   const score = parseInt(document.getElementById('f-score').value);
-  const year   = selectedYears.length  === 1 ? selectedYears[0]  : '';
-  const season = selectedSeasons.length === 1 ? selectedSeasons[0] : '';
+  if (sort) filters.sort = sort;
+  if (selectedFormats.length) filters.formats = [...selectedFormats];
+  if (selectedStatuses.length) filters.statuses = [...selectedStatuses];
+  if (selectedYears.length) filters.years = selectedYears.map(String);
+  if (selectedSeasons.length) filters.seasons = [...selectedSeasons];
+  if (score > 0) filters.minScore = score;
+  if (selectedGenres.length) filters.genres = [...selectedGenres];
+  const daterange = getSelectedDateRangeValue();
+  if (daterange) filters.daterange = daterange;
+  return filters;
+}
 
-  const sv = resolveSeasonVars(season, year);
-  const variables = { sort: [sort] };
-  if (!includeAdult) variables.isAdult = false;
-  if (selectedFormats.length)  variables.format_in  = [...selectedFormats];
-  if (selectedStatuses.length) variables.status_in  = [...selectedStatuses];
-  if (sv.season)               variables.season     = sv.season;
-  if (sv.seasonYear)           variables.seasonYear = sv.seasonYear;
-  if (score > 0)               variables.averageScore_greater = score;
-  if (selectedGenres.length)   variables.genre_in   = [...selectedGenres];
-  applyDateRangeToVariables(variables, getSelectedDateRangeValue());
-
-  setPreviewLoading('Loading\u2026');
+async function previewActiveSearchDraft() {
+  const draft = activePrototypePreview?.uiCatalogDraft;
+  const subtitle = activePrototypePreview?.name || draft?.name || 'Search Preview';
+  if (!draft || draft.type !== 'custom') {
+    await previewCustom();
+    return;
+  }
+  setPreviewLoading(subtitle);
   try {
-    const media = await fetchPreview(variables);
+    const media = await fetchPreview({ ...filtersToVars(buildCurrentCustomFiltersFromForm()), isAdult: includeAdult ? undefined : false });
+    renderPreview(media, `${subtitle} — ${media.length} titles`);
+  } catch(e) {
+    console.error('[preview] Error:', e);
+    document.getElementById('preview-sub').textContent = 'Failed to load preview';
+    document.getElementById('preview-area').innerHTML =
+      `<div class="preview-prompt"><div>Could not reach AniList API</div><div class="preview-error-detail">${escHtml(e instanceof Error ? e.message : String(e))}</div></div>`;
+  }
+}
+
+async function previewCustom() {
+  setPreviewLoading('Loading…');
+  try {
+    const media = await fetchPreview({ ...filtersToVars(buildCurrentCustomFiltersFromForm()), isAdult: includeAdult ? undefined : false });
     renderPreview(media, `${media.length} titles`);
   } catch(e) {
     console.error('[preview] Error:', e);
@@ -3538,17 +5901,92 @@ function addCustom() {
     return;
   }
 
+  if (activePrototypePreview?.uiDraft) {
+    const draft = cloneJson(activePrototypePreview.uiCatalogDraft || {});
+    let cat;
+    if (draft.type === 'ai') {
+      cat = {
+        id: draft.id || freshCatalogId('ai'),
+        name,
+        type: 'ai',
+        model: draft.model || _orModel || 'meta-llama/llama-3.3-70b-instruct',
+        aiMode: draft.aiMode || 'title_seed',
+        seedMediaId: draft.seedMediaId,
+        seedTitle: draft.seedTitle,
+      };
+      if (draft.smartOptions) cat.smartOptions = cloneJson(draft.smartOptions);
+      const clientFilters = _buildClientFilters();
+      if (Object.keys(clientFilters).length) cat.clientFilters = clientFilters;
+    } else {
+      cat = {
+        id: draft.id || freshCatalogId('custom'),
+        name,
+        type: 'custom',
+        filters: buildCurrentCustomFiltersFromForm(),
+      };
+      const selected = activePrototypePreview.uiSelectedTitle;
+      if (selected?.id || selected?.title) {
+        cat.searchSeed = { id: selected.id || undefined, title: selected.title || name };
+      }
+    }
+    catalogs.push(cat);
+    document.getElementById('catalog-name').value = '';
+    clearNameError();
+    activePrototypePreview = null;
+    activeSource = null;
+    _sourceMedia = null;
+    _lastSuggestedName = '';
+    _clearAdditionalFilters();
+    renderFilterTags();
+    updateNameInput();
+    render();
+    setPaneTab('catalogs');
+    return;
+  }
+
+  if (activeSource?.type === 'derived') {
+    const cat = {
+      id: freshCatalogId('custom'),
+      name,
+      type: 'custom',
+      baseCatalog: sanitizeCatalogSnapshot(activeSource.baseCatalog),
+      includedMedia: cloneJson(activeSource.includedMedia || []),
+    };
+    const clientFilters = _buildClientFilters();
+    if (Object.keys(clientFilters).length) cat.clientFilters = clientFilters;
+    catalogs.push(cat);
+
+    document.getElementById('catalog-name').value = '';
+    clearNameError();
+    activePrototypePreview = null;
+    activeSource = null;
+    _sourceMedia = null;
+    _lastSuggestedName = '';
+    _clearAdditionalFilters();
+    renderFilterTags();
+    updateNameInput();
+    render();
+    setPaneTab('catalogs');
+    return;
+  }
+
   if (activeSource) {
     // Save a source-backed catalog. Additional filters are optional; when present
     // they are stored for the configure UI to replay on top of the source.
     const clientFilters = _buildClientFilters();
     const idPrefix = activeSource.type === 'ai' ? 'ai' : 'watch';
-    const id = `${idPrefix}-` + Math.random().toString(36).slice(2, 10);
+    const id = freshCatalogId(idPrefix);
     const cat = { id, name, type: activeSource.type };
     const sourceName = getSourceBaseName(activeSource);
     if (sourceName && sourceName !== name) cat.sourceName = sourceName;
     if (activeSource.listStatus) cat.listStatus = activeSource.listStatus;
-    if (activeSource.type === 'ai' && _orModel) cat.model = _orModel;
+    if (activeSource.type === 'ai') {
+      if (_orModel) cat.model = _orModel;
+      if (activeSource.aiMode) cat.aiMode = activeSource.aiMode;
+      if (activeSource.seedMediaId) cat.seedMediaId = activeSource.seedMediaId;
+      if (activeSource.seedTitle) cat.seedTitle = activeSource.seedTitle;
+      if (activeSource.smartOptions) cat.smartOptions = JSON.parse(JSON.stringify(activeSource.smartOptions));
+    }
     if (Object.keys(clientFilters).length) cat.clientFilters = clientFilters;
     catalogs.push(cat);
 
@@ -3566,28 +6004,19 @@ function addCustom() {
   }
 
   // Standard custom catalog from AniList filter query
-  const filters = {};
-  const sort  = document.getElementById('f-sort').value;
-  const score = parseInt(document.getElementById('f-score').value);
-  const year   = selectedYears.length  === 1 ? selectedYears[0]  : '';
-  const season = selectedSeasons.length === 1 ? selectedSeasons[0] : '';
-
-  const sv = resolveSeasonVars(season, year);
-  if (sort)                    filters.sort     = sort;
-  if (selectedFormats.length)  filters.formats  = [...selectedFormats];
-  if (selectedStatuses.length) filters.statuses = [...selectedStatuses];
-  if (sv.season)               filters.season   = sv.season;
-  if (sv.seasonYear)           filters.year     = sv.seasonYear;
-  if (score > 0)               filters.minScore = score;
-  if (selectedGenres.length)   filters.genres   = [...selectedGenres];
-  const daterange = getSelectedDateRangeValue();
-  if (daterange)               filters.daterange = daterange;
-
-  const id = 'custom-' + Math.random().toString(36).slice(2, 10);
-  catalogs.push({ id, name, type: 'custom', filters });
+  const filters = buildCurrentCustomFiltersFromForm();
+  const cat = { id: freshCatalogId('custom'), name, type: 'custom', filters };
+  if (activePrototypePreview?.uiSelectedTitle?.id || activePrototypePreview?.uiSelectedTitle?.title) {
+    cat.searchSeed = {
+      id: activePrototypePreview.uiSelectedTitle.id || undefined,
+      title: activePrototypePreview.uiSelectedTitle.title || name,
+    };
+  }
+  catalogs.push(cat);
 
   document.getElementById('catalog-name').value = '';
   clearNameError();
+  activePrototypePreview = null;
   document.getElementById('f-sort').value = 'POPULARITY_DESC';
   document.getElementById('f-daterange').value = '';
   document.getElementById('f-score').value = 0;
@@ -3604,6 +6033,14 @@ function addCustom() {
 // ── Remove ────────────────────────────────────────
 function removeCatalog(id) {
   catalogs = catalogs.filter(c => c.id !== id);
+  if (previewingId === id) {
+    previewingId = null;
+    if (activePrototypePreview?.id === id) {
+      activePrototypePreview = null;
+      renderDefaultPreviewPrompt();
+      renderFilterTags();
+    }
+  }
   render();
 }
 
@@ -3615,6 +6052,52 @@ async function previewCatalog(id) {
   if (!cat) return;
   previewingId = id;
 
+  if (isUiPrototype(cat)) {
+    openPrototypePreview(cat, { selectedId: cat.id });
+    return;
+  }
+
+  if (activePrototypePreview) clearPrototypePreview({ keepPreviewingId: true });
+
+  if (cat.type === 'custom' && cat.baseCatalog) {
+    activePrototypePreview = {
+      id: cat.id,
+      uiBaseCatalogSnapshot: sanitizeCatalogSnapshot(cat.baseCatalog),
+      uiSelectedTitle: snapshotSearchItem((cat.includedMedia && cat.includedMedia[0]) || cat.searchSeed || {}),
+    };
+    activeSource = {
+      id: cat.id,
+      name: cat.name,
+      sourceName: cat.baseCatalog?.name || cat.name,
+      previewName: cat.name,
+      type: 'derived',
+      baseCatalog: sanitizeCatalogSnapshot(cat.baseCatalog),
+      includedMedia: cloneJson(cat.includedMedia || []),
+    };
+    _sourceMedia = null;
+    _lastSuggestedName = '';
+    _clearAdditionalFilters();
+    if (hasStoredClientFilters(cat)) {
+      loadFiltersIntoForm(cat.clientFilters);
+    } else {
+      renderFilterTags();
+    }
+    updateNameInput();
+    setPaneTab('preview');
+    render();
+    setPreviewLoading(cat.name);
+    try {
+      _sourceMedia = await fetchCatalogPreviewMedia({ ...cloneJson(cat), clientFilters: null });
+      _applySourcePreview();
+    } catch(e) {
+      console.error('[preview] Error:', e);
+      document.getElementById('preview-sub').textContent = 'Failed to load preview';
+      document.getElementById('preview-area').innerHTML =
+        `<div class="preview-prompt"><div>Could not load this catalog</div><div class="preview-error-detail">${escHtml(e instanceof Error ? e.message : String(e))}</div></div>`;
+    }
+    return;
+  }
+
   if (cat.type === 'watching' || cat.type === 'ai') {
     // Set as active source so the tag bar shows the source tag and filters work on top
     activeSource = {
@@ -3625,6 +6108,18 @@ async function previewCatalog(id) {
       listStatus:  cat.listStatus,
       type:        cat.type,
     };
+    if (cat.type === 'ai') {
+      if (cat.aiMode) activeSource.aiMode = cat.aiMode;
+      if (cat.seedMediaId) activeSource.seedMediaId = cat.seedMediaId;
+      if (cat.seedTitle) activeSource.seedTitle = cat.seedTitle;
+      if (cat.smartOptions) activeSource.smartOptions = JSON.parse(JSON.stringify(cat.smartOptions));
+      if (cat.aiMode === 'title_seed' && (cat.seedTitle || cat.seedMediaId)) {
+        activePrototypePreview = {
+          id: cat.id,
+          uiSelectedTitle: snapshotSearchItem({ id: cat.seedMediaId, title: cat.seedTitle }),
+        };
+      }
+    }
     _sourceMedia = null;
     _lastSuggestedName = '';
     _clearAdditionalFilters();
@@ -3645,6 +6140,12 @@ async function previewCatalog(id) {
   _sourceMedia = null;
   _lastSuggestedName = '';
   _clearAdditionalFilters();
+  if (cat.searchSeed) {
+    activePrototypePreview = {
+      id: cat.id,
+      uiSelectedTitle: snapshotSearchItem(cat.searchSeed),
+    };
+  }
   renderFilterTags();
   updateNameInput();
   setPaneTab('preview');
@@ -3661,7 +6162,7 @@ async function previewCatalog(id) {
   }
   try {
     const media = await fetchPreview(filtersToVars(cat.filters));
-    renderPreview(media, `${cat.name} \u2014 ${media.length} titles`);
+    renderPreview(media, `${cat.name} — ${media.length} titles`);
   } catch(e) {
     console.error('[preview] Error:', e);
     document.getElementById('preview-sub').textContent = 'Failed to load preview';
@@ -3673,7 +6174,7 @@ async function previewCatalog(id) {
 // ── Auto-preview (debounced) ──────────────────────
 let autoPreviewTimer = null;
 function setPendingPreview() {
-  document.getElementById('preview-sub').textContent = 'Updating\u2026';
+  document.getElementById('preview-sub').textContent = 'Updating…';
 }
 function scheduleAutoPreview() {
   if (currentPane === 'catalogs') setPaneTab('preview');
@@ -3691,6 +6192,8 @@ function scheduleAutoPreview() {
     const previewCat = catalogs.find(c => c.id === previewingId);
     if (previewCat && previewCat.type === 'preset') {
       autoPreviewTimer = setTimeout(() => previewPresetWithCurrentFilters(previewCat), 400);
+    } else if (activePrototypePreview?.uiDraft && activePrototypePreview.uiCatalogDraft?.type === 'custom') {
+      autoPreviewTimer = setTimeout(previewActiveSearchDraft, 500);
     } else {
       autoPreviewTimer = setTimeout(previewCustom, 1000);
     }
@@ -3716,9 +6219,6 @@ function render() {
     const card = document.getElementById('preset-' + id);
     if (card) card.classList.toggle('added', catalogs.some(c => c.id === id));
   });
-  const aiCard = document.getElementById('preset-anilist-ai-recommendations');
-  if (aiCard) aiCard.classList.toggle('added', catalogs.some(c => c.id === 'anilist-ai-recommendations'));
-
   const list = document.getElementById('catalog-list');
   const countBadge = document.getElementById('catalog-count-badge');
   if (countBadge) {
@@ -3728,8 +6228,15 @@ function render() {
   if (catalogs.length === 0) {
     list.innerHTML = '<div class="empty-state"><div class="empty-icon">&#127916;</div><div>No catalogs yet.<br>Use Quick Add or the builder.</div></div>';
   } else {
-    list.innerHTML = catalogs.map((c, i) => `
-      <div class="catalog-item ${previewingId === c.id ? 'active-preview' : ''}" draggable="true" data-id="${c.id}" data-index="${i}" data-action="preview-catalog">
+    list.innerHTML = catalogs.map((c, i) => {
+      const smartState = c.type === 'ai' ? getSmartRequirementState() : null;
+      const smartClasses = smartState
+        ? `${smartState.needsAniList ? 'smart-auth-missing' : ''} ${smartState.needsOpenRouter ? 'smart-key-missing' : ''} ${smartState.note ? 'smart-has-note' : ''}`
+        : '';
+      const smartTitle = smartState?.note ? ` title="${escHtml(smartState.note)}"` : '';
+      const smartNote = smartState?.note ? `<div class="smart-missing-note">${escHtml(smartState.note)}</div>` : '';
+      return `
+      <div class="catalog-item ${previewingId === c.id ? 'active-preview' : ''} ${smartClasses}" draggable="true" data-id="${c.id}" data-index="${i}" data-action="preview-catalog"${smartTitle}>
         <span class="drag-handle">&#8597;</span>
         <div class="catalog-num">${i + 1}</div>
         <div class="catalog-item-info">
@@ -3737,18 +6244,23 @@ function render() {
             ? `<input class="catalog-rename-input" data-rename-id="${c.id}" value="${escHtml(c.name)}">`
             : `<div class="catalog-item-name">${escHtml(c.name)}</div>`
           }
-          <div class="catalog-item-type"><span class="catalog-type-badge${hasStoredClientFilters(c) ? '' : c.type === 'watching' ? ' account-type-badge' : c.type === 'ai' ? ' ai-type-badge' : ''}">${hasStoredClientFilters(c) ? 'Custom' : c.type === 'watching' ? 'Account' : c.type === 'ai' ? 'AI' : c.type === 'custom' ? 'Custom' : 'Preset'}</span></div>
+          <div class="catalog-item-type"><span class="catalog-type-badge${catalogTypeBadgeClass(c)}">${catalogTypeBadgeLabel(c)}</span></div>
         </div>
         <div class="catalog-actions">
           <button class="edit-btn" type="button" data-action="start-rename" data-id="${c.id}">&#9998; Rename</button>
           <button class="shuffle-btn ${c.randomize ? 'active' : ''}" type="button" data-action="toggle-randomize" data-id="${c.id}" title="${SHUFFLE_TOOLTIP}" aria-pressed="${c.randomize ? 'true' : 'false'}">${SHUFFLE_ICON} ${c.randomize ? 'Randomized' : 'Randomize'}</button>
           <button class="remove-btn" type="button" data-action="remove-catalog" data-id="${c.id}">&#128465; Remove</button>
         </div>
+        ${smartNote}
       </div>
-    `).join('');
+    `;
+    }).join('');
   }
 
+  renderSearchUi();
+  updatePrototypeInstallNote();
   updateUrl();
+  scheduleFitCatalogsSidePane();
 }
 
 function filterSummary(f) {
@@ -3759,7 +6271,7 @@ function filterSummary(f) {
   if (f.year)   parts.push(f.year);
   if (f.format) parts.push(f.format);
   if (f.minScore) parts.push('Score ' + f.minScore + '+');
-  return parts.length ? parts.join(' \u00b7 ') : 'Custom catalog';
+  return parts.length ? parts.join(' · ') : 'Custom catalog';
 }
 
 // ── Rename catalog ────────────────────────────────
@@ -3829,16 +6341,679 @@ document.addEventListener('dragend', () => {
 });
 
 // ── Import config from manifest URL ──────────────
+// ── Shareable recipes ─────────────────────────────
+const RECIPE_VERSION = 1;
+let recipeModalMode = 'browse';
+let activeRecipePayload = null;
+let shareRecipeDraft = null;
+let recipeCatalogUniverse = [];
+let recipePreviewCatalogId = '';
+let recipePreviewToken = 0;
+
+function publicRecipeCatalogs(sourceCatalogs = catalogs) {
+  return sourceCatalogs
+    .filter(cat => cat && !isUiPrototype(cat) && !catalogRequiresAuth(cat) && !ACCOUNT_PRESET_IDS.has(cat.id))
+    .map(cat => {
+      const out = sanitizeCatalogSnapshot(cat);
+      if (out) return out;
+      return { id: cat.id, name: cat.name, type: cat.type || (PRESET_IDS.has(cat.id) ? 'preset' : 'custom') };
+    });
+}
+
+function compactCatalogForRecipe(cat) {
+  return compactCatalogEntry(cat);
+}
+
+function expandRecipeCatalogEntry(entry) {
+  const cat = expandCatalogEntry(entry);
+  if (cat?.id) return cat;
+  return { id: freshRecipeCustomId(), name: 'Custom Recipe Catalog', type: 'custom', filters: {} };
+}
+
+function buildRecipePayload({ name, description = '', catalogs: recipeCatalogs, posterBanners = isPosterLabEnabled(), recipePosterStyle = POSTER_STYLE_DEFAULT, tags = [] }) {
+  const resolvedStyle = posterBanners ? normalizePosterStyle(recipePosterStyle) : 'off';
+  return {
+    v: RECIPE_VERSION,
+    n: (name || 'AniList Catalog Recipe').trim(),
+    d: (description || '').trim(),
+    b: resolvedStyle !== 'off',
+    ps: resolvedStyle !== 'off' ? resolvedStyle : undefined,
+    g: tags.slice(0, 6),
+    c: publicRecipeCatalogs(recipeCatalogs).map(compactCatalogForRecipe),
+  };
+}
+
+function recipeCatalogsFromPayload(recipe) {
+  if (!recipe || !Array.isArray(recipe.c)) return [];
+  return recipe.c.map(expandRecipeCatalogEntry).filter(cat => cat && cat.id);
+}
+
+function recipeCatalogTypeLabel(cat) {
+  if (PRESET_IDS.has(cat.id)) return 'Preset';
+  if (cat.filters?.genres?.length) return cat.filters.genres.slice(0, 2).join(', ');
+  if (cat.filters?.formats?.length) return cat.filters.formats.map(f => FORMAT_LABELS[f] || f).join(', ');
+  return 'Custom';
+}
+
+function renderRecipeCatalogList(recipe) {
+  const cats = recipeCatalogsFromPayload(recipe);
+  if (!cats.length) return '<div class="recipe-empty">No public catalogs in this recipe.</div>';
+  return `<div class="recipe-list">${cats.map(cat => `
+    <div class="recipe-list-item">
+      <div>
+        <div class="recipe-list-name">${escHtml(cat.name)}</div>
+        <div class="recipe-list-meta">${escHtml(recipeCatalogTypeLabel(cat))}${cat.randomize ? ' · Randomized' : ''}</div>
+      </div>
+      <span class="recipe-chip">${PRESET_IDS.has(cat.id) ? 'Preset' : 'Custom'}</span>
+    </div>
+  `).join('')}</div>`;
+}
+
+function renderRecipeChips(recipe, extra = []) {
+  const cats = recipeCatalogsFromPayload(recipe);
+  const chips = [
+    `${cats.length} catalog${cats.length === 1 ? '' : 's'}`,
+    recipe.b ? `Posters: ${posterStyleLabel(recipe.ps || POSTER_STYLE_DEFAULT)}` : 'Posters off',
+    ...(Array.isArray(recipe.g) ? recipe.g : []),
+    ...extra,
+  ].filter(Boolean);
+  return `<div class="recipe-chip-row">${chips.map(chip => `<span class="recipe-chip">${escHtml(chip)}</span>`).join('')}</div>`;
+}
+
+async function encodeJsonPayload(payload) {
+  const json = JSON.stringify(payload);
+  let bytes;
+  if (typeof CompressionStream !== 'undefined') {
+    const stream = new CompressionStream('gzip');
+    const writer = stream.writable.getWriter();
+    writer.write(new TextEncoder().encode(json));
+    writer.close();
+    const chunks = [];
+    const reader = stream.readable.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+    }
+    const totalLen = chunks.reduce((n, c) => n + c.length, 0);
+    bytes = new Uint8Array(totalLen);
+    let off = 0;
+    for (const chunk of chunks) { bytes.set(chunk, off); off += chunk.length; }
+  } else {
+    bytes = new TextEncoder().encode(json);
+  }
+  let binary = '';
+  bytes.forEach(b => { binary += String.fromCharCode(b); });
+  return btoa(binary).replace(/=/g,'').replace(/\\+/g,'-').replace(/\\//g,'_');
+}
+
+async function decodeJsonPayload(token) {
+  let b64 = token.replace(/-/g, '+').replace(/_/g, '/');
+  const pad = (4 - b64.length % 4) % 4;
+  b64 += '='.repeat(pad);
+  let bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  if (bytes[0] === 0x1f && bytes[1] === 0x8b) {
+    if (typeof DecompressionStream === 'undefined') throw new Error('This browser cannot decode compressed recipes.');
+    const stream = new DecompressionStream('gzip');
+    const writer = stream.writable.getWriter();
+    writer.write(bytes);
+    writer.close();
+    const chunks = [];
+    const reader = stream.readable.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+    }
+    const totalLen = chunks.reduce((n, c) => n + c.length, 0);
+    const decompressed = new Uint8Array(totalLen);
+    let off = 0;
+    for (const chunk of chunks) { decompressed.set(chunk, off); off += chunk.length; }
+    bytes = decompressed;
+  }
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+
+function recipeLinkFromToken(token) {
+  return `${BASE_URL}/configure?recipe=${encodeURIComponent(token)}`;
+}
+
+function getRecipeTokenFromText(raw) {
+  if (!raw) return '';
+  try {
+    const url = new URL(raw, BASE_URL);
+    return url.searchParams.get('recipe') || '';
+  } catch (_) {}
+  const match = raw.match(/[?&]recipe=([^&\\s]+)/i);
+  if (match) return decodeURIComponent(match[1]);
+  if (/^[A-Za-z0-9_-]{20,}$/.test(raw)) return raw;
+  return '';
+}
+
+function validateRecipePayload(payload) {
+  if (!payload || typeof payload !== 'object') throw new Error('Invalid recipe.');
+  if (!Array.isArray(payload.c) || !payload.c.length) throw new Error('No public catalogs found in this recipe.');
+  const recipeStyle = payload.b ? normalizePosterStyle(payload.ps || payload.posterStyle || POSTER_STYLE_DEFAULT) : 'off';
+  return {
+    v: payload.v || RECIPE_VERSION,
+    n: String(payload.n || 'AniList Catalog Recipe').slice(0, 80),
+    d: String(payload.d || '').slice(0, 240),
+    b: recipeStyle !== 'off',
+    ps: recipeStyle !== 'off' ? recipeStyle : undefined,
+    g: Array.isArray(payload.g) ? payload.g.map(String).slice(0, 6) : [],
+    c: payload.c,
+  };
+}
+
+function freshRecipeCustomId() {
+  return 'custom-' + Math.random().toString(36).slice(2, 10);
+}
+
+function getActiveRecipeDraft() {
+  if (recipeModalMode === 'share') return shareRecipeDraft;
+  if (recipeModalMode === 'preview') return activeRecipePayload;
+  return null;
+}
+
+function getRecipeDraftCatalogs() {
+  return recipeCatalogsFromPayload(getActiveRecipeDraft());
+}
+
+function setRecipeDraftCatalogs(nextCatalogs) {
+  const draft = getActiveRecipeDraft();
+  if (!draft) return;
+  draft.c = (nextCatalogs || []).map(compactCatalogForRecipe);
+}
+
+function getRecipeAvailableCatalogs() {
+  const selectedIds = new Set(getRecipeDraftCatalogs().map(cat => cat.id));
+  return recipeCatalogUniverse.filter(cat => cat && cat.id && !selectedIds.has(cat.id));
+}
+
+function sortRecipeCatalogsByUniverse(items) {
+  const order = new Map(recipeCatalogUniverse.map((cat, index) => [cat.id, index]));
+  return (items || []).slice().sort((a, b) => {
+    const aIdx = order.has(a.id) ? order.get(a.id) : Number.MAX_SAFE_INTEGER;
+    const bIdx = order.has(b.id) ? order.get(b.id) : Number.MAX_SAFE_INTEGER;
+    return aIdx - bIdx;
+  });
+}
+
+function syncShareRecipeDraftFromInputs() {
+  if (recipeModalMode !== 'share' || !shareRecipeDraft) return;
+  const nameInput = document.getElementById('recipe-name-input');
+  const descInput = document.getElementById('recipe-desc-input');
+  const nextName = String(nameInput?.value || shareRecipeDraft.n || 'My AniList Catalog Recipe').slice(0, 80).trim();
+  const nextDesc = String(descInput?.value || shareRecipeDraft.d || '').slice(0, 240);
+  shareRecipeDraft.n = nextName || 'My AniList Catalog Recipe';
+  shareRecipeDraft.d = nextDesc;
+}
+
+function syncRecipePreviewSelection() {
+  const cats = getRecipeDraftCatalogs();
+  if (!cats.length) {
+    recipePreviewCatalogId = '';
+    return null;
+  }
+  if (!cats.some(cat => cat.id === recipePreviewCatalogId)) {
+    recipePreviewCatalogId = cats[0].id;
+  }
+  return cats.find(cat => cat.id === recipePreviewCatalogId) || cats[0];
+}
+
+function renderEditableRecipeCatalogSection({ title, description = '', catalogs: sectionCatalogs, emptyText, action, actionLabel, actionClass }) {
+  const rows = sectionCatalogs || [];
+  return `
+    <div class="recipe-section">
+      <div class="recipe-section-head">
+        <div>
+          <div class="recipe-section-title">${escHtml(title)}</div>
+          ${description ? `<div class="recipe-section-sub">${escHtml(description)}</div>` : ''}
+        </div>
+      </div>
+      ${rows.length ? `<div class="recipe-list">${rows.map(cat => `
+        <div class="recipe-list-item">
+          <div class="recipe-list-copy">
+            <div class="recipe-list-name">${escHtml(cat.name)}</div>
+            <div class="recipe-list-meta">${escHtml(recipeCatalogTypeLabel(cat))}${cat.randomize ? ' · Randomized' : ''}</div>
+          </div>
+          <div class="recipe-list-actions">
+            <span class="recipe-chip">${PRESET_IDS.has(cat.id) ? 'Preset' : 'Custom'}</span>
+            <button class="${escHtml(actionClass)}" type="button" data-action="${escHtml(action)}" data-id="${escHtml(cat.id)}">${escHtml(actionLabel)}</button>
+          </div>
+        </div>
+      `).join('')}</div>` : `<div class="recipe-empty">${escHtml(emptyText)}</div>`}
+    </div>`;
+}
+
+function renderRecipePreviewPanel() {
+  const cats = getRecipeDraftCatalogs();
+  const selected = syncRecipePreviewSelection();
+  return `
+    <div class="recipe-preview-panel">
+      <div class="recipe-preview-toolbar">
+        <div>
+          <div class="recipe-section-title">Preview</div>
+          <div class="recipe-section-sub">This uses the same live preview strip as the Smart Row builder.</div>
+        </div>
+        ${cats.length > 1 ? `
+          <label class="recipe-label recipe-preview-select-wrap" for="recipe-preview-select">
+            Preview Catalog
+            <select class="smart-select recipe-preview-select" id="recipe-preview-select">
+              ${cats.map(cat => `<option value="${escHtml(cat.id)}"${cat.id === recipePreviewCatalogId ? ' selected' : ''}>${escHtml(cat.name)}</option>`).join('')}
+            </select>
+          </label>
+        ` : selected ? `<div class="recipe-preview-selected">${escHtml(selected.name)}</div>` : ''}
+      </div>
+      <div class="recipe-preview-feedback" id="recipe-preview-feedback"></div>
+      <div class="smart-inline-preview visible recipe-inline-preview" id="recipe-inline-preview">
+        <div class="smart-preview-empty">${cats.length ? 'Loading preview...' : 'Add a catalog to preview this recipe.'}</div>
+      </div>
+    </div>`;
+}
+
+function materializeRecipeCatalogs(recipe, mode) {
+  const existingIds = new Set(mode === 'add' ? catalogs.map(c => c.id) : []);
+  const seen = new Set();
+  const result = [];
+  for (const source of recipeCatalogsFromPayload(recipe)) {
+    const cat = JSON.parse(JSON.stringify(source));
+    if (PRESET_IDS.has(cat.id)) {
+      if (mode === 'add' && existingIds.has(cat.id)) continue;
+    } else if (!cat.id || existingIds.has(cat.id) || seen.has(cat.id)) {
+      cat.id = freshRecipeCustomId();
+    }
+    seen.add(cat.id);
+    existingIds.add(cat.id);
+    result.push(cat);
+  }
+  return result;
+}
+
+function getBuiltinRecipes() {
+  const currentSeason = getCurrentSeason();
+  const currentYear = new Date().getFullYear();
+  return [
+    buildRecipePayload({
+      name: 'Shounen Weekend',
+      description: 'Fast-moving action, seasonal heat, and a custom adventure lane for easy weekend browsing.',
+      tags: ['Action', 'Weekend', 'TV'],
+      posterBanners: true,
+      catalogs: [
+        { id: 'anilist-trending', name: 'Trending Now', type: 'preset', randomize: true },
+        { id: 'anilist-popular-season', name: 'Popular This Season', type: 'preset' },
+        { id: 'custom-shounen-weekend', name: 'Action Adventure Picks', type: 'custom', filters: { sort: 'POPULARITY_DESC', genres: ['Action', 'Adventure', 'Fantasy'], formats: ['TV'], minScore: 70 } },
+      ],
+    }),
+    buildRecipePayload({
+      name: 'Cozy Slice of Life',
+      description: 'Gentler catalogs for low-stress watching, school days, music, comedy, and soft drama.',
+      tags: ['Cozy', 'Slice of Life', 'Comedy'],
+      posterBanners: false,
+      catalogs: [
+        { id: 'custom-cozy-slice', name: 'Cozy Slice of Life', type: 'custom', filters: { sort: 'SCORE_DESC', genres: ['Slice of Life', 'Comedy'], formats: ['TV', 'OVA', 'ONA'], minScore: 70 } },
+        { id: 'custom-soft-drama', name: 'Soft Drama & Music', type: 'custom', filters: { sort: 'POPULARITY_DESC', genres: ['Drama', 'Music'], minScore: 70 } },
+      ],
+    }),
+    buildRecipePayload({
+      name: 'High Score Movies',
+      description: 'Movie-first discovery sorted by score, with a second lane for popular feature-length picks.',
+      tags: ['Movies', 'Score 75+', 'Film Night'],
+      posterBanners: true,
+      catalogs: [
+        { id: 'custom-high-score-movies', name: 'High Score Movies', type: 'custom', filters: { sort: 'SCORE_DESC', formats: ['MOVIE'], minScore: 75 } },
+        { id: 'custom-popular-movies', name: 'Popular Anime Movies', type: 'custom', filters: { sort: 'POPULARITY_DESC', formats: ['MOVIE'], minScore: 65 } },
+      ],
+    }),
+    buildRecipePayload({
+      name: 'Current Season No Sequels',
+      description: 'Current-season TV discovery that works nicely with the add-on season-one replacement behavior.',
+      tags: ['Seasonal', 'TV', 'No Sequels'],
+      posterBanners: true,
+      catalogs: [
+        { id: 'anilist-popular-season', name: 'Popular This Season', type: 'preset' },
+        { id: 'custom-current-season-tv', name: 'Current Season TV', type: 'custom', filters: { sort: 'POPULARITY_DESC', season: currentSeason, year: currentYear, statuses: ['RELEASING'], formats: ['TV'] } },
+      ],
+    }),
+    buildRecipePayload({
+      name: 'Hidden Gems',
+      description: 'A smaller, score-forward bundle for finished shows and OVAs outside the usual trending lanes.',
+      tags: ['Hidden Gems', 'Finished', 'Score 75+'],
+      posterBanners: false,
+      catalogs: [
+        { id: 'custom-hidden-gems-tv', name: 'Finished High Score TV', type: 'custom', filters: { sort: 'SCORE_DESC', statuses: ['FINISHED'], formats: ['TV'], minScore: 75 } },
+        { id: 'custom-hidden-gems-ova', name: 'OVA & ONA Gems', type: 'custom', filters: { sort: 'SCORE_DESC', statuses: ['FINISHED'], formats: ['OVA', 'ONA'], minScore: 72 } },
+      ],
+    }),
+  ];
+}
+
+function setRecipeModalOpen(open) {
+  const overlay = document.getElementById('recipe-modal-overlay');
+  if (!overlay) return;
+  overlay.classList.toggle('open', !!open);
+  if (open) setTimeout(() => overlay.querySelector('input, textarea, button')?.focus(), 0);
+}
+
+function closeRecipeModal() {
+  setRecipeModalOpen(false);
+  activeRecipePayload = null;
+  shareRecipeDraft = null;
+  recipeCatalogUniverse = [];
+  recipePreviewCatalogId = '';
+  recipePreviewToken += 1;
+}
+
+function removeCatalogFromRecipeDraft(catalogId) {
+  if (recipeModalMode === 'share') syncShareRecipeDraftFromInputs();
+  const nextCatalogs = getRecipeDraftCatalogs().filter(cat => cat.id !== catalogId);
+  setRecipeDraftCatalogs(nextCatalogs);
+  syncRecipePreviewSelection();
+  renderRecipeModal();
+}
+
+function addCatalogToRecipeDraft(catalogId) {
+  if (recipeModalMode === 'share') syncShareRecipeDraftFromInputs();
+  const catalogToAdd = recipeCatalogUniverse.find(cat => cat.id === catalogId);
+  if (!catalogToAdd) return;
+  const nextCatalogs = getRecipeDraftCatalogs();
+  if (nextCatalogs.some(cat => cat.id === catalogId)) return;
+  nextCatalogs.push(cloneJson(catalogToAdd));
+  setRecipeDraftCatalogs(sortRecipeCatalogsByUniverse(nextCatalogs));
+  syncRecipePreviewSelection();
+  renderRecipeModal();
+}
+
+function renderInlinePreviewInto(preview, media, catalog, { emptyMessage = 'No titles matched this preview.' } = {}) {
+  if (!preview) return;
+  preview.classList.add('visible');
+  if (!media || !media.length) {
+    preview.innerHTML = `<div class="smart-preview-empty">${escHtml(emptyMessage)}</div>`;
+    return;
+  }
+  const cards = media.map(m => {
+    const title = escHtml((m.title && (m.title.english || m.title.romaji || m.title.native)) || 'Untitled');
+    const poster = escHtml((m.coverImage && (m.coverImage.extraLarge || m.coverImage.large || m.coverImage.medium)) || '');
+    const href = m.id ? `https://anilist.co/anime/${m.id}` : '#';
+    return `<a class="smart-preview-card" href="${escHtml(href)}" target="_blank" rel="noopener noreferrer">
+      <div class="smart-preview-poster">${poster ? `<img src="${poster}" alt="${title}" loading="lazy">` : ''}</div>
+      <div class="smart-preview-name">${title}</div>
+    </a>`;
+  }).join('');
+  preview.innerHTML = `
+    <div class="smart-preview-head">
+      <div class="smart-preview-title">${escHtml(catalog?.name || 'Preview')}</div>
+      <div class="smart-preview-count">${media.length} title${media.length === 1 ? '' : 's'}</div>
+    </div>
+    <div class="smart-preview-strip">${cards}</div>`;
+}
+
+function renderInlinePreviewStatusInto(preview, message) {
+  if (!preview) return;
+  preview.classList.add('visible');
+  preview.innerHTML = `<div class="smart-preview-empty">${escHtml(message)}</div>`;
+}
+
+async function refreshRecipePreview() {
+  const preview = document.getElementById('recipe-inline-preview');
+  const feedback = document.getElementById('recipe-preview-feedback');
+  const draft = getActiveRecipeDraft();
+  if (!preview || !draft) return;
+  const selected = syncRecipePreviewSelection();
+  if (!selected) {
+    renderInlinePreviewStatusInto(preview, 'Add a catalog to preview this recipe.');
+    if (feedback) {
+      feedback.textContent = '';
+      feedback.className = 'recipe-preview-feedback';
+    }
+    return;
+  }
+  const token = ++recipePreviewToken;
+  renderInlinePreviewStatusInto(preview, 'Loading preview...');
+  if (feedback) {
+    feedback.textContent = '';
+    feedback.className = 'recipe-preview-feedback';
+  }
+  try {
+    const media = await fetchCatalogPreviewMedia(selected);
+    if (token != recipePreviewToken) return;
+    renderInlinePreviewInto(preview, media, selected, { emptyMessage: 'No titles came back for this recipe catalog.' });
+    if (feedback) {
+      feedback.textContent = `${selected.name} preview ready with ${media.length} title${media.length === 1 ? '' : 's'}.`;
+      feedback.className = 'recipe-preview-feedback ok';
+    }
+  } catch (e) {
+    if (token != recipePreviewToken) return;
+    renderInlinePreviewStatusInto(preview, 'Preview failed. Try another catalog.');
+    if (feedback) {
+      feedback.textContent = e instanceof Error ? e.message : String(e);
+      feedback.className = 'recipe-preview-feedback err';
+    }
+  }
+}
+
+function renderRecipeModal() {
+  const titleEl = document.getElementById('recipe-modal-title');
+  const bodyEl = document.getElementById('recipe-modal-body');
+  const footerEl = document.getElementById('recipe-modal-footer');
+  if (!titleEl || !bodyEl || !footerEl) return;
+
+  if (recipeModalMode === 'share') {
+    const skipped = catalogs.length - publicRecipeCatalogs().length;
+    titleEl.textContent = 'Share Recipe';
+    if (!recipeCatalogUniverse.length) {
+      bodyEl.innerHTML = '<div class="recipe-empty">No public catalogs to share. Recipes omit AniList account and AI catalogs so private auth-powered setup stays private.</div>';
+      footerEl.innerHTML = '<button class="btn btn-ghost" data-action="close-recipe-modal">Close</button>';
+      return;
+    }
+    const selectedCatalogs = getRecipeDraftCatalogs();
+    const availableCatalogs = getRecipeAvailableCatalogs();
+    bodyEl.innerHTML = `
+      <div class="recipe-form-grid">
+        <label class="recipe-label" for="recipe-name-input">Recipe Name</label>
+        <input class="recipe-input" id="recipe-name-input" value="${escHtml(shareRecipeDraft.n)}" maxlength="80">
+        <label class="recipe-label" for="recipe-desc-input">Description</label>
+        <textarea class="recipe-textarea" id="recipe-desc-input" maxlength="240" placeholder="Optional note for whoever imports this recipe">${escHtml(shareRecipeDraft.d || '')}</textarea>
+      </div>
+      <div class="recipe-summary">
+        ${renderRecipeChips(shareRecipeDraft, skipped ? [`${skipped} private omitted`] : [])}
+      </div>
+      ${renderEditableRecipeCatalogSection({
+        title: 'In this recipe',
+        description: 'These catalogs will be included in the recipe link. Removing one here does not touch Your Catalogs.',
+        catalogs: selectedCatalogs,
+        emptyText: 'This recipe draft does not include any catalogs yet.',
+        action: 'remove-recipe-catalog',
+        actionLabel: 'Remove',
+        actionClass: 'btn btn-ghost btn-sm',
+      })}
+      ${availableCatalogs.length ? renderEditableRecipeCatalogSection({
+        title: 'Available to add back',
+        description: 'Removed catalogs stay here so you can put them back before copying the link.',
+        catalogs: availableCatalogs,
+        emptyText: '',
+        action: 'add-recipe-catalog',
+        actionLabel: 'Add back',
+        actionClass: 'btn btn-primary btn-sm',
+      }) : ''}
+      ${renderRecipePreviewPanel()}
+      <div class="recipe-feedback" id="recipe-feedback"></div>`;
+    footerEl.innerHTML = `<button class="btn btn-ghost" data-action="close-recipe-modal">Cancel</button><button class="btn btn-primary" data-action="copy-recipe-link"${selectedCatalogs.length ? '' : ' disabled'}>Copy Recipe Link</button>`;
+    refreshRecipePreview();
+    return;
+  }
+
+  if (recipeModalMode === 'browse') {
+    titleEl.textContent = 'Browse Recipes';
+    const recipes = getBuiltinRecipes();
+    bodyEl.innerHTML = `<div class="recipe-gallery">${recipes.map((recipe, idx) => `
+      <div class="recipe-card">
+        <div class="recipe-card-title">${escHtml(recipe.n)}</div>
+        <div class="recipe-card-desc">${escHtml(recipe.d)}</div>
+        ${renderRecipeChips(recipe)}
+        <div class="recipe-card-actions">
+          <button class="btn btn-ghost btn-sm btn-full" data-action="preview-builtin-recipe" data-index="${idx}">Preview</button>
+          <button class="btn btn-primary btn-sm btn-full" data-action="add-builtin-recipe" data-index="${idx}">Add</button>
+        </div>
+      </div>
+    `).join('')}</div>`;
+    footerEl.innerHTML = '<button class="btn btn-ghost" data-action="close-recipe-modal">Close</button>';
+    return;
+  }
+
+  const recipe = activeRecipePayload;
+  const selectedCatalogs = getRecipeDraftCatalogs();
+  const availableCatalogs = getRecipeAvailableCatalogs();
+  titleEl.textContent = 'Recipe Preview';
+  bodyEl.innerHTML = `
+    <div class="recipe-summary">
+      <div class="recipe-summary-title">${escHtml(recipe.n)}</div>
+      ${recipe.d ? `<div class="recipe-summary-desc">${escHtml(recipe.d)}</div>` : ''}
+      ${renderRecipeChips(recipe)}
+    </div>
+    ${renderEditableRecipeCatalogSection({
+      title: 'In this recipe',
+      description: 'Remove catalogs you do not want to add right now. They stay available to add back in this window.',
+      catalogs: selectedCatalogs,
+      emptyText: 'This recipe currently has no catalogs selected.',
+      action: 'remove-recipe-catalog',
+      actionLabel: 'Remove',
+      actionClass: 'btn btn-ghost btn-sm',
+    })}
+    ${availableCatalogs.length ? renderEditableRecipeCatalogSection({
+      title: 'Available to add back',
+      description: 'These are the recipe catalogs you removed from the current draft.',
+      catalogs: availableCatalogs,
+      emptyText: '',
+      action: 'add-recipe-catalog',
+      actionLabel: 'Add back',
+      actionClass: 'btn btn-primary btn-sm',
+    }) : ''}
+    ${renderRecipePreviewPanel()}
+    <div class="recipe-mini-note">Add appends new catalogs and skips duplicate preset lanes. Replace swaps your current setup to this recipe.</div>`;
+  footerEl.innerHTML = `<button class="btn btn-ghost" data-action="close-recipe-modal">Cancel</button><button class="btn btn-ghost" data-action="apply-recipe" data-mode="add"${selectedCatalogs.length ? '' : ' disabled'}>Add to current</button><button class="btn btn-primary" data-action="apply-recipe" data-mode="replace"${selectedCatalogs.length ? '' : ' disabled'}>Replace current</button>`;
+  refreshRecipePreview();
+}
+
+function openShareRecipeModal() {
+  recipeModalMode = 'share';
+  activeRecipePayload = null;
+  recipeCatalogUniverse = publicRecipeCatalogs();
+  shareRecipeDraft = buildRecipePayload({
+    name: 'My AniList Catalog Recipe',
+    description: '',
+    catalogs: recipeCatalogUniverse,
+    posterBanners: isPosterLabEnabled(),
+    recipePosterStyle: posterStyle,
+  });
+  recipePreviewCatalogId = recipeCatalogUniverse[0]?.id || '';
+  renderRecipeModal();
+  setRecipeModalOpen(true);
+}
+
+function openRecipeGallery() {
+  recipeModalMode = 'browse';
+  activeRecipePayload = null;
+  shareRecipeDraft = null;
+  recipeCatalogUniverse = [];
+  recipePreviewCatalogId = '';
+  renderRecipeModal();
+  setRecipeModalOpen(true);
+}
+
+function openRecipePreview(recipe) {
+  const validated = validateRecipePayload(recipe);
+  activeRecipePayload = cloneJson(validated);
+  recipeCatalogUniverse = cloneJson(recipeCatalogsFromPayload(validated));
+  recipePreviewCatalogId = recipeCatalogUniverse[0]?.id || '';
+  recipeModalMode = 'preview';
+  renderRecipeModal();
+  setRecipeModalOpen(true);
+}
+
+async function copyRecipeLink() {
+  syncShareRecipeDraftFromInputs();
+  const feedback = document.getElementById('recipe-feedback');
+  const recipe = buildRecipePayload({
+    name: shareRecipeDraft?.n || 'My AniList Catalog Recipe',
+    description: shareRecipeDraft?.d || '',
+    catalogs: getRecipeDraftCatalogs(),
+    posterBanners: isPosterLabEnabled(),
+    recipePosterStyle: posterStyle,
+  });
+  if (!recipe.c.length) {
+    if (feedback) {
+      feedback.textContent = 'Add at least one catalog to this recipe before copying the link.';
+      feedback.className = 'recipe-feedback err';
+    }
+    return;
+  }
+  try {
+    const token = await encodeJsonPayload(recipe);
+    await navigator.clipboard.writeText(recipeLinkFromToken(token));
+    if (feedback) { feedback.textContent = 'Recipe link copied.'; feedback.className = 'recipe-feedback ok'; }
+  } catch (e) {
+    if (feedback) { feedback.textContent = e instanceof Error ? e.message : String(e); feedback.className = 'recipe-feedback err'; }
+  }
+}
+
+function applyRecipe(recipe, mode) {
+  const validated = validateRecipePayload(recipe);
+  const incoming = materializeRecipeCatalogs(validated, mode);
+  if (!incoming.length) return;
+  if (mode === 'replace') catalogs = incoming;
+  else catalogs = catalogs.concat(incoming);
+  posterStyle = validated.b ? normalizePosterStyle(validated.ps || POSTER_STYLE_DEFAULT) : 'off';
+  syncPosterLabToggle();
+  setPaneTab('catalogs');
+  closeRecipeModal();
+  render();
+}
+
+async function importRecipeToken(token) {
+  const payload = validateRecipePayload(await decodeJsonPayload(token));
+  openRecipePreview(payload);
+}
+
+async function openInitialRecipeIfPresent() {
+  const token = _urlParams.get('recipe');
+  if (!token) return;
+  try {
+    await importRecipeToken(token);
+    const cleanUrl = new URL(window.location.href);
+    cleanUrl.searchParams.delete('recipe');
+    window.history.replaceState({}, '', cleanUrl.toString());
+  } catch (e) {
+    const fb = document.getElementById('import-feedback');
+    if (fb) {
+      fb.textContent = '✗ ' + (e instanceof Error ? e.message : String(e));
+      fb.className = 'visible err';
+    }
+  }
+}
+
 async function importConfig() {
   const raw = document.getElementById('import-url').value.trim();
   const fb  = document.getElementById('import-feedback');
   fb.className = '';
 
   try {
-    // Pull the path segment from any URL shaped like /{segment}/manifest.json.
+    const recipeToken = getRecipeTokenFromText(raw);
+    if (recipeToken) {
+      await importRecipeToken(recipeToken);
+      document.getElementById('import-url').value = '';
+      fb.textContent = '✓ Recipe ready to preview';
+      fb.className = 'visible ok';
+      setTimeout(() => { fb.className = ''; }, 3000);
+      return;
+    }
+
+    // Pull the path segment from any URL shaped like /{segment}/manifest.json
+    // or /{segment}/poster-lab/manifest.json.
     // The segment may be "{config_token}" or "{config_token}~{session_key}".
-    const match = raw.match(/\\/([A-Za-z0-9+/=_~-]+)\\/manifest\\.json/i);
+    const match = raw.match(/\\/([A-Za-z0-9+=_~-]+)\\/(?:poster-lab\\/)?manifest\\.json/i);
     if (!match) throw new Error('No config token found — paste a full manifest URL');
+    const importedPosterLab = /\\/poster-lab\\/manifest\\.json/i.test(raw);
 
     const [configPart, sessionPart] = match[1].split('~');
 
@@ -3872,30 +7047,8 @@ async function importConfig() {
     let config;
     if (parsed && Array.isArray(parsed.c)) {
       // Compact format: expand back to full catalog objects
-      config = { catalogs: parsed.c.map(entry => {
-        const id = entry.i || '';
-        if (PRESET_IDS.has(id)) {
-          const cat = { id, name: entry.n || PRESET_DEFAULT_NAMES[id], type: 'preset' };
-          if (entry.r) cat.randomize = true;
-          return cat;
-        } else if (entry.w) {
-          const cat = { id, name: entry.n || id, type: 'watching' };
-          if (entry.s) cat.listStatus = entry.s;
-          if (entry.r) cat.randomize = true;
-          if (entry.cf && Object.keys(entry.cf).length) cat.clientFilters = entry.cf;
-          return cat;
-        } else if (entry.a) {
-          const cat = { id, name: entry.n || 'AI Recommendations', type: 'ai',
-                        model: entry.m || 'meta-llama/llama-3.3-70b-instruct' };
-          if (entry.r) cat.randomize = true;
-          if (entry.cf && Object.keys(entry.cf).length) cat.clientFilters = entry.cf;
-          return cat;
-        } else {
-          const cat = { id, name: entry.n || id, type: 'custom', filters: entry.f || {} };
-          if (entry.r) cat.randomize = true;
-          return cat;
-        }
-      })};
+      config = { catalogs: parsed.c.map(expandCatalogEntry).filter(cat => cat && cat.id) };
+      if (parsed.ps) config.posterStyle = normalizePosterStyle(parsed.ps);
     } else {
       config = parsed;
     }
@@ -3904,8 +7057,10 @@ async function importConfig() {
     if (!config.catalogs.length) throw new Error('No catalogs found in this config');
 
     catalogs = config.catalogs;
-    // Restore session key from the imported URL if present.
-    // Session keys expire after 24 hours — if stale the user will need to reconnect.
+    posterStyle = importedPosterLab ? normalizePosterStyle(config.posterStyle || config.poster_style || POSTER_STYLE_DEFAULT) : 'off';
+    syncPosterLabToggle();
+    // Restore the auth key from the imported URL if present.
+    // If the key was revoked or the auth DB was lost, the user will need to reconnect.
     if (sessionPart && sessionPart !== _sessionKey) {
       _sessionKey = sessionPart;
       fetchMe(); // validate against /api/me and render auth UI
@@ -3914,11 +7069,11 @@ async function importConfig() {
     render();
 
     const n = catalogs.length;
-    fb.textContent = '\u2713 Imported ' + n + ' catalog' + (n !== 1 ? 's' : '');
+    fb.textContent = '✓ Imported ' + n + ' catalog' + (n !== 1 ? 's' : '');
     fb.className = 'visible ok';
     setTimeout(() => { fb.className = ''; }, 3000);
   } catch(e) {
-    fb.textContent = '\u2717 ' + e.message;
+    fb.textContent = '✗ ' + e.message;
     fb.className = 'visible err';
   }
 }
@@ -3928,33 +7083,12 @@ let _currentManifestUrl = '';
 let _qrInstance = null;
 
 async function updateUrl() {
-  const compact = catalogs.map(cat => {
-    if (PRESET_IDS.has(cat.id)) {
-      const entry = { i: cat.id };
-      if (cat.name && cat.name !== PRESET_DEFAULT_NAMES[cat.id]) entry.n = cat.name;
-      if (cat.randomize) entry.r = true;
-      return entry;
-    } else if (cat.type === 'watching') {
-      const entry = { i: cat.id, n: cat.name, w: true };
-      if (cat.listStatus) entry.s = cat.listStatus;
-      if (cat.randomize) entry.r = true;
-      if (cat.clientFilters && Object.keys(cat.clientFilters).length) entry.cf = cat.clientFilters;
-      return entry;
-    } else if (cat.type === 'ai') {
-      const entry = { i: cat.id, n: cat.name, a: true };
-      const defaultModel = 'meta-llama/llama-3.3-70b-instruct';
-      if (cat.model && cat.model !== defaultModel) entry.m = cat.model;
-      if (cat.clientFilters && Object.keys(cat.clientFilters).length) entry.cf = cat.clientFilters;
-      if (cat.randomize) entry.r = true;
-      return entry;
-    } else {
-      const entry = { i: cat.id, n: cat.name, f: cat.filters || {} };
-      if (cat.randomize) entry.r = true;
-      return entry;
-    }
-  });
-  // Session key is NOT embedded in the payload — it travels as a path suffix.
+  const compact = supportedCatalogs().map(compactCatalogEntry);
+  // The auth key is NOT embedded in the payload — it travels as a path suffix.
   const payload = { c: compact };
+  if (isPosterLabEnabled() && normalizePosterStyle(posterStyle) !== POSTER_STYLE_DEFAULT) {
+    payload.ps = normalizePosterStyle(posterStyle);
+  }
   const json = JSON.stringify(payload);
 
   let configToken;
@@ -3985,10 +7119,11 @@ async function updateUrl() {
     configToken = btoa(binary).replace(/=/g,'').replace(/\\+/g,'-').replace(/\\//g,'_');
   }
 
-  // Append session key with '~' separator when authenticated.
+  // Append the auth key with '~' separator when authenticated.
   // '~' is unreserved in RFC 3986 and never appears in base64url output.
   const segment = _sessionKey ? `${configToken}~${_sessionKey}` : configToken;
-  const url = `${BASE_URL}/${segment}/manifest.json`;
+  const manifestPath = isPosterLabEnabled() ? 'poster-lab/manifest.json' : 'manifest.json';
+  const url = `${BASE_URL}/${segment}/${manifestPath}`;
   _currentManifestUrl = url;
   document.getElementById('url-display').textContent = url;
   const tw = document.getElementById('token-warning');
@@ -4012,9 +7147,37 @@ function updateQrCode(url) {
   });
 }
 
+function fitCatalogsSidePane() {
+  const sideCol = document.querySelector('.catalogs-side-col');
+  if (!sideCol) return;
+  sideCol.classList.remove('compact');
+  sideCol.style.removeProperty('--install-qr-size');
+  if (window.innerWidth <= 768) return;
+  if (currentPane !== 'catalogs') return;
+
+  const fits = () => sideCol.scrollHeight <= sideCol.clientHeight + 1;
+  if (fits()) return;
+
+  sideCol.classList.add('compact');
+  let size = 148;
+  sideCol.style.setProperty('--install-qr-size', size + 'px');
+  while (size > 104 && !fits()) {
+    size -= 8;
+    sideCol.style.setProperty('--install-qr-size', size + 'px');
+  }
+}
+
+function scheduleFitCatalogsSidePane() {
+  requestAnimationFrame(() => fitCatalogsSidePane());
+}
+
 function openInStremio() {
-  if (!_currentManifestUrl) return;
-  const stremioUrl = _currentManifestUrl.replace(/^https?:\\/\\//, 'stremio://');
+  openManifestUrlInStremio(_currentManifestUrl);
+}
+
+function openManifestUrlInStremio(url) {
+  if (!url) return;
+  const stremioUrl = url.replace(/^https?:\\/\\//, 'stremio://');
   window.location.href = stremioUrl;
 }
 
@@ -4022,7 +7185,7 @@ async function copyUrl() {
   const url = _currentManifestUrl || document.getElementById('url-display').textContent;
   await navigator.clipboard.writeText(url);
   const btn = document.getElementById('copy-url-btn');
-  btn.textContent = '✓ Copied';
+  btn.textContent = 'Copied';
   btn.disabled = true;
   setTimeout(() => { btn.textContent = 'Copy URL'; btn.disabled = false; }, 2000);
 }
@@ -4052,6 +7215,18 @@ function bindStaticUiEvents() {
         addCustom();
       }
     });
+  }
+
+  const searchInput = document.getElementById('header-search-input');
+  if (searchInput) {
+    searchInput.addEventListener('focus', () => {
+      searchOpen = true;
+      renderSearchDropdown();
+    });
+    searchInput.addEventListener('input', e => {
+      scheduleSearchLookup(e.target.value);
+    });
+    searchInput.addEventListener('keydown', handleSearchKeydown);
   }
 
   const importInput = document.getElementById('import-url');
@@ -4088,7 +7263,37 @@ function bindStaticUiEvents() {
     });
   }
 
+  document.addEventListener('wheel', e => {
+    const strip = e.target.closest?.('.smart-preview-strip');
+    if (!strip) return;
+    const maxScroll = strip.scrollWidth - strip.clientWidth;
+    if (maxScroll <= 0) return;
+    const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+    if (!delta) return;
+    const next = Math.max(0, Math.min(maxScroll, strip.scrollLeft + delta));
+    if (next === strip.scrollLeft) return;
+    e.preventDefault();
+    strip.scrollLeft = next;
+  }, { passive: false });
+
+  window.addEventListener('resize', scheduleFitCatalogsSidePane);
+
   document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && document.getElementById('search-modal-overlay')?.classList.contains('open')) {
+      e.preventDefault();
+      closeSearchCatalogModal();
+      return;
+    }
+    if (e.key === 'Escape' && document.getElementById('recipe-modal-overlay')?.classList.contains('open')) {
+      e.preventDefault();
+      closeRecipeModal();
+      return;
+    }
+    if (e.key === 'Escape' && document.getElementById('smart-modal-overlay')?.classList.contains('open')) {
+      e.preventDefault();
+      closeSmartBuilder();
+      return;
+    }
     const renameInput = e.target.closest('.catalog-rename-input');
     if (!renameInput) return;
     if (e.key === 'Enter') {
@@ -4107,8 +7312,23 @@ function bindStaticUiEvents() {
   });
 
   document.addEventListener('click', e => {
+    if (!e.target.closest?.('#header-search') && searchOpen) {
+      closeSearchDropdown();
+    }
     if (e.target?.id === 'ai-modal-overlay') {
       closeAiModal();
+      return;
+    }
+    if (e.target?.id === 'search-modal-overlay') {
+      closeSearchCatalogModal();
+      return;
+    }
+    if (e.target?.id === 'recipe-modal-overlay') {
+      closeRecipeModal();
+      return;
+    }
+    if (e.target?.id === 'smart-modal-overlay') {
+      closeSmartBuilder();
       return;
     }
 
@@ -4163,6 +7383,24 @@ function bindStaticUiEvents() {
         e.preventDefault();
         setView(actionEl.dataset.view);
         return;
+      case 'set-poster-style':
+        e.preventDefault();
+        setPosterStyle(actionEl.dataset.style);
+        return;
+      case 'set-search-mode':
+        e.preventDefault();
+        if (actionEl.dataset.mode === 'smart' && getResolvedSearchMode() !== 'smart') return;
+        searchMode = actionEl.dataset.mode === 'smart' ? 'smart' : 'metadata';
+        renderSearchUi();
+        return;
+      case 'search-result-preview':
+        e.preventDefault();
+        previewSearchResult(getSearchResultById(actionEl.dataset.resultId));
+        return;
+      case 'search-result-add':
+        e.preventDefault();
+        openSearchCatalogModal(getSearchResultById(actionEl.dataset.resultId));
+        return;
       case 'add-preset':
         e.preventDefault();
         addPreset(actionEl.dataset.id, actionEl.dataset.name);
@@ -4171,14 +7409,30 @@ function bindStaticUiEvents() {
         e.preventDefault();
         addAccountPreset(actionEl.dataset.id, actionEl.dataset.name, actionEl.dataset.status);
         return;
-      case 'add-ai':
-        e.preventDefault();
-        addAiCatalog();
-        return;
       case 'open-ai-modal':
         e.preventDefault();
         e.stopPropagation();
         openAiModal();
+        return;
+      case 'open-smart-builder':
+        e.preventDefault();
+        openSmartBuilder();
+        return;
+      case 'close-smart-builder':
+        e.preventDefault();
+        closeSmartBuilder();
+        return;
+      case 'smart-template':
+        e.preventDefault();
+        setSmartTemplate(actionEl.dataset.mode);
+        return;
+      case 'smart-preview':
+        e.preventDefault();
+        previewSmartRow();
+        return;
+      case 'smart-save':
+        e.preventDefault();
+        saveSmartRow();
         return;
       case 'open-stremio':
         e.preventDefault();
@@ -4187,6 +7441,62 @@ function bindStaticUiEvents() {
       case 'copy-url':
         e.preventDefault();
         copyUrl();
+        return;
+      case 'open-search-add-modal-from-preview':
+        e.preventDefault();
+        if (activePrototypePreview) openSearchCatalogModal(activePrototypePreview);
+        return;
+      case 'dismiss-search-prototype-preview':
+        e.preventDefault();
+        dismissPrototypePreview();
+        return;
+      case 'close-search-modal':
+        e.preventDefault();
+        closeSearchCatalogModal();
+        return;
+      case 'search-modal-create-copy':
+        e.preventDefault();
+        applySearchDraftToCatalog(actionEl.dataset.targetId, 'copy');
+        return;
+      case 'search-modal-overwrite':
+        e.preventDefault();
+        applySearchDraftToCatalog(actionEl.dataset.targetId, 'overwrite');
+        return;
+      case 'open-share-recipe':
+        e.preventDefault();
+        openShareRecipeModal();
+        return;
+      case 'browse-recipes':
+        e.preventDefault();
+        openRecipeGallery();
+        return;
+      case 'close-recipe-modal':
+        e.preventDefault();
+        closeRecipeModal();
+        return;
+      case 'remove-recipe-catalog':
+        e.preventDefault();
+        removeCatalogFromRecipeDraft(actionEl.dataset.id);
+        return;
+      case 'add-recipe-catalog':
+        e.preventDefault();
+        addCatalogToRecipeDraft(actionEl.dataset.id);
+        return;
+      case 'copy-recipe-link':
+        e.preventDefault();
+        copyRecipeLink();
+        return;
+      case 'preview-builtin-recipe':
+        e.preventDefault();
+        openRecipePreview(getBuiltinRecipes()[parseInt(actionEl.dataset.index, 10)]);
+        return;
+      case 'add-builtin-recipe':
+        e.preventDefault();
+        applyRecipe(getBuiltinRecipes()[parseInt(actionEl.dataset.index, 10)], 'add');
+        return;
+      case 'apply-recipe':
+        e.preventDefault();
+        if (activeRecipePayload) applyRecipe(activeRecipePayload, actionEl.dataset.mode === 'replace' ? 'replace' : 'add');
         return;
       case 'import-config':
         e.preventDefault();
@@ -4239,6 +7549,34 @@ function bindStaticUiEvents() {
 
   document.addEventListener('change', e => {
     if (e.target?.id === 'ai-model-select') handleAiModelChange();
+    if (e.target?.id === 'smart-seed-mode') setSmartTemplate(e.target.value);
+    if (e.target?.id === 'recipe-preview-select') {
+      recipePreviewCatalogId = e.target.value;
+      refreshRecipePreview();
+    }
+    if (e.target?.matches?.('[data-smart-format], #smart-min-score, #smart-popularity')) {
+      resetSmartBuilderPreview();
+    }
+  });
+
+  document.addEventListener('input', e => {
+    if (e.target?.id === 'recipe-name-input' || e.target?.id === 'recipe-desc-input') {
+      syncShareRecipeDraftFromInputs();
+    }
+    if (e.target?.id === 'smart-row-name') {
+      e.target.dataset.autoname = '0';
+      if (smartBuilderPreviewCatalog) {
+        const name = e.target.value.trim() || defaultSmartRowName(smartBuilderPreviewCatalog.aiMode, smartBuilderPreviewCatalog.seedTitle || '');
+        smartBuilderPreviewCatalog.name = name;
+        renderSmartInlinePreview(smartBuilderPreviewMedia, smartBuilderPreviewCatalog);
+        updateSmartSaveState();
+      }
+    }
+    if (e.target?.id === 'smart-seed-title') {
+      const rowName = document.getElementById('smart-row-name');
+      if (rowName && rowName.dataset.autoname === '1') rowName.value = defaultSmartRowName(smartBuilderMode, e.target.value.trim());
+      resetSmartBuilderPreview();
+    }
   });
 }
 
@@ -4273,18 +7611,44 @@ if (_authError) {
 
 // Bootstrap auth UI — validates token against /api/me if present
 bindStaticUiEvents();
+syncPosterLabToggle();
 fetchMe();
 
 render();
 setActiveFilter('genres');
 renderFilterTags();
+window.addEventListener('DOMContentLoaded', openInitialRecipeIfPresent);
 </script>
+
+<!-- Recipe Modal -->
+<div class="recipe-modal-overlay" id="recipe-modal-overlay">
+  <div class="recipe-modal">
+    <div class="recipe-modal-header">
+      <div class="recipe-modal-title" id="recipe-modal-title">Recipes</div>
+      <button class="recipe-modal-close" data-action="close-recipe-modal">&#10005;</button>
+    </div>
+    <div class="recipe-modal-body" id="recipe-modal-body"></div>
+    <div class="recipe-modal-footer" id="recipe-modal-footer"></div>
+  </div>
+</div>
+
+<!-- Smart Row Builder Modal -->
+<div class="smart-modal-overlay" id="smart-modal-overlay">
+  <div class="smart-modal" role="dialog" aria-modal="true" aria-labelledby="smart-modal-title">
+    <div class="smart-modal-header">
+      <div class="smart-modal-title" id="smart-modal-title">Build Smart Row</div>
+      <button class="smart-modal-close" data-action="close-smart-builder">&#10005;</button>
+    </div>
+    <div class="smart-modal-body" id="smart-modal-body"></div>
+    <div class="smart-modal-footer" id="smart-modal-footer"></div>
+  </div>
+</div>
 
 <!-- AI Settings Modal -->
 <div class="ai-modal-overlay" id="ai-modal-overlay">
   <div class="ai-modal">
     <div class="ai-modal-header">
-      <div class="ai-modal-title">AI Recommendations Settings</div>
+      <div class="ai-modal-title">OpenRouter Settings</div>
       <button class="ai-modal-close" data-action="close-ai-modal">&#10005;</button>
     </div>
     <div class="ai-modal-body">
@@ -4302,7 +7666,7 @@ renderFilterTags();
       <div class="ai-modal-section">
         <label class="ai-modal-label">OpenRouter API Key</label>
         <div class="ai-key-row">
-          <input type="password" id="ai-key-input" class="ai-modal-input" placeholder="sk-or-v1-\u2026" autocomplete="off">
+          <input type="password" id="ai-key-input" class="ai-modal-input" placeholder="sk-or-v1-…" autocomplete="off">
           <button class="ai-test-btn" id="ai-test-btn" data-action="test-or-key">Test</button>
         </div>
         <div class="ai-key-feedback" id="ai-key-feedback"></div>
@@ -4312,6 +7676,21 @@ renderFilterTags();
     <div class="ai-modal-footer">
       <button class="ai-modal-cancel" data-action="close-ai-modal">Cancel</button>
       <button class="ai-modal-save" id="ai-modal-save-btn" data-action="save-ai-modal">Save</button>
+    </div>
+  </div>
+</div>
+<div class="search-modal-overlay" id="search-modal-overlay">
+  <div class="search-modal" role="dialog" aria-modal="true" aria-labelledby="search-modal-title">
+    <div class="search-modal-header">
+      <div>
+        <div class="search-modal-title" id="search-modal-title">Add Search Draft</div>
+        <div class="search-modal-sub" id="search-modal-sub"></div>
+      </div>
+      <button class="search-modal-close" data-action="close-search-modal">&#10005;</button>
+    </div>
+    <div class="search-modal-body" id="search-modal-body"></div>
+    <div class="search-modal-footer" id="search-modal-footer">
+      <button class="btn btn-ghost btn-sm" data-action="close-search-modal">Close</button>
     </div>
   </div>
 </div>

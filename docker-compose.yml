@@ -5,6 +5,8 @@ services:
     env_file: .env
     ports:
       - "${PORT:-7000}:${PORT:-7000}"
+    volumes:
+      - anilist_catalogs_data:/app/data
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c",
@@ -13,3 +15,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+
+volumes:
+  anilist_catalogs_data:

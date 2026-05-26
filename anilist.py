@@ -3,6 +3,7 @@ AniList GraphQL client.
 """
 
 import asyncio
+import hashlib
 import json
 import logging
 import re
@@ -11,6 +12,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 import httpx
+from cache import cache
 
 logger = logging.getLogger(__name__)
 ANILIST_URL = "https://graphql.anilist.co"
@@ -39,6 +41,7 @@ MEDIA_FIELDS = """
     meanScore
     popularity
     trending
+    favourites
     genres
     format
     siteUrl
@@ -66,6 +69,21 @@ AI_EXCLUSION_STATUSES = ("COMPLETED", "CURRENT", "PAUSED", "DROPPED", "REPEATING
 SMART_AI_MODES = {"title_seed", "top_rated", "hidden_completed"}
 SMART_AI_FORMATS = {"TV", "TV_SHORT", "MOVIE", "OVA", "ONA", "SPECIAL"}
 SMART_AI_POPULARITY_BIASES = {"balanced", "hidden", "mainstream"}
+SHORT_TREND_DATERANGES = {"this-week", "this-month", "last-month"}
+AIRING_WINDOW_PAGE_SIZE = 50
+AIRING_WINDOW_MAX_SCHEDULE_PAGES = 20
+TREND_CANDIDATE_PAGE_SIZE = 50
+TREND_CANDIDATE_PAGES_PER_LANE = 1
+TREND_CANDIDATE_MAX_IDS = 120
+TREND_ID_CHUNK_SIZE = 50
+TREND_MAX_PAGES_PER_CHUNK = 2
+TREND_WINDOW_CACHE_TTL = 15 * 60
+VALID_CATALOG_SORTS = {"POPULARITY_DESC", "TRENDING_DESC", "SCORE_DESC", "START_DATE_DESC", "FAVOURITES_DESC"}
+VALID_MEDIA_FORMATS = {"TV", "TV_SHORT", "MOVIE", "SPECIAL", "OVA", "ONA", "MUSIC"}
+VALID_MEDIA_STATUSES = {"FINISHED", "RELEASING", "NOT_YET_RELEASED", "CANCELLED", "HIATUS"}
+VALID_MEDIA_SEASONS = {"WINTER", "SPRING", "SUMMER", "FALL", "CURRENT"}
+VALID_DATERANGES = SHORT_TREND_DATERANGES | {"this-year", "last-year"}
+YEAR_DATERANGES = {"this-year", "last-year"}
 
 
 def configure_http_clients(
@@ -111,6 +129,32 @@ def _week_bounds_unix():
     monday = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
     sunday = (monday + timedelta(days=6)).replace(hour=23, minute=59, second=59)
     return int(monday.timestamp()), int(sunday.timestamp())
+
+
+def _short_daterange_bounds_unix(value: str) -> tuple[int, int] | None:
+    now = datetime.now(timezone.utc)
+    year = now.year
+    month = now.month
+
+    if value == "this-week":
+        monday = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+        sunday = (monday + timedelta(days=6)).replace(hour=23, minute=59, second=59)
+        return int(monday.timestamp()), int(sunday.timestamp())
+    if value == "this-month":
+        start = datetime(year, month, 1, tzinfo=timezone.utc)
+        end = datetime(year + (1 if month == 12 else 0), 1 if month == 12 else month + 1, 1, tzinfo=timezone.utc) - timedelta(seconds=1)
+        return int(start.timestamp()), int(end.timestamp())
+    if value == "last-month":
+        start_month = 12 if month == 1 else month - 1
+        start_year = year - 1 if month == 1 else year
+        start = datetime(start_year, start_month, 1, tzinfo=timezone.utc)
+        end = datetime(year, month, 1, tzinfo=timezone.utc) - timedelta(seconds=1)
+        return int(start.timestamp()), int(end.timestamp())
+    return None
+
+
+def is_short_trend_daterange(value: str | None) -> bool:
+    return str(value or "") in SHORT_TREND_DATERANGES
 
 
 def _normalize_title_key(title: str) -> str:
@@ -391,28 +435,12 @@ async def get_popular_season(page: int = 1, per_page: int = 30) -> list[dict]:
 
 async def get_airing_week(page: int = 1, per_page: int = 50) -> list[dict]:
     start, end = _week_bounds_unix()
-    query = """
-    query ($start: Int, $end: Int, $page: Int, $perPage: Int) {
-        Page(page: $page, perPage: $perPage) {
-            airingSchedules(airingAt_greater: $start airingAt_lesser: $end sort: TIME) {
-                airingAt episode
-                media {
-                    %s
-                }
-            }
-        }
-    }
-    """ % CATALOG_MEDIA_FIELDS
-    data = await _gql(query, {"start": start, "end": end, "page": page, "perPage": per_page})
-    seen: set[int] = set()
-    unique_media = []
-    for s in data["Page"]["airingSchedules"]:
-        m = s["media"]
-        if m["id"] not in seen and not m.get("isAdult"):
-            seen.add(m["id"])
-            unique_media.append(m)
-    unique_media.sort(key=lambda m: m.get("popularity") or 0, reverse=True)
-    return unique_media
+    media = await _get_airing_window_media(start, end)
+    sorted_media = _sort_catalog_media(media, "POPULARITY_DESC")
+    safe_page = max(1, int(page or 1))
+    safe_per_page = max(1, int(per_page or 50))
+    start_index = (safe_page - 1) * safe_per_page
+    return sorted_media[start_index:start_index + safe_per_page]
 
 async def get_trending(page: int = 1, per_page: int = 30) -> list[dict]:
     query = f"""
@@ -437,6 +465,341 @@ async def get_top_rated(page: int = 1, per_page: int = 30) -> list[dict]:
     return data["Page"]["media"]
 
 
+async def _get_airing_window_media(start: int, end: int) -> list[dict]:
+    query = """
+    query ($start: Int, $end: Int, $page: Int, $perPage: Int) {
+        Page(page: $page, perPage: $perPage) {
+            pageInfo { hasNextPage }
+            airingSchedules(airingAt_greater: $start airingAt_lesser: $end sort: TIME) {
+                airingAt episode
+                media {
+                    %s
+                }
+            }
+        }
+    }
+    """ % CATALOG_MEDIA_FIELDS
+    seen: set[int] = set()
+    unique_media: list[dict] = []
+    for schedule_page in range(1, AIRING_WINDOW_MAX_SCHEDULE_PAGES + 1):
+        data = await _gql(
+            query,
+            {"start": start, "end": end, "page": schedule_page, "perPage": AIRING_WINDOW_PAGE_SIZE},
+        )
+        page_data = data.get("Page") or {}
+        for schedule in page_data.get("airingSchedules") or []:
+            media = schedule.get("media") or {}
+            media_id = media.get("id")
+            if not media_id or media_id in seen or media.get("isAdult"):
+                continue
+            seen.add(media_id)
+            unique_media.append(media)
+        if not (page_data.get("pageInfo") or {}).get("hasNextPage"):
+            break
+    return unique_media
+
+
+def _filter_values(filters: dict, plural_key: str, singular_key: str) -> list:
+    values = filters.get(plural_key)
+    if isinstance(values, list):
+        return values
+    value = filters.get(singular_key)
+    return [value] if value else []
+
+
+def _dedupe_text_values(values: list) -> list[str]:
+    result: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        text = str(value or "").strip()
+        if not text or text in seen:
+            continue
+        seen.add(text)
+        result.append(text)
+    return result
+
+
+def _dedupe_valid_enum_values(values: list, valid_values: set[str]) -> list[str]:
+    result: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        text = str(value or "").strip().upper()
+        if not text or text not in valid_values or text in seen:
+            continue
+        seen.add(text)
+        result.append(text)
+    return result
+
+
+def _single_year_value(values: list) -> str | None:
+    result: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        if isinstance(value, bool):
+            continue
+        try:
+            year = int(str(value).strip())
+        except (TypeError, ValueError):
+            continue
+        if year < 1000 or year > 9999:
+            continue
+        text = str(year)
+        if text in seen:
+            continue
+        seen.add(text)
+        result.append(text)
+    return result[-1] if result else None
+
+
+def _month_value(value) -> int | None:
+    if isinstance(value, bool):
+        return None
+    try:
+        month = int(str(value).strip())
+    except (TypeError, ValueError):
+        return None
+    return month if 1 <= month <= 12 else None
+
+
+def normalize_catalog_filters(filters: dict | None) -> dict:
+    """Clean UI/catalog filters before they reach AniList or local filtering."""
+    if not isinstance(filters, dict):
+        return {}
+
+    normalized: dict = {}
+
+    sort = str(filters.get("sort") or "").strip().upper()
+    if sort in VALID_CATALOG_SORTS:
+        normalized["sort"] = sort
+
+    genres = _dedupe_text_values(filters.get("genres") if isinstance(filters.get("genres"), list) else [])
+    if genres:
+        normalized["genres"] = genres
+
+    formats = _dedupe_valid_enum_values(_filter_values(filters, "formats", "format"), VALID_MEDIA_FORMATS)
+    if formats:
+        normalized["formats"] = formats
+
+    statuses = _dedupe_valid_enum_values(_filter_values(filters, "statuses", "status"), VALID_MEDIA_STATUSES)
+    if statuses:
+        normalized["statuses"] = statuses
+
+    seasons = _dedupe_valid_enum_values(_filter_values(filters, "seasons", "season"), VALID_MEDIA_SEASONS)
+    season = seasons[-1] if seasons else None
+
+    month = _month_value(filters.get("month"))
+    month_year = _single_year_value([filters.get("year")]) if month is not None else None
+    year = None if month_year else _single_year_value(_filter_values(filters, "years", "year"))
+
+    daterange = str(filters.get("daterange") or "").strip()
+    if daterange not in VALID_DATERANGES:
+        daterange = ""
+
+    if season == "CURRENT":
+        year = None
+        month = None
+        month_year = None
+        if daterange == "last-year":
+            daterange = ""
+    elif year and daterange in YEAR_DATERANGES:
+        daterange = ""
+
+    if season:
+        normalized["seasons"] = [season]
+    if month is not None and month_year:
+        normalized["month"] = month
+        normalized["year"] = month_year
+    elif year:
+        normalized["years"] = [year]
+    if daterange:
+        normalized["daterange"] = daterange
+
+    try:
+        min_score = int(filters.get("minScore") or filters.get("score") or 0)
+    except (TypeError, ValueError):
+        min_score = 0
+    if min_score > 0:
+        normalized["minScore"] = min_score
+
+    return normalized
+
+
+def _media_start_date_sort_key(media: dict) -> tuple[int, int, int]:
+    start_date = media.get("startDate") or {}
+    return (
+        start_date.get("year") or media.get("seasonYear") or 0,
+        start_date.get("month") or 0,
+        start_date.get("day") or 0,
+    )
+
+
+def _sort_catalog_media(media_list: list[dict], sort: str) -> list[dict]:
+    if sort not in VALID_CATALOG_SORTS:
+        sort = "POPULARITY_DESC"
+    result = [m for m in media_list if not m.get("isAdult")]
+    if sort == "TRENDING_DESC":
+        result.sort(
+            key=lambda m: (
+                m.get("trendWindowScore") or 0,
+                m.get("trendWindowPeak") or 0,
+                m.get("trending") or 0,
+                m.get("popularity") or 0,
+            ),
+            reverse=True,
+        )
+    elif sort == "SCORE_DESC":
+        result.sort(key=lambda m: (m.get("averageScore") or 0, m.get("popularity") or 0), reverse=True)
+    elif sort == "START_DATE_DESC":
+        result.sort(key=lambda m: (*_media_start_date_sort_key(m), m.get("popularity") or 0), reverse=True)
+    elif sort == "FAVOURITES_DESC":
+        result.sort(key=lambda m: (m.get("favourites") or 0, m.get("popularity") or 0), reverse=True)
+    else:
+        result.sort(key=lambda m: (m.get("popularity") or 0, m.get("trending") or 0), reverse=True)
+    return result
+
+
+def _media_matches_month_year(media: dict, year: int, month: int) -> bool:
+    start_date = media.get("startDate") or {}
+    return start_date.get("year") == year and start_date.get("month") == month
+
+
+def _apply_custom_filters_locally(media_list: list[dict], filters: dict) -> list[dict]:
+    filters = normalize_catalog_filters(filters)
+    genres = filters.get("genres") or []
+    formats = _filter_values(filters, "formats", "format")
+    statuses = _filter_values(filters, "statuses", "status")
+    years = {str(y) for y in _filter_values(filters, "years", "year")}
+    seasons = _filter_values(filters, "seasons", "season")
+    min_score = int(filters.get("minScore") or 0)
+
+    result = list(media_list)
+    if genres:
+        result = [m for m in result if all(g in (m.get("genres") or []) for g in genres)]
+    if formats:
+        result = [m for m in result if m.get("format") in formats]
+    if statuses:
+        result = [m for m in result if m.get("status") in statuses]
+    if years:
+        result = [m for m in result if str(m.get("seasonYear") or "") in years]
+    if seasons:
+        current_season, _ = _season_now()
+        resolved = {current_season if s == "CURRENT" else s for s in seasons}
+        result = [m for m in result if m.get("season") in resolved]
+    if filters.get("month") and filters.get("year"):
+        result = [
+            m
+            for m in result
+            if _media_matches_month_year(m, int(filters["year"]), int(filters["month"]))
+        ]
+    if min_score:
+        result = [m for m in result if (m.get("averageScore") or 0) >= min_score]
+    return result
+
+
+def _trend_cache_key(prefix: str, daterange: str, ids: list[int] | None = None, filters: dict | None = None) -> str:
+    payload: dict[str, object] = {"range": daterange}
+    if ids is not None:
+        payload["ids"] = sorted({int(media_id) for media_id in ids if int(media_id) > 0})
+    if filters is not None:
+        payload["filters"] = filters
+    digest = hashlib.sha1(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()[:20]
+    return f"{prefix}:{digest}"
+
+
+async def get_media_trends_for_ids(ids: list[int], daterange: str) -> dict[int, dict]:
+    unique_ids = sorted({int(media_id) for media_id in ids if int(media_id or 0) > 0})
+    if not unique_ids or not is_short_trend_daterange(daterange):
+        return {}
+    cache_key = _trend_cache_key("media_trends", daterange, ids=unique_ids)
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    bounds = _short_daterange_bounds_unix(daterange)
+    if not bounds:
+        return {}
+    start, end = bounds
+    query = """
+    query ($ids: [Int], $start: Int, $end: Int, $page: Int, $perPage: Int) {
+        Page(page: $page, perPage: $perPage) {
+            pageInfo { hasNextPage }
+            mediaTrends(mediaId_in: $ids date_greater: $start date_lesser: $end sort: TRENDING_DESC) {
+                mediaId date trending popularity inProgress
+            }
+        }
+    }
+    """
+    metrics: dict[int, dict] = {}
+    for chunk_start in range(0, len(unique_ids), TREND_ID_CHUNK_SIZE):
+        chunk = unique_ids[chunk_start:chunk_start + TREND_ID_CHUNK_SIZE]
+        for trend_page in range(1, TREND_MAX_PAGES_PER_CHUNK + 1):
+            data = await _gql(
+                query,
+                {
+                    "ids": chunk,
+                    "start": start,
+                    "end": end,
+                    "page": trend_page,
+                    "perPage": AIRING_WINDOW_PAGE_SIZE,
+                },
+            )
+            page_data = data.get("Page") or {}
+            for trend in page_data.get("mediaTrends") or []:
+                try:
+                    media_id = int(trend.get("mediaId") or 0)
+                    trend_value = int(trend.get("trending") or 0)
+                except (TypeError, ValueError):
+                    continue
+                if media_id <= 0 or trend_value <= 0:
+                    continue
+                current = metrics.setdefault(
+                    media_id,
+                    {"score": 0, "peak": 0, "days": set(), "popularity": 0, "inProgress": 0},
+                )
+                current["score"] += trend_value
+                current["peak"] = max(current["peak"], trend_value)
+                if trend.get("date"):
+                    current["days"].add(int(trend["date"]))
+                current["popularity"] = max(current["popularity"], int(trend.get("popularity") or 0))
+                current["inProgress"] = max(current["inProgress"], int(trend.get("inProgress") or 0))
+            if not (page_data.get("pageInfo") or {}).get("hasNextPage"):
+                break
+
+    normalized = {
+        media_id: {
+            "score": int(values["score"]),
+            "peak": int(values["peak"]),
+            "days": len(values["days"]),
+            "popularity": int(values["popularity"]),
+            "inProgress": int(values["inProgress"]),
+        }
+        for media_id, values in metrics.items()
+    }
+    cache.set(cache_key, normalized, TREND_WINDOW_CACHE_TTL)
+    return normalized
+
+
+async def filter_media_by_trend_window(media_list: list[dict], daterange: str) -> list[dict]:
+    if not is_short_trend_daterange(daterange):
+        return list(media_list)
+    media_by_id = {int(m["id"]): m for m in media_list if m.get("id")}
+    trends = await get_media_trends_for_ids(list(media_by_id), daterange)
+    filtered: list[dict] = []
+    for media_id, trend in trends.items():
+        media = media_by_id.get(media_id)
+        if not media:
+            continue
+        filtered.append(
+            {
+                **media,
+                "trendWindowScore": trend["score"],
+                "trendWindowPeak": trend["peak"],
+                "trendWindowDays": trend["days"],
+            }
+        )
+    return filtered
+
+
 async def search_anime(query_text: str, limit: int = 8) -> list[dict]:
     search = str(query_text or "").strip()
     if len(search) < 3:
@@ -454,7 +817,15 @@ async def search_anime(query_text: str, limit: int = 8) -> list[dict]:
     data = await _gql(query, {"search": search, "page": 1, "perPage": safe_limit})
     return (data.get("Page") or {}).get("media") or []
 
-async def get_custom(filters: dict, page: int = 1, per_page: int = 30) -> list[dict]:
+async def _query_custom_media(
+    filters: dict,
+    page: int = 1,
+    per_page: int = 30,
+    *,
+    sort_override: str | None = None,
+    include_daterange: bool = True,
+) -> list[dict]:
+    filters = normalize_catalog_filters(filters)
     args = ["type: ANIME", "isAdult: false"]
     variables: dict = {"page": page, "perPage": per_page}
 
@@ -501,7 +872,7 @@ async def get_custom(filters: dict, page: int = 1, per_page: int = 30) -> list[d
         variables["sdLt"] = ny * 10000 + nm * 100
         args.append("startDate_greater: $sdGt")
         args.append("startDate_lesser: $sdLt")
-    elif filters.get("daterange"):
+    elif include_daterange and filters.get("daterange"):
         now = datetime.now(timezone.utc)
         year = now.year
         month = now.month
@@ -533,9 +904,8 @@ async def get_custom(filters: dict, page: int = 1, per_page: int = 30) -> list[d
             args.append("startDate_greater: $sdGt")
             args.append("startDate_lesser: $sdLt")
 
-    sort = filters.get("sort", "POPULARITY_DESC")
-    _VALID_SORTS = {"POPULARITY_DESC", "TRENDING_DESC", "SCORE_DESC", "START_DATE_DESC", "FAVOURITES_DESC"}
-    if sort not in _VALID_SORTS:
+    sort = sort_override or filters.get("sort", "POPULARITY_DESC")
+    if sort not in VALID_CATALOG_SORTS:
         sort = "POPULARITY_DESC"
     args.append(f"sort: {sort}")
 
@@ -560,6 +930,73 @@ async def get_custom(filters: dict, page: int = 1, per_page: int = 30) -> list[d
     """
     data = await _gql(query, variables)
     return data["Page"]["media"]
+
+
+async def _get_custom_candidate_pool(filters: dict) -> list[dict]:
+    filters = normalize_catalog_filters(filters)
+    requested_sort = filters.get("sort", "POPULARITY_DESC")
+    if requested_sort not in VALID_CATALOG_SORTS:
+        requested_sort = "POPULARITY_DESC"
+    lanes = []
+    for lane in (requested_sort, "TRENDING_DESC", "POPULARITY_DESC"):
+        if lane not in lanes:
+            lanes.append(lane)
+
+    seen: set[int] = set()
+    candidates: list[dict] = []
+    for lane in lanes:
+        for candidate_page in range(1, TREND_CANDIDATE_PAGES_PER_LANE + 1):
+            media = await _query_custom_media(
+                filters,
+                page=candidate_page,
+                per_page=TREND_CANDIDATE_PAGE_SIZE,
+                sort_override=lane,
+                include_daterange=False,
+            )
+            for item in media:
+                media_id = item.get("id")
+                if not media_id or media_id in seen:
+                    continue
+                seen.add(media_id)
+                candidates.append(item)
+                if len(candidates) >= TREND_CANDIDATE_MAX_IDS:
+                    return candidates
+    return candidates
+
+
+async def _get_custom_trend_window(filters: dict, page: int, per_page: int) -> list[dict]:
+    filters = normalize_catalog_filters(filters)
+    daterange = str(filters.get("daterange") or "")
+    cache_key = _trend_cache_key(
+        "custom_trend_window",
+        daterange,
+        filters={**filters, "page": int(page or 1), "perPage": int(per_page or 30)},
+    )
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    candidates = _apply_custom_filters_locally(await _get_custom_candidate_pool(filters), filters)
+    try:
+        filtered = await filter_media_by_trend_window(candidates, daterange)
+    except Exception as exc:
+        logger.warning("MediaTrend filter failed for custom catalog; using candidate fallback: %s", exc)
+        filtered = candidates
+    sorted_media = _sort_catalog_media(filtered, filters.get("sort", "POPULARITY_DESC"))
+    safe_page = max(1, int(page or 1))
+    safe_per_page = max(1, int(per_page or 30))
+    start_index = (safe_page - 1) * safe_per_page
+    result = sorted_media[start_index:start_index + safe_per_page]
+    cache.set(cache_key, result, TREND_WINDOW_CACHE_TTL)
+    return result
+
+
+async def get_custom(filters: dict, page: int = 1, per_page: int = 30) -> list[dict]:
+    filters = normalize_catalog_filters(filters)
+    daterange = str(filters.get("daterange") or "")
+    if is_short_trend_daterange(daterange) and not (filters.get("month") and filters.get("year")):
+        return await _get_custom_trend_window(filters, page, per_page)
+    return await _query_custom_media(filters, page=page, per_page=per_page)
 
 async def get_viewer(token: str) -> dict:
     """Return the authenticated user's id, name, and avatar URL.

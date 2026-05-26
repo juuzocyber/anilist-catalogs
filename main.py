@@ -877,7 +877,41 @@ def _media_matches_client_filter_date_range(media: dict, value: str) -> bool:
     return bounds[0] <= media_epoch <= bounds[1]
 
 
+def _sort_client_filtered_media(media_list: list[dict], sort: str) -> list[dict]:
+    result = list(media_list)
+    if sort == "TRENDING_DESC":
+        result.sort(
+            key=lambda m: (
+                m.get("trendWindowScore") or 0,
+                m.get("trendWindowPeak") or 0,
+                m.get("trending") or 0,
+                m.get("popularity") or 0,
+            ),
+            reverse=True,
+        )
+    elif sort == "SCORE_DESC":
+        result.sort(key=lambda m: ((m.get("averageScore") or 0), (m.get("popularity") or 0)), reverse=True)
+    elif sort == "START_DATE_DESC":
+        result.sort(
+            key=lambda m: (
+                m.get("seasonYear") or 0,
+                ((m.get("startDate") or {}).get("month") or 0),
+                ((m.get("startDate") or {}).get("day") or 0),
+                m.get("popularity") or 0,
+            ),
+            reverse=True,
+        )
+    elif sort == "FAVOURITES_DESC":
+        result.sort(key=lambda m: ((m.get("favourites") or 0), (m.get("popularity") or 0)), reverse=True)
+    else:
+        result.sort(key=lambda m: ((m.get("popularity") or 0), (m.get("trending") or 0)), reverse=True)
+    return result
+
+
 def _apply_client_filters_to_media(media_list: list[dict], client_filters: dict | None) -> list[dict]:
+    if not client_filters:
+        return media_list
+    client_filters = anilist.normalize_catalog_filters(client_filters)
     if not client_filters:
         return media_list
 
@@ -903,25 +937,34 @@ def _apply_client_filters_to_media(media_list: list[dict], client_filters: dict 
         current_season, _ = anilist._season_now()
         resolved = {current_season if s == "CURRENT" else s for s in seasons}
         result = [m for m in result if m.get("season") in resolved]
-    if daterange:
+    if daterange and not anilist.is_short_trend_daterange(daterange):
         result = [m for m in result if _media_matches_client_filter_date_range(m, daterange)]
     if min_score:
         result = [m for m in result if (m.get("averageScore") or 0) >= min_score]
 
-    result = list(result)
-    if sort == "SCORE_DESC":
-        result.sort(key=lambda m: (m.get("averageScore") or 0), reverse=True)
-    elif sort == "START_DATE_DESC":
-        result.sort(
-            key=lambda m: (
-                m.get("seasonYear") or 0,
-                ((m.get("startDate") or {}).get("month") or 0),
-            ),
-            reverse=True,
-        )
-    else:
-        result.sort(key=lambda m: (m.get("popularity") or 0), reverse=True)
-    return result
+    return _sort_client_filtered_media(result, sort)
+
+
+async def _apply_client_filters_to_media_async(media_list: list[dict], client_filters: dict | None) -> list[dict]:
+    if not client_filters:
+        return media_list
+    client_filters = anilist.normalize_catalog_filters(client_filters)
+    if not client_filters:
+        return media_list
+    daterange = client_filters.get("daterange") or ""
+    if not anilist.is_short_trend_daterange(daterange):
+        return _apply_client_filters_to_media(media_list, client_filters)
+
+    base_filters = dict(client_filters)
+    base_filters.pop("daterange", None)
+    sort = base_filters.pop("sort", client_filters.get("sort") or "POPULARITY_DESC")
+    base_filtered = _apply_client_filters_to_media(media_list, base_filters)
+    try:
+        trend_filtered = await anilist.filter_media_by_trend_window(base_filtered, daterange)
+    except Exception as exc:
+        logger.warning("MediaTrend source filter failed; using unfiltered source fallback: %s", exc)
+        trend_filtered = base_filtered
+    return _sort_client_filtered_media(trend_filtered, sort)
 
 
 def _media_title(media: dict | None) -> str:
@@ -1131,7 +1174,7 @@ async def _load_catalog_media(
     else:
         raise HTTPException(status_code=404, detail=f"Unknown catalog: {catalog_id}")
 
-    raw_media = _apply_client_filters_to_media(raw_media, catalog_config.get("clientFilters"))
+    raw_media = await _apply_client_filters_to_media_async(raw_media, catalog_config.get("clientFilters"))
     upstream_ms = (time.perf_counter() - upstream_started_at) * 1000
     return raw_media, len(raw_media), upstream_ms, ttl, should_cache, catalog_kind
 
@@ -1745,26 +1788,39 @@ def _resolve_session(session_key: str) -> str:
 class _SessionBody(_SessionKeyBody):
     pass
 
+def _validate_small_json_object(value: dict | None, *, name: str) -> dict | None:
+    if value is None:
+        return None
+    if not isinstance(value, dict):
+        raise ValueError(f"{name} must be an object")
+    try:
+        encoded = json.dumps(value, sort_keys=True, separators=(",", ":"))
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{name} must be JSON serializable") from exc
+    if len(encoded.encode("utf-8")) > _MAX_AI_CATALOG_CONFIG_BYTES:
+        raise ValueError(f"{name} is too large")
+    return value
+
+
 class _PreviewAiBody(_SessionKeyBody):
     catalog: dict | None = None
+    client_filters: dict | None = None
 
     @pydantic.field_validator("catalog")
     @classmethod
     def _validate_catalog_size(cls, value: dict | None) -> dict | None:
-        if value is None:
-            return None
-        try:
-            encoded = json.dumps(value, sort_keys=True, separators=(",", ":"))
-        except (TypeError, ValueError) as exc:
-            raise ValueError("catalog must be JSON serializable") from exc
-        if len(encoded.encode("utf-8")) > _MAX_AI_CATALOG_CONFIG_BYTES:
-            raise ValueError("catalog config is too large")
-        return value
+        return _validate_small_json_object(value, name="catalog config")
+
+    @pydantic.field_validator("client_filters")
+    @classmethod
+    def _validate_client_filters(cls, value: dict | None) -> dict | None:
+        return _validate_small_json_object(value, name="client filters")
 
 _VALID_LIST_STATUSES = {"CURRENT", "PLANNING", "COMPLETED", "PAUSED", "DROPPED", "REPEATING", "FAVOURITES"}
 
 class _PreviewWatchingBody(_SessionKeyBody):
     list_status: str
+    client_filters: dict | None = None
 
     @pydantic.field_validator("list_status", mode="before")
     @classmethod
@@ -1775,6 +1831,20 @@ class _PreviewWatchingBody(_SessionKeyBody):
         if len(normalized) > 24:
             raise ValueError("list_status is too long")
         return normalized
+
+    @pydantic.field_validator("client_filters")
+    @classmethod
+    def _validate_client_filters(cls, value: dict | None) -> dict | None:
+        return _validate_small_json_object(value, name="client filters")
+
+
+class _PreviewCustomBody(_BoundedBody):
+    filters: dict = pydantic.Field(default_factory=dict)
+
+    @pydantic.field_validator("filters")
+    @classmethod
+    def _validate_filters(cls, value: dict | None) -> dict:
+        return _validate_small_json_object(value or {}, name="filters") or {}
 
 _ALLOWED_MODELS = {
     "meta-llama/llama-3.3-70b-instruct",
@@ -1843,6 +1913,7 @@ async def api_preview_watching(request: Request, body: _PreviewWatchingBody):
             media = await anilist.get_favourites(raw_token, viewer["id"])
         else:
             media = await anilist.get_watching_list(raw_token, viewer["id"], body.list_status)
+        media = await _apply_client_filters_to_media_async(media, body.client_filters)
     except Exception as exc:
         logger.error("preview_watching failed: %s", exc)
         raise HTTPException(status_code=502, detail="Could not fetch list from AniList.")
@@ -1949,7 +2020,8 @@ async def api_preview_ai(request: Request, body: _PreviewAiBody):
     ai_cache_key = _ai_catalog_cache_key(session_key, model, catalog_config)
     cached = cache.get(ai_cache_key)
     if cached is not None:
-        return {"media": cached}
+        media = await _apply_client_filters_to_media_async(cached, body.client_filters)
+        return {"media": media}
 
     try:
         viewer = await anilist.get_viewer(raw_token)
@@ -1968,7 +2040,21 @@ async def api_preview_ai(request: Request, body: _PreviewAiBody):
         raise HTTPException(status_code=502, detail="AI recommendation request failed.")
 
     cache.set(ai_cache_key, raw_media, 60 * 60)
-    return {"media": raw_media}
+    media = await _apply_client_filters_to_media_async(raw_media, body.client_filters)
+    return {"media": media}
+
+
+@app.post("/api/preview-custom")
+async def api_preview_custom(request: Request, body: _PreviewCustomBody):
+    ip = request.client.host if request.client else "unknown"
+    if not _check_session_rate_limit(ip):
+        raise HTTPException(status_code=429, detail="Too many requests.")
+    try:
+        media = await anilist.get_custom(body.filters or {}, page=1, per_page=PER_PAGE)
+    except Exception as exc:
+        logger.error("preview_custom failed: %s", exc)
+        raise HTTPException(status_code=502, detail="Could not preview AniList filters.")
+    return {"media": media}
 
 
 @app.get("/api/search-anime")

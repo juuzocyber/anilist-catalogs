@@ -2807,7 +2807,7 @@ CONFIGURE_HTML = """<!DOCTYPE html>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4z"/></svg>
           </a>
         </div>
-        <div class="pane-footer-text">Version: v1.6.0 &mdash; Developed by juuzo</div>
+        <div class="pane-footer-text">Version: v1.6.2 &mdash; Developed by juuzo</div>
       </div>
     </div>
 
@@ -3336,7 +3336,10 @@ function compactCatalogEntry(cat) {
   if (cat.type === 'watching') {
     const entry = { i: cat.id, n: cat.name || cat.id, w: true };
     if (cat.listStatus) entry.s = cat.listStatus;
-    if (cat.clientFilters && Object.keys(cat.clientFilters).length) entry.cf = cat.clientFilters;
+    if (cat.clientFilters && Object.keys(cat.clientFilters).length) {
+      const cf = normalizeFilterObject(cat.clientFilters);
+      if (Object.keys(cf).length) entry.cf = cf;
+    }
     if (cat.sourceName) entry.sn = String(cat.sourceName).slice(0, 120);
     if (cat.randomize) entry.r = true;
     return entry;
@@ -3349,13 +3352,19 @@ function compactCatalogEntry(cat) {
     if (cat.seedMediaId) entry.sid = cat.seedMediaId;
     if (cat.seedTitle) entry.st = cat.seedTitle;
     if (cat.smartOptions) entry.so = cat.smartOptions;
-    if (cat.clientFilters && Object.keys(cat.clientFilters).length) entry.cf = cat.clientFilters;
+    if (cat.clientFilters && Object.keys(cat.clientFilters).length) {
+      const cf = normalizeFilterObject(cat.clientFilters);
+      if (Object.keys(cf).length) entry.cf = cf;
+    }
     if (cat.sourceName) entry.sn = String(cat.sourceName).slice(0, 120);
     if (cat.randomize) entry.r = true;
     return entry;
   }
-  const entry = { i: cat.id, n: cat.name || cat.id, f: cat.filters || {} };
-  if (cat.clientFilters && Object.keys(cat.clientFilters).length) entry.cf = cat.clientFilters;
+  const entry = { i: cat.id, n: cat.name || cat.id, f: normalizeFilterObject(cat.filters || {}) };
+  if (cat.clientFilters && Object.keys(cat.clientFilters).length) {
+    const cf = normalizeFilterObject(cat.clientFilters);
+    if (Object.keys(cf).length) entry.cf = cf;
+  }
   if (cat.baseCatalog) entry.bc = compactCatalogEntry(cat.baseCatalog);
   if (Array.isArray(cat.includedMedia) && cat.includedMedia.length) {
     const included = cat.includedMedia.map(compactMediaRef).filter(Boolean);
@@ -3378,7 +3387,7 @@ function expandCatalogEntry(entry) {
   if (entry.w) {
     const cat = { id, name: entry.n || id, type: 'watching' };
     if (entry.s) cat.listStatus = entry.s;
-    if (entry.cf && Object.keys(entry.cf).length) cat.clientFilters = entry.cf;
+    if (entry.cf && Object.keys(entry.cf).length) cat.clientFilters = normalizeFilterObject(entry.cf);
     if (entry.sn) cat.sourceName = entry.sn;
     if (entry.r) cat.randomize = true;
     return cat;
@@ -3389,13 +3398,13 @@ function expandCatalogEntry(entry) {
     if (entry.sid) cat.seedMediaId = entry.sid;
     if (entry.st) cat.seedTitle = entry.st;
     if (entry.so) cat.smartOptions = entry.so;
-    if (entry.cf && Object.keys(entry.cf).length) cat.clientFilters = entry.cf;
+    if (entry.cf && Object.keys(entry.cf).length) cat.clientFilters = normalizeFilterObject(entry.cf);
     if (entry.sn) cat.sourceName = entry.sn;
     if (entry.r) cat.randomize = true;
     return cat;
   }
-  const cat = { id, name: entry.n || id, type: 'custom', filters: entry.f || {} };
-  if (entry.cf && Object.keys(entry.cf).length) cat.clientFilters = entry.cf;
+  const cat = { id, name: entry.n || id, type: 'custom', filters: normalizeFilterObject(entry.f || {}) };
+  if (entry.cf && Object.keys(entry.cf).length) cat.clientFilters = normalizeFilterObject(entry.cf);
   if (entry.bc) {
     const baseCatalog = expandCatalogEntry(entry.bc);
     if (baseCatalog) cat.baseCatalog = baseCatalog;
@@ -4051,6 +4060,7 @@ function updatePrototypeInstallNote() {
 }
 
 function hasActiveAdditionalFilters() {
+  normalizeFilterState();
   const score = parseInt(document.getElementById('f-score').value);
   const daterange = document.getElementById('f-daterange').value;
   return selectedGenres.length > 0 || selectedFormats.length > 0 ||
@@ -4130,6 +4140,7 @@ function _buildSuggestedName() {
 
 // Build a clientFilters object from the current DOM filter state.
 function _buildClientFilters() {
+  normalizeFilterState();
   const f = {};
   const sort  = document.getElementById('f-sort').value;
   const score = parseInt(document.getElementById('f-score').value);
@@ -4142,7 +4153,7 @@ function _buildClientFilters() {
   if (selectedSeasons.length)  f.seasons  = [...selectedSeasons];
   if (daterange)               f.daterange = daterange;
   if (score > 0)               f.minScore = score;
-  return f;
+  return normalizeFilterObject(f);
 }
 
 // Update the name-input state based on source/filter state.
@@ -4180,14 +4191,25 @@ function updateNameInput() {
 // Apply current DOM filter state client-side to a media array.
 // Pass an explicit cf object (stored clientFilters) to replay a saved catalog.
 function _filterSourceMedia(media, cf) {
-  const genres   = cf ? (cf.genres   || []) : selectedGenres;
-  const formats  = cf ? (cf.formats  || []) : selectedFormats;
-  const statuses = cf ? (cf.statuses || []) : selectedStatuses;
-  const years    = cf ? (cf.years    || []) : selectedYears;
-  const seasons  = cf ? (cf.seasons  || []) : selectedSeasons;
-  const daterange = cf ? (cf.daterange || '') : getSelectedDateRangeValue();
-  const score    = cf ? (cf.minScore || 0)  : parseInt(document.getElementById('f-score').value);
-  const sort     = cf ? (cf.sort || 'POPULARITY_DESC') : document.getElementById('f-sort').value;
+  if (!cf) normalizeFilterState();
+  const normalized = cf ? normalizeFilterObject(cf) : normalizeFilterObject({
+    sort: document.getElementById('f-sort').value,
+    genres: selectedGenres,
+    formats: selectedFormats,
+    statuses: selectedStatuses,
+    years: selectedYears,
+    seasons: selectedSeasons,
+    daterange: getSelectedDateRangeValue(),
+    minScore: parseInt(document.getElementById('f-score').value),
+  });
+  const genres   = normalized.genres   || [];
+  const formats  = normalized.formats  || [];
+  const statuses = normalized.statuses || [];
+  const years    = normalized.years    || [];
+  const seasons  = normalized.seasons  || [];
+  const daterange = normalized.daterange || '';
+  const score    = normalized.minScore || 0;
+  const sort     = normalized.sort || 'POPULARITY_DESC';
 
   let result = media;
   if (genres.length)   result = result.filter(m => genres.every(g => (m.genres || []).includes(g)));
@@ -4198,21 +4220,25 @@ function _filterSourceMedia(media, cf) {
     const resolved = seasons.map(s => s === 'CURRENT' ? getCurrentSeason() : s);
     result = result.filter(m => resolved.includes(m.season));
   }
-  if (daterange) result = result.filter(m => mediaMatchesDateRange(m, daterange));
+  if (daterange && !isTrendDateRange(daterange)) result = result.filter(m => mediaMatchesDateRange(m, daterange));
   if (score > 0) result = result.filter(m => (m.averageScore || 0) >= score);
 
   result = [...result];
   result.sort((a, b) => {
     switch (sort) {
+      case 'TRENDING_DESC':
+        return ((b.trending || 0) - (a.trending || 0)) || ((b.popularity || 0) - (a.popularity || 0));
       case 'SCORE_DESC':
-        return (b.averageScore || 0) - (a.averageScore || 0);
+        return ((b.averageScore || 0) - (a.averageScore || 0)) || ((b.popularity || 0) - (a.popularity || 0));
       case 'START_DATE_DESC': {
-        const da = (a.seasonYear || 0) * 100 + (a.startDate && a.startDate.month ? a.startDate.month : 0);
-        const db = (b.seasonYear || 0) * 100 + (b.startDate && b.startDate.month ? b.startDate.month : 0);
+        const da = (a.seasonYear || 0) * 10000 + (a.startDate && a.startDate.month ? a.startDate.month : 0) * 100 + (a.startDate && a.startDate.day ? a.startDate.day : 0);
+        const db = (b.seasonYear || 0) * 10000 + (b.startDate && b.startDate.month ? b.startDate.month : 0) * 100 + (b.startDate && b.startDate.day ? b.startDate.day : 0);
         return db - da;
       }
+      case 'FAVOURITES_DESC':
+        return ((b.favourites || 0) - (a.favourites || 0)) || ((b.popularity || 0) - (a.popularity || 0));
       default:
-        return (b.popularity || 0) - (a.popularity || 0);
+        return ((b.popularity || 0) - (a.popularity || 0)) || ((b.trending || 0) - (a.trending || 0));
     }
   });
   return result;
@@ -4234,9 +4260,16 @@ function _applySourcePreview() {
 async function previewPresetWithCurrentFilters(cat) {
   setPreviewLoading(cat.name);
   try {
+    const currentFilters = buildCurrentCustomFiltersFromForm();
+    if (isTrendDateRange(currentFilters.daterange)) {
+      const media = await fetchPreviewForFilters(currentFilters, { includeAdultContent: includeAdult });
+      renderPreview(media, `${cat.name} - ${media.length} titles`);
+      return;
+    }
+
     if (cat.id === 'anilist-airing-week') {
       const media = await fetchAiringWeekPreview();
-      const filtered = _filterSourceMedia(media);
+      const filtered = _filterSourceMedia(media, currentFilters);
       const subtitle = filtered.length < media.length
         ? `${cat.name} — ${filtered.length} of ${media.length} titles`
         : `${cat.name} — ${filtered.length} titles`;
@@ -4281,6 +4314,8 @@ async function previewPresetWithCurrentFilters(cat) {
 async function fetchAndShowSource() {
   if (!activeSource) return;
   const captured = activeSource;
+  const sourceFilters = buildCurrentCustomFiltersFromForm();
+  const useServerFilters = isTrendDateRange(sourceFilters.daterange);
 
   if (activeSource.type === 'watching') {
     if (!_sessionKey) {
@@ -4294,7 +4329,11 @@ async function fetchAndShowSource() {
       const res = await fetch('/api/preview-watching', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session: _sessionKey, list_status: activeSource.listStatus }),
+        body: JSON.stringify({
+          session: _sessionKey,
+          list_status: activeSource.listStatus,
+          client_filters: useServerFilters ? sourceFilters : undefined,
+        }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => null);
@@ -4302,8 +4341,13 @@ async function fetchAndShowSource() {
       }
       const json = await res.json();
       if (activeSource !== captured) return; // source changed during async fetch
-      _sourceMedia = json.media;
-      _applySourcePreview();
+      if (useServerFilters) {
+        _sourceMedia = null;
+        renderPreview(json.media || [], `${getSourceDisplayName(activeSource)} - ${(json.media || []).length} titles`);
+      } else {
+        _sourceMedia = json.media;
+        _applySourcePreview();
+      }
     } catch(e) {
       console.error('[source] watching fetch error:', e);
       document.getElementById('preview-sub').textContent = 'Failed to load list';
@@ -4331,7 +4375,11 @@ async function fetchAndShowSource() {
       const res = await fetch('/api/preview-ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session: _sessionKey, catalog: activeSource }),
+        body: JSON.stringify({
+          session: _sessionKey,
+          catalog: activeSource,
+          client_filters: useServerFilters ? sourceFilters : undefined,
+        }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => null);
@@ -4339,8 +4387,13 @@ async function fetchAndShowSource() {
       }
       const json = await res.json();
       if (activeSource !== captured) return;
-      _sourceMedia = json.media;
-      _applySourcePreview();
+      if (useServerFilters) {
+        _sourceMedia = null;
+        renderPreview(json.media || [], `${getSourceDisplayName(activeSource)} - ${(json.media || []).length} titles`);
+      } else {
+        _sourceMedia = json.media;
+        _applySourcePreview();
+      }
     } catch(e) {
       console.error('[source] ai fetch error:', e);
       document.getElementById('preview-sub').textContent = 'Failed to load AI recommendations';
@@ -4778,6 +4831,122 @@ const FILTER_PLACEHOLDERS = {
   status: 'Status', sort: 'Sort', daterange: 'Date Range',
 };
 
+const VALID_FORMAT_VALUES = new Set(FILTER_OPTS.format.map(o => o.value).filter(Boolean));
+const VALID_STATUS_VALUES = new Set(FILTER_OPTS.status.map(o => o.value).filter(Boolean));
+const VALID_SEASON_VALUES = new Set(FILTER_OPTS.season.map(o => o.value).filter(Boolean));
+const VALID_SORT_VALUES = new Set(FILTER_OPTS.sort.map(o => o.value).filter(Boolean));
+const VALID_DATERANGE_VALUES = new Set(FILTER_OPTS.daterange.map(o => o.value).filter(Boolean));
+const YEAR_DATERANGES = new Set(['this-year', 'last-year']);
+
+function filterValuesFromObject(filters, pluralKey, singularKey) {
+  if (Array.isArray(filters?.[pluralKey])) return filters[pluralKey];
+  return filters?.[singularKey] ? [filters[singularKey]] : [];
+}
+
+function dedupeTextValues(values) {
+  const out = [];
+  const seen = new Set();
+  (Array.isArray(values) ? values : []).forEach(value => {
+    const text = String(value || '').trim();
+    if (!text || seen.has(text)) return;
+    seen.add(text);
+    out.push(text);
+  });
+  return out;
+}
+
+function dedupeValidEnumValues(values, validSet) {
+  const out = [];
+  const seen = new Set();
+  (Array.isArray(values) ? values : []).forEach(value => {
+    const text = String(value || '').trim().toUpperCase();
+    if (!text || !validSet.has(text) || seen.has(text)) return;
+    seen.add(text);
+    out.push(text);
+  });
+  return out;
+}
+
+function singleYearValue(values) {
+  const out = [];
+  const seen = new Set();
+  (Array.isArray(values) ? values : []).forEach(value => {
+    const year = parseInt(String(value || '').trim(), 10);
+    if (!Number.isInteger(year) || year < 1000 || year > 9999) return;
+    const text = String(year);
+    if (seen.has(text)) return;
+    seen.add(text);
+    out.push(text);
+  });
+  return out.length ? out[out.length - 1] : '';
+}
+
+function normalizeFilterObject(filters) {
+  const source = filters || {};
+  const normalized = {};
+
+  const sort = String(source.sort || '').trim().toUpperCase();
+  if (VALID_SORT_VALUES.has(sort)) normalized.sort = sort;
+
+  const genres = dedupeTextValues(source.genres);
+  if (genres.length) normalized.genres = genres;
+
+  const formats = dedupeValidEnumValues(filterValuesFromObject(source, 'formats', 'format'), VALID_FORMAT_VALUES);
+  if (formats.length) normalized.formats = formats;
+
+  const statuses = dedupeValidEnumValues(filterValuesFromObject(source, 'statuses', 'status'), VALID_STATUS_VALUES);
+  if (statuses.length) normalized.statuses = statuses;
+
+  const seasons = dedupeValidEnumValues(filterValuesFromObject(source, 'seasons', 'season'), VALID_SEASON_VALUES);
+  const season = seasons.length ? seasons[seasons.length - 1] : '';
+
+  let year = singleYearValue(filterValuesFromObject(source, 'years', 'year'));
+  let daterange = String(source.daterange || '').trim();
+  if (!VALID_DATERANGE_VALUES.has(daterange)) daterange = '';
+
+  if (season === 'CURRENT') {
+    year = '';
+    if (daterange === 'last-year') daterange = '';
+  } else if (year && YEAR_DATERANGES.has(daterange)) {
+    daterange = '';
+  }
+
+  if (season) normalized.seasons = [season];
+  if (year) normalized.years = [year];
+  if (daterange) normalized.daterange = daterange;
+
+  const score = parseInt(source.minScore || source.score || 0, 10);
+  if (Number.isInteger(score) && score > 0) normalized.minScore = score;
+
+  return normalized;
+}
+
+function normalizeFilterState() {
+  const normalized = normalizeFilterObject({
+    sort: document.getElementById('f-sort')?.value || 'POPULARITY_DESC',
+    genres: selectedGenres,
+    formats: selectedFormats,
+    statuses: selectedStatuses,
+    years: selectedYears,
+    seasons: selectedSeasons,
+    minScore: parseInt(document.getElementById('f-score')?.value || '0', 10),
+    daterange: getSelectedDateRangeValue(),
+  });
+
+  selectedGenres = normalized.genres || [];
+  selectedFormats = normalized.formats || [];
+  selectedStatuses = normalized.statuses || [];
+  selectedYears = normalized.years || [];
+  selectedSeasons = normalized.seasons || [];
+
+  const sortEl = document.getElementById('f-sort');
+  if (sortEl) sortEl.value = normalized.sort || 'POPULARITY_DESC';
+  const yearEl = document.getElementById('f-year');
+  if (yearEl) yearEl.value = selectedYears[0] || '';
+  const dateEl = document.getElementById('f-daterange');
+  if (dateEl) dateEl.value = normalized.daterange || '';
+}
+
 let activeFbFilter = 'genres';
 
 function clearActiveFilterPane() {
@@ -4800,6 +4969,23 @@ function toggleMultiVal(arr, val) {
   const i = arr.indexOf(val);
   if (i > -1) arr.splice(i, 1);
   else arr.push(val);
+}
+
+function setSeasonValue(value) {
+  const normalized = VALID_SEASON_VALUES.has(value) ? value : '';
+  selectedSeasons = normalized ? [normalized] : [];
+  if (normalized === 'CURRENT') {
+    selectedYears = [];
+    if (getSelectedDateRangeValue() === 'last-year') {
+      document.getElementById('f-daterange').value = '';
+    }
+  }
+  normalizeFilterState();
+  syncFilterBtnLabels();
+  renderFilterOpts('season');
+  renderFilterTags();
+  updateNameInput();
+  scheduleAutoPreview();
 }
 
 function updateFilterBtn(id) {
@@ -4844,6 +5030,7 @@ function updateFilterBtn(id) {
 }
 
 function renderFilterOpts(id) {
+  normalizeFilterState();
   const pane = document.getElementById('filter-opts-pills');
   pane.innerHTML = '';
 
@@ -4867,29 +5054,46 @@ function renderFilterOpts(id) {
     return;
   }
 
-  const multiIds = ['season', 'format', 'status'];
-  const arr = id === 'season'   ? selectedSeasons
-            : id === 'format'   ? selectedFormats
-            : id === 'status'   ? selectedStatuses
-            : null;
-
   const opts = FILTER_OPTS[id];
 
   if (!opts) return;
+
+  if (id === 'season') {
+    const current = selectedSeasons[0] || '';
+    opts.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.className = 'filter-opt-pill' + (opt.value === current ? ' selected' : '');
+      btn.textContent = opt.label;
+      btn.dataset.value = opt.value;
+      btn.onclick = () => setSeasonValue(opt.value);
+      pane.appendChild(btn);
+    });
+    return;
+  }
+
+  const arr = id === 'format'   ? selectedFormats
+            : id === 'status'   ? selectedStatuses
+            : null;
 
   opts.forEach(opt => {
     const btn = document.createElement('button');
     if (arr !== null) {
       // multi-select
       const isSel = arr.includes(opt.value);
-      btn.className = 'filter-opt-pill' + (isSel ? ' selected' : '');
+      btn.className = 'filter-opt-pill' + ((opt.value === '' ? arr.length === 0 : isSel) ? ' selected' : '');
       btn.textContent = opt.label;
       btn.dataset.value = opt.value;
       btn.onclick = () => {
-        toggleMultiVal(arr, opt.value);
+        if (opt.value === '') {
+          arr.splice(0, arr.length);
+        } else {
+          toggleMultiVal(arr, opt.value);
+        }
+        normalizeFilterState();
         updateFilterBtn(id);
         renderFilterOpts(id);
         renderFilterTags();
+        updateNameInput();
         scheduleAutoPreview();
       };
     } else {
@@ -4960,8 +5164,15 @@ function closeYearMenu() {
 function setYearValue(value) {
   const normalized = value ? String(value) : '';
   selectedYears = normalized ? [normalized] : [];
+  if (normalized) {
+    selectedSeasons = selectedSeasons.filter(season => season !== 'CURRENT');
+    if (YEAR_DATERANGES.has(getSelectedDateRangeValue())) {
+      document.getElementById('f-daterange').value = '';
+    }
+  }
+  normalizeFilterState();
   const sel = document.getElementById('f-year');
-  if (sel) sel.value = normalized;
+  if (sel) sel.value = selectedYears[0] || '';
   closeYearMenu();
   clearActiveFilterPane();
   syncFilterBtnLabels();
@@ -5009,7 +5220,7 @@ const PREVIEW_QUERY = `
   query($sort:[MediaSort],$format_in:[MediaFormat],$season:MediaSeason,$seasonYear:Int,$status_in:[MediaStatus],$genre_in:[String],$averageScore_greater:Int,$startDate_greater:FuzzyDateInt,$startDate_lesser:FuzzyDateInt,$isAdult:Boolean,$id_in:[Int]){
     Page(page:1,perPage:50){
       media(type:ANIME,isAdult:$isAdult,sort:$sort,format_in:$format_in,season:$season,seasonYear:$seasonYear,status_in:$status_in,genre_in:$genre_in,averageScore_greater:$averageScore_greater,startDate_greater:$startDate_greater,startDate_lesser:$startDate_lesser,id_in:$id_in){
-        id title{romaji english} coverImage{extraLarge large color} averageScore popularity trending source(version:2)
+        id title{romaji english} coverImage{extraLarge large color} averageScore popularity trending favourites source(version:2)
         genres format episodes status season seasonYear startDate{year month day} description(asHtml:false)
         rankings{rank type allTime context}
         relations{edges{relationType(version:2) node{type}}}
@@ -5050,11 +5261,12 @@ async function fetchPreview(variables) {
 }
 
 const PREVIEW_QUERY_AIRING = `
-  query($start:Int,$end:Int){
-    Page(page:1,perPage:50){
+  query($start:Int,$end:Int,$page:Int,$perPage:Int){
+    Page(page:$page,perPage:$perPage){
+      pageInfo{hasNextPage}
       airingSchedules(airingAt_greater:$start airingAt_lesser:$end sort:TIME){
         media{
-          id title{romaji english} coverImage{extraLarge large color} averageScore isAdult popularity trending source(version:2)
+          id title{romaji english} coverImage{extraLarge large color} averageScore isAdult popularity trending favourites source(version:2)
           genres format episodes status season seasonYear startDate{year month day} description(asHtml:false)
           rankings{rank type allTime context}
           relations{edges{relationType(version:2) node{type}}}
@@ -5066,43 +5278,90 @@ const PREVIEW_QUERY_AIRING = `
   }
 `;
 
-async function fetchAiringWeekPreview() {
-  const mon = getWeekStart();
-  const sun = new Date(mon);
-  sun.setDate(mon.getDate() + 6);
-  sun.setHours(23, 59, 59, 999);
-  const vars = { start: Math.floor(mon.getTime() / 1000), end: Math.floor(sun.getTime() / 1000) };
-  console.log('[fetchAiringWeekPreview] variables:', JSON.stringify(vars));
-  let res;
-  try {
-    res = await fetch('/anilist-proxy', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: PREVIEW_QUERY_AIRING, variables: vars }),
-    });
-  } catch (networkErr) {
-    console.error('[fetchAiringWeekPreview] Network error:', networkErr);
-    throw networkErr;
-  }
-  console.log('[fetchAiringWeekPreview] HTTP status:', res.status, res.statusText);
-  if (!res.ok) {
-    const body = await res.json().catch(() => null);
-    console.error('[fetchAiringWeekPreview] Error body:', body);
-    const msg = body?.errors?.[0]?.message || `HTTP ${res.status} error`;
-    throw new Error(msg);
-  }
-  const json = await res.json();
-  if (json.errors) {
-    console.error('[fetchAiringWeekPreview] GraphQL errors:', json.errors);
-    throw new Error(json.errors[0].message);
-  }
+const DATE_WINDOW_DATERANGES = new Set(['this-week', 'this-month', 'last-month']);
+const AIRING_PREVIEW_PAGE_SIZE = 50;
+const AIRING_PREVIEW_MAX_PAGES = 20;
+
+function isTrendDateRange(value) {
+  return DATE_WINDOW_DATERANGES.has(value || '');
+}
+
+function getDateRangeUnixBounds(value) {
+  const bounds = getDateRangeBounds(value);
+  if (!bounds) return null;
+  const start = new Date(bounds.start);
+  const end = new Date(bounds.end);
+  start.setHours(0, 0, 0, 0);
+  end.setHours(23, 59, 59, 999);
+  return {
+    start: Math.floor(start.getTime() / 1000),
+    end: Math.floor(end.getTime() / 1000),
+  };
+}
+
+async function fetchAiringWindowPreview(value, { includeAdultContent = includeAdult } = {}) {
+  const bounds = getDateRangeUnixBounds(value);
+  if (!bounds) return [];
   const seen = new Set();
   const media = [];
-  for (const s of json.data.Page.airingSchedules) {
-    const m = s.media;
-    if (!seen.has(m.id) && (includeAdult || !m.isAdult)) { seen.add(m.id); media.push(m); }
+  for (let page = 1; page <= AIRING_PREVIEW_MAX_PAGES; page += 1) {
+    const vars = { ...bounds, page, perPage: AIRING_PREVIEW_PAGE_SIZE };
+    console.log('[fetchAiringWindowPreview] variables:', JSON.stringify(vars));
+    let res;
+    try {
+      res = await fetch('/anilist-proxy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: PREVIEW_QUERY_AIRING, variables: vars }),
+      });
+    } catch (networkErr) {
+      console.error('[fetchAiringWindowPreview] Network error:', networkErr);
+      throw networkErr;
+    }
+    console.log('[fetchAiringWindowPreview] HTTP status:', res.status, res.statusText);
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      console.error('[fetchAiringWindowPreview] Error body:', body);
+      const msg = body?.errors?.[0]?.message || `HTTP ${res.status} error`;
+      throw new Error(msg);
+    }
+    const json = await res.json();
+    if (json.errors) {
+      console.error('[fetchAiringWindowPreview] GraphQL errors:', json.errors);
+      throw new Error(json.errors[0].message);
+    }
+    const pageData = json.data?.Page || {};
+    for (const s of pageData.airingSchedules || []) {
+      const m = s.media;
+      if (!m?.id || seen.has(m.id) || (!includeAdultContent && m.isAdult)) continue;
+      seen.add(m.id);
+      media.push(m);
+    }
+    if (!pageData.pageInfo?.hasNextPage) break;
   }
   return media;
+}
+
+async function fetchAiringWeekPreview() {
+  return await fetchAiringWindowPreview('this-week');
+}
+
+async function fetchPreviewForFilters(filters, { includeAdultContent = false } = {}) {
+  const normalized = filters || {};
+  if (isTrendDateRange(normalized.daterange)) {
+    const res = await fetch('/api/preview-custom', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filters: normalized }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new Error(err?.detail || `HTTP ${res.status}`);
+    }
+    const json = await res.json();
+    return Array.isArray(json.media) ? json.media : [];
+  }
+  return await fetchPreview({ ...filtersToVars(normalized), isAdult: includeAdultContent ? undefined : false });
 }
 
 async function fetchPreviewByIds(ids) {
@@ -5133,7 +5392,7 @@ async function fetchCatalogPreviewMedia(cat) {
     const res = await fetch('/api/preview-watching', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session: _sessionKey, list_status: cat.listStatus }),
+      body: JSON.stringify({ session: _sessionKey, list_status: cat.listStatus, client_filters: cat.clientFilters || undefined }),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => null);
@@ -5148,7 +5407,7 @@ async function fetchCatalogPreviewMedia(cat) {
     const res = await fetch('/api/preview-ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ session: _sessionKey, catalog: cat }),
+      body: JSON.stringify({ session: _sessionKey, catalog: cat, client_filters: cat.clientFilters || undefined }),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => null);
@@ -5164,7 +5423,7 @@ async function fetchCatalogPreviewMedia(cat) {
     return cat.clientFilters ? _filterSourceMedia(combined, cat.clientFilters) : combined;
   }
   if (cat.type === 'custom') {
-    const media = await fetchPreview({ ...filtersToVars(cat.filters || {}), isAdult: false });
+    const media = await fetchPreviewForFilters(cat.filters || {}, { includeAdultContent: false });
     return cat.clientFilters ? _filterSourceMedia(media, cat.clientFilters) : media;
   }
   return [];
@@ -5591,6 +5850,7 @@ function renderSortBtn() {
 }
 
 function renderFilterTags() {
+  normalizeFilterState();
   const score = parseInt(document.getElementById('f-score').value);
   const daterange = getSelectedDateRangeValue();
   renderSortBtn();
@@ -5690,7 +5950,7 @@ function resolveSeasonVars(season, year) {
 }
 
 function filtersToVars(filters) {
-  if (!filters) return {};
+  filters = normalizeFilterObject(filters || {});
   const v = {};
   const year = Array.isArray(filters.years) && filters.years.length === 1 ? filters.years[0] : filters.year;
   const season = Array.isArray(filters.seasons) && filters.seasons.length === 1 ? filters.seasons[0] : filters.season;
@@ -5699,8 +5959,9 @@ function filtersToVars(filters) {
   else if (filters.format)                          v.format_in        = [filters.format];
   if (filters.statuses && filters.statuses.length)  v.status_in        = filters.statuses;
   else if (filters.status)                          v.status_in        = [filters.status];
-  if (season)                                       v.season           = season;
-  if (year)                                         v.seasonYear       = parseInt(year, 10);
+  const sv = resolveSeasonVars(season, year);
+  if (sv.season)                                    v.season           = sv.season;
+  if (sv.seasonYear)                                v.seasonYear       = sv.seasonYear;
   if (filters.minScore)                             v.averageScore_greater = filters.minScore;
   if (filters.genres && filters.genres.length)      v.genre_in         = filters.genres;
   applyDateRangeToVariables(v, filters.daterange);
@@ -5717,6 +5978,7 @@ const PRESET_FORM_DEFAULTS = {
 
 function loadFiltersIntoForm(f) {
   if (!f) return;
+  f = normalizeFilterObject(f);
   document.getElementById('f-sort').value      = f.sort      || 'POPULARITY_DESC';
   document.getElementById('f-daterange').value = f.daterange || '';
   const score = f.score || f.minScore || 0;
@@ -5804,10 +6066,19 @@ function mediaMatchesDateRange(media, value) {
   return fuzzy >= toFuzzyDate(bounds.start) && fuzzy <= toFuzzyDate(bounds.end);
 }
 
-// Relative date filters use real calendar ranges via AniList FuzzyDateInt vars.
+// Short relative date filters use server-side MediaTrend history; year ranges stay start-date based.
 // The "Airing This Week" PRESET is still handled separately via airingSchedules.
 function onDateRangeChange(el) {
   document.getElementById('f-daterange').value = el.value || '';
+  if (YEAR_DATERANGES.has(el.value || '')) {
+    selectedYears = [];
+  }
+  if ((el.value || '') === 'last-year') {
+    selectedSeasons = selectedSeasons.filter(season => season !== 'CURRENT');
+  }
+  normalizeFilterState();
+  syncFilterBtnLabels();
+  if (activeFbFilter) renderFilterOpts(activeFbFilter);
   renderFilterTags();
   updateNameInput();
   scheduleAutoPreview();
@@ -5833,6 +6104,7 @@ async function addPreset(id, name) {
 
 // ── Custom preview ────────────────────────────────
 function buildCurrentCustomFiltersFromForm() {
+  normalizeFilterState();
   const filters = {};
   const sort = document.getElementById('f-sort').value;
   const score = parseInt(document.getElementById('f-score').value);
@@ -5845,7 +6117,7 @@ function buildCurrentCustomFiltersFromForm() {
   if (selectedGenres.length) filters.genres = [...selectedGenres];
   const daterange = getSelectedDateRangeValue();
   if (daterange) filters.daterange = daterange;
-  return filters;
+  return normalizeFilterObject(filters);
 }
 
 async function previewActiveSearchDraft() {
@@ -5857,7 +6129,7 @@ async function previewActiveSearchDraft() {
   }
   setPreviewLoading(subtitle);
   try {
-    const media = await fetchPreview({ ...filtersToVars(buildCurrentCustomFiltersFromForm()), isAdult: includeAdult ? undefined : false });
+    const media = await fetchPreviewForFilters(buildCurrentCustomFiltersFromForm(), { includeAdultContent: includeAdult });
     renderPreview(media, `${subtitle} — ${media.length} titles`);
   } catch(e) {
     console.error('[preview] Error:', e);
@@ -5870,7 +6142,7 @@ async function previewActiveSearchDraft() {
 async function previewCustom() {
   setPreviewLoading('Loading…');
   try {
-    const media = await fetchPreview({ ...filtersToVars(buildCurrentCustomFiltersFromForm()), isAdult: includeAdult ? undefined : false });
+    const media = await fetchPreviewForFilters(buildCurrentCustomFiltersFromForm(), { includeAdultContent: includeAdult });
     renderPreview(media, `${media.length} titles`);
   } catch(e) {
     console.error('[preview] Error:', e);
@@ -6161,7 +6433,7 @@ async function previewCatalog(id) {
     return;
   }
   try {
-    const media = await fetchPreview(filtersToVars(cat.filters));
+    const media = await fetchPreviewForFilters(cat.filters || {}, { includeAdultContent: false });
     renderPreview(media, `${cat.name} — ${media.length} titles`);
   } catch(e) {
     console.error('[preview] Error:', e);
@@ -6183,7 +6455,9 @@ function scheduleAutoPreview() {
   updateNameInput();
   clearTimeout(autoPreviewTimer);
   if (activeSource) {
-    if (_sourceMedia !== null) {
+    if (isTrendDateRange(getSelectedDateRangeValue())) {
+      autoPreviewTimer = setTimeout(fetchAndShowSource, 400);
+    } else if (_sourceMedia !== null) {
       // Source is loaded — apply filters client-side, no server fetch needed
       autoPreviewTimer = setTimeout(_applySourcePreview, 200);
     }

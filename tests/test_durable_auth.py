@@ -67,7 +67,9 @@ def make_media(media_id: int, title: str, **overrides) -> dict:
         "seasonYear": 2024,
         "format": "TV",
         "source": "",
+        "popularity": 0,
         "trending": 0,
+        "favourites": 0,
         "rankings": [],
         "relations": {"edges": []},
         "nextAiringEpisode": None,
@@ -566,6 +568,399 @@ class DurableAuthTests(unittest.TestCase):
         self.assertIn("relations { edges { relationType(version: 2) node { type } } }", query)
         self.assertIn("nextAiringEpisode { episode timeUntilAiring }", query)
         self.assertIn("isAdult", query)
+
+    def test_catalog_filter_normalization_strips_invalid_values_and_keeps_one_season(self) -> None:
+        anilist_module = self.modules["main"].anilist
+
+        normalized = anilist_module.normalize_catalog_filters(
+            {
+                "sort": "TRENDING_DESC",
+                "genres": ["Action", "", "Action"],
+                "formats": ["", "TV", "TV", "BAD_FORMAT"],
+                "statuses": ["", "RELEASING", "BAD_STATUS"],
+                "seasons": ["CURRENT", "SUMMER", "BAD_SEASON"],
+                "years": ["2024", "2025", "bad"],
+                "daterange": "this-year",
+            }
+        )
+
+        self.assertEqual(
+            normalized,
+            {
+                "sort": "TRENDING_DESC",
+                "genres": ["Action"],
+                "formats": ["TV"],
+                "statuses": ["RELEASING"],
+                "seasons": ["SUMMER"],
+                "years": ["2025"],
+            },
+        )
+
+    def test_current_season_filter_overrides_explicit_year_and_last_year(self) -> None:
+        anilist_module = self.modules["main"].anilist
+
+        with mock.patch.object(anilist_module, "_season_now", return_value=("SPRING", 2026)), \
+            mock.patch.object(
+                anilist_module,
+                "_gql",
+                mock.AsyncMock(return_value={"Page": {"media": []}}),
+            ) as gql_mock:
+            result = asyncio.run(
+                anilist_module.get_custom(
+                    {"seasons": ["CURRENT"], "years": ["2024"], "daterange": "last-year"},
+                    page=1,
+                    per_page=10,
+                )
+            )
+
+        self.assertEqual(result, [])
+        variables = gql_mock.await_args.args[1]
+        self.assertEqual(variables["season"], "SPRING")
+        self.assertEqual(variables["year"], 2026)
+        self.assertNotIn("sdGt", variables)
+        self.assertNotIn("sdLt", variables)
+
+    def test_explicit_year_drops_year_date_range_and_blank_enum_values(self) -> None:
+        anilist_module = self.modules["main"].anilist
+
+        with mock.patch.object(
+            anilist_module,
+            "_gql",
+            mock.AsyncMock(return_value={"Page": {"media": []}}),
+        ) as gql_mock:
+            result = asyncio.run(
+                anilist_module.get_custom(
+                    {
+                        "formats": ["", "TV", "BAD_FORMAT"],
+                        "statuses": ["", "RELEASING"],
+                        "years": ["2024"],
+                        "daterange": "this-year",
+                    },
+                    page=1,
+                    per_page=10,
+                )
+            )
+
+        self.assertEqual(result, [])
+        variables = gql_mock.await_args.args[1]
+        self.assertEqual(variables["formats"], ["TV"])
+        self.assertEqual(variables["statuses"], ["RELEASING"])
+        self.assertEqual(variables["year"], 2024)
+        self.assertNotIn("sdGt", variables)
+        self.assertNotIn("sdLt", variables)
+
+    def test_short_date_range_custom_catalog_uses_media_trends_and_filters_locally(self) -> None:
+        anilist_module = self.modules["main"].anilist
+        high_trending = make_media(
+            101,
+            "High Trending",
+            genres=["Action", "Adventure"],
+            format="TV",
+            status="RELEASING",
+            season="SPRING",
+            seasonYear=2026,
+            averageScore=82,
+            popularity=100,
+            trending=50,
+            isAdult=False,
+        )
+        popular_but_less_trending = make_media(
+            102,
+            "Popular But Less Trending",
+            genres=["Action", "Adventure"],
+            format="TV",
+            status="RELEASING",
+            season="SPRING",
+            seasonYear=2026,
+            averageScore=90,
+            popularity=999,
+            trending=5,
+            isAdult=False,
+        )
+        adult_match = make_media(
+            103,
+            "Adult Match",
+            genres=["Action", "Adventure"],
+            format="TV",
+            status="RELEASING",
+            season="SPRING",
+            seasonYear=2026,
+            averageScore=99,
+            popularity=2000,
+            trending=999,
+            isAdult=True,
+        )
+        wrong_genre = make_media(
+            104,
+            "Wrong Genre",
+            genres=["Action"],
+            format="TV",
+            status="RELEASING",
+            season="SPRING",
+            seasonYear=2026,
+            averageScore=95,
+            popularity=1500,
+            trending=100,
+            isAdult=False,
+        )
+        wrong_status = make_media(
+            105,
+            "Wrong Status",
+            genres=["Action", "Adventure"],
+            format="TV",
+            status="FINISHED",
+            season="SPRING",
+            seasonYear=2026,
+            averageScore=95,
+            popularity=1500,
+            trending=100,
+            isAdult=False,
+        )
+        low_score = make_media(
+            106,
+            "Low Score",
+            genres=["Action", "Adventure"],
+            format="TV",
+            status="RELEASING",
+            season="SPRING",
+            seasonYear=2026,
+            averageScore=40,
+            popularity=1500,
+            trending=100,
+            isAdult=False,
+        )
+
+        media_payload = {
+            "Page": {
+                "media": [
+                    adult_match,
+                    high_trending,
+                    wrong_genre,
+                    popular_but_less_trending,
+                    wrong_status,
+                    low_score,
+                    high_trending,
+                ],
+            }
+        }
+        trend_payload = {
+            "Page": {
+                "pageInfo": {"hasNextPage": False},
+                "mediaTrends": [
+                    {"mediaId": 101, "date": 1778511600, "trending": 100},
+                    {"mediaId": 101, "date": 1778598000, "trending": 40},
+                    {"mediaId": 102, "date": 1778511600, "trending": 200},
+                    {"mediaId": 103, "date": 1778511600, "trending": 999},
+                    {"mediaId": 104, "date": 1778511600, "trending": 500},
+                    {"mediaId": 105, "date": 1778511600, "trending": 500},
+                    {"mediaId": 106, "date": 1778511600, "trending": 500},
+                ],
+            }
+        }
+        filters = {
+            "daterange": "this-month",
+            "sort": "TRENDING_DESC",
+            "genres": ["Action", "Adventure"],
+            "formats": ["TV"],
+            "statuses": ["RELEASING"],
+            "seasons": ["SPRING"],
+            "years": ["2026"],
+            "minScore": 70,
+        }
+
+        async def fake_gql(query, variables, token=None):
+            if "mediaTrends" in query:
+                return trend_payload
+            return media_payload
+
+        with mock.patch.object(anilist_module, "_gql", mock.AsyncMock(side_effect=fake_gql)) as gql_mock:
+            result = asyncio.run(anilist_module.get_custom(filters, page=1, per_page=50))
+
+        self.assertEqual([media["id"] for media in result], [102, 101])
+        queries = [call.args[0] for call in gql_mock.await_args_list]
+        self.assertTrue(any("mediaTrends" in query for query in queries))
+        self.assertFalse(any("airingSchedules" in query for query in queries))
+        self.assertFalse(any("startDate_greater" in query for query in queries))
+        self.assertEqual(result[0]["trendWindowScore"], 200)
+        self.assertEqual(result[1]["trendWindowScore"], 140)
+
+    def test_short_date_range_sort_is_independent_of_trend_filter(self) -> None:
+        anilist_module = self.modules["main"].anilist
+        high_score = make_media(301, "High Score", averageScore=95, popularity=10, trending=5)
+        high_popularity = make_media(302, "High Popularity", averageScore=70, popularity=999, trending=5)
+        no_trend = make_media(303, "No Trend", averageScore=100, popularity=1000, trending=0)
+        media_payload = {"Page": {"media": [high_score, high_popularity, no_trend]}}
+        trend_payload = {
+            "Page": {
+                "pageInfo": {"hasNextPage": False},
+                "mediaTrends": [
+                    {"mediaId": 301, "date": 1778511600, "trending": 10},
+                    {"mediaId": 302, "date": 1778511600, "trending": 20},
+                ],
+            }
+        }
+
+        async def fake_gql(query, variables, token=None):
+            if "mediaTrends" in query:
+                return trend_payload
+            return media_payload
+
+        with mock.patch.object(anilist_module, "_gql", mock.AsyncMock(side_effect=fake_gql)):
+            popular = asyncio.run(anilist_module.get_custom({"daterange": "this-week", "sort": "POPULARITY_DESC"}, page=1, per_page=50))
+            self.modules["cache"].cache.clear()
+            scored = asyncio.run(anilist_module.get_custom({"daterange": "this-week", "sort": "SCORE_DESC"}, page=1, per_page=50))
+            self.modules["cache"].cache.clear()
+            trending = asyncio.run(anilist_module.get_custom({"daterange": "this-week", "sort": "TRENDING_DESC"}, page=1, per_page=50))
+
+        self.assertEqual([media["id"] for media in popular], [302, 301])
+        self.assertEqual([media["id"] for media in scored], [301, 302])
+        self.assertEqual([media["id"] for media in trending], [302, 301])
+        self.assertNotIn(303, [media["id"] for media in trending])
+
+    def test_catalog_client_filter_sort_modes_are_applied_consistently(self) -> None:
+        main = self.modules["main"]
+        older = make_media(
+            201,
+            "Older",
+            popularity=100,
+            trending=5,
+            averageScore=60,
+            favourites=10,
+            seasonYear=2024,
+            startDate={"year": 2024, "month": 1, "day": 1},
+        )
+        newer = make_media(
+            202,
+            "Newer",
+            popularity=20,
+            trending=50,
+            averageScore=90,
+            favourites=5,
+            seasonYear=2026,
+            startDate={"year": 2026, "month": 5, "day": 10},
+        )
+        favourite = make_media(
+            203,
+            "Favourite",
+            popularity=80,
+            trending=10,
+            averageScore=70,
+            favourites=100,
+            seasonYear=2025,
+            startDate={"year": 2025, "month": 8, "day": 1},
+        )
+        media = [older, newer, favourite]
+
+        self.assertEqual(
+            [m["id"] for m in main._apply_client_filters_to_media(media, {"sort": "TRENDING_DESC"})],
+            [202, 203, 201],
+        )
+        self.assertEqual(
+            [m["id"] for m in main._apply_client_filters_to_media(media, {"sort": "POPULARITY_DESC"})],
+            [201, 203, 202],
+        )
+        self.assertEqual(
+            [m["id"] for m in main._apply_client_filters_to_media(media, {"sort": "SCORE_DESC"})],
+            [202, 203, 201],
+        )
+        self.assertEqual(
+            [m["id"] for m in main._apply_client_filters_to_media(media, {"sort": "START_DATE_DESC"})],
+            [202, 203, 201],
+        )
+        self.assertEqual(
+            [m["id"] for m in main._apply_client_filters_to_media(media, {"sort": "FAVOURITES_DESC"})],
+            [203, 201, 202],
+        )
+
+    def test_source_backed_short_date_filter_uses_media_trends_for_source_ids(self) -> None:
+        main = self.modules["main"]
+        source_media = [
+            make_media(401, "Trend Source", popularity=10, trending=1),
+            make_media(402, "Quiet Source", popularity=999, trending=0),
+        ]
+
+        with mock.patch.object(
+            main.anilist,
+            "get_media_trends_for_ids",
+            mock.AsyncMock(return_value={401: {"score": 50, "peak": 50, "days": 1, "popularity": 10, "inProgress": 3}}),
+        ) as trends_mock:
+            result = asyncio.run(
+                main._apply_client_filters_to_media_async(
+                    source_media,
+                    {"daterange": "this-week", "sort": "POPULARITY_DESC"},
+                )
+            )
+
+        self.assertEqual([media["id"] for media in result], [401])
+        trends_mock.assert_awaited_once()
+
+    def test_source_backed_client_filters_use_shared_normalization(self) -> None:
+        main = self.modules["main"]
+        source_media = [
+            make_media(
+                601,
+                "Summer Match",
+                format="TV",
+                status="RELEASING",
+                season="SUMMER",
+                seasonYear=2026,
+                startDate={"year": 2020, "month": 1, "day": 1},
+            ),
+            make_media(
+                602,
+                "Spring Nonmatch",
+                format="TV",
+                status="RELEASING",
+                season="SPRING",
+                seasonYear=2026,
+                startDate={"year": 2026, "month": 5, "day": 1},
+            ),
+        ]
+
+        result = main._apply_client_filters_to_media(
+            source_media,
+            {
+                "formats": ["", "TV", "BAD_FORMAT"],
+                "statuses": ["", "RELEASING"],
+                "seasons": ["CURRENT", "SUMMER"],
+                "years": ["2026"],
+                "daterange": "this-year",
+                "sort": "POPULARITY_DESC",
+            },
+        )
+
+        self.assertEqual([media["id"] for media in result], [601])
+
+    def test_media_trend_failure_falls_back_to_candidate_results(self) -> None:
+        anilist_module = self.modules["main"].anilist
+        candidate = make_media(501, "Fallback Candidate", popularity=50, trending=5)
+
+        async def fake_gql(query, variables, token=None):
+            if "mediaTrends" in query:
+                raise RuntimeError("rate limited")
+            return {"Page": {"media": [candidate]}}
+
+        with mock.patch.object(anilist_module, "_gql", mock.AsyncMock(side_effect=fake_gql)):
+            result = asyncio.run(anilist_module.get_custom({"daterange": "this-week", "sort": "TRENDING_DESC"}))
+
+        self.assertEqual([media["id"] for media in result], [501])
+
+    def test_year_date_range_custom_catalog_stays_start_date_based(self) -> None:
+        anilist_module = self.modules["main"].anilist
+
+        with mock.patch.object(
+            anilist_module,
+            "_gql",
+            mock.AsyncMock(return_value={"Page": {"media": []}}),
+        ) as gql_mock:
+            result = asyncio.run(anilist_module.get_custom({"daterange": "this-year", "sort": "TRENDING_DESC"}))
+
+        self.assertEqual(result, [])
+        query = gql_mock.await_args.args[0]
+        self.assertIn("media(", query)
+        self.assertIn("startDate_greater", query)
+        self.assertNotIn("airingSchedules", query)
+        self.assertNotIn("mediaTrends", query)
 
     def test_get_media_by_ids_query_uses_canonical_catalog_fields(self) -> None:
         anilist_module = self.modules["main"].anilist
